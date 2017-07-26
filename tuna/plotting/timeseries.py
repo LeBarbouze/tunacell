@@ -10,7 +10,7 @@ import re
 
 import matplotlib.transforms as transforms
 
-from tuna.stats.single import SingleObservable
+from tuna.stats.single import Univariate
 
 
 def add_data_statistics(axes, parser, obs, conditions,
@@ -33,7 +33,7 @@ def add_data_statistics(axes, parser, obs, conditions,
     line_mean : matplotlib.Lines2D
     fill_std matplotlib.collections.PolyCollection
     """
-    single = SingleObservable(obs, parser=parser, cset=conditions)
+    single = Univariate(obs, parser=parser, cset=conditions)
     single.import_from_text()
     item = single[condition_label]
     tt = item.time

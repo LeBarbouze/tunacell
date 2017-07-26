@@ -43,7 +43,7 @@ class UnivariatePlot(object):
         self.fig1 = fig
         return
 
-    def make_twopoints(self, condition_label=None, trefs=[], ntrefs=4,
+    def make_twopoints(self, condition_label=None, trefs=[], ntrefs=3,
                        trange=(-100., 100.)):
         fig = plot_twopoints(self.univariate, condition_label=condition_label,
                              trefs=trefs, ntrefs=ntrefs, trange=trange)
@@ -60,7 +60,7 @@ class UnivariatePlot(object):
         except text.MissingFolderError:
             # it means data has not been written yet
             # export data and then get
-            self.univariate.export_text(analysis_folder_path=user_path)
+            self.univariate.export_text()
             obs_path = master._get_obs_path(user_root=user_path,
                                             write=False)
         # export text jointly
