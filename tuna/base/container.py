@@ -19,7 +19,6 @@ from tuna.io import text, h5
 from tuna.base.cell import Cell
 from tuna.datatools import compute_secondary_observables
 from tuna.base.colony import Colony
-from tuna.base.metadata import Metadata, MissingPeriod, get_time_interval
 from tuna.observable import Observable
 
 
