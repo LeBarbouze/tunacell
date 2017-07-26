@@ -1,14 +1,18 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-"""
-setuptools for tuna package
+descr = """Analysis of time-lapse data of growing, and dividing cells
+
+Analysis of time-lapse data from microscopy of growing micro-organisms,
+including tree reconstruction, time-series visualization, computation of
+statistics of dynamic, and cell-cycle variables.
 """
 
 from setuptools import setup, find_packages
 
-setup(name='tuna',
+setup(name='tunacell',
       version='0.0.6',
-      description='Time-lapse UNicellular Analyzer',
+      description='Time-lapse of unicellular organisms analyzer',
+      long_description=descr,
       url='',
       author='Joachim Rambeau',
       author_email='joachim.rambeau@gmail.com',
