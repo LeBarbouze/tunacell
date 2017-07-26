@@ -1,11 +1,8 @@
       _                              _ _ 
      | |_ _   _ _ __   __ _  ___ ___| | |
-     | __| | | | '_ \ / _` |/ __/ _ \ | |
-     | |_| |_| | | | | (_| | (_|  __/ | |
+     | __| | | | '_ \ / _` |/ __/ _ \ | |   tune-a-cell
+     | |_| |_| | | | | (_| | (_|  __/ | |   Time-lapse of UNiCELLular organisms Analyzer
       \__|\__,_|_| |_|\__,_|\___\___|_|_|
-
-     tuna-a-cell
-     Time-lapse of UNiCELLular organisms Analyzer
      
 
 `tunacell`, or in its shorter form `tuna`,
@@ -33,6 +30,6 @@ of your cells!
 
 # About this version
 
-This version 0.0.6 is now ready for public testing. Please report any bug you
-find.
+This version 0.0.6 is now ready for public testing.
+Please feel free to report any bug.
 
