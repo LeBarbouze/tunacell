@@ -33,15 +33,17 @@ parser = Parser(path_to_exp)
 even = FilterCellIDparity('even')
 condition = FilterSet(label='evenID', filtercell=even)
 
-# define observable
+# define dynamic observables
 ou = Observable(raw='ou')
 gr = Observable(raw='exp_ou_int', differentiate=True, scale='log',
                 local_fit=True, time_window=15.)
+
+# define cell-cycle observables
 average_gr = Observable(raw='ou', differentiate=False, scale='linear', local_fit=False, mode='average', timing='g')
 division_size = Observable(raw='exp_ou_int', differentiate=False, scale='log', local_fit=False, mode='division', timing='g')
 
 # %% loop over both observables
-singles = []
+univs = []
 stats = []
 
 # %% Reference values
@@ -51,26 +53,26 @@ ref_decayrate = md.spring
 tmin = md.start
 tmax = md.stop
 period = md.period
-# %% SINGLE OBJECTS
+# %% univ OBJECTS
 for obs in [ou, gr, average_gr, division_size]:
 
     # Statistics: if import fails, compute
     try:
-        single = initialize_univariate(parser, obs, cset=[condition, ])
-        single.import_from_text()
+        univ = initialize_univariate(parser, obs, cset=[condition, ])
+        univ.import_from_text()
     except UnivariateIOError as uerr:
         print('Impossible to load univariate {}'.format(uerr))
         print('Launching computation')
-        single = compute_univariate_dynamics(parser, obs, cset=[condition, ])
-        single.export_text()
-    singles.append(single)
+        univ = compute_univariate_dynamics(parser, obs, cset=[condition, ])
+        univ.export_text()
+    univs.append(univ)
 
-#    sglplt = UnivariatePlot(single)
+#    sglplt = UnivariatePlot(univ)
 #    sglplt.make_onepoint(mean_show_sd=True, mean_ref=ref_mean)
 #    sglplt.make_twopoints(trefs=[40., 80.])
 #    sglplt.save(extension='.png')
 
-print('Single objects: OK')
+print('univ objects: OK')
 
 # %% define region(s) for steady state analysis
 
@@ -82,41 +84,41 @@ region = regs.get('ALL')
 ## define computation options
 
 options = CompuParams()
-# %% STATIONARY SINGLES
+# %% STATIONARY univs
 for index, obs in enumerate([ou, gr, average_gr, division_size]):
-    single = singles[index]
+    univ = univs[index]
     try:
-        stat = initialize_stationary_univariate(single, region, options)
+        stat = initialize_stationary_univariate(univ, region, options)
         stat.import_from_text()
     except StationaryUnivariateIOError as suerr:
         print('Impossible to load stationary {}'.format(suerr))
         print('Launching computation')
-        stat = compute_stationary_univariate(single, region, options)
+        stat = compute_stationary_univariate(univ, region, options)
         stat.export_text()
     stats.append(stat)
 
 #    fig = plot_stationary(stat, fitlog=True, epsilon=.1, ref_decay=ref_decayrate)
-#    folderpath = single.master._get_obs_path()
+#    folderpath = univ.master._get_obs_path()
 #    basename = 'stationary_' + region.name
 #    fname = os.path.join(folderpath, basename + '.png')
 #    fig.savefig(fname)
 
-print('Stationary single objects: OK')
+print('Stationary univ objects: OK')
 
 
 # %% CROSS CORRELATION
 
 #try:
-#    two = initialize_bivariate(*singles)
+#    two = initialize_bivariate(*univs)
 #    two.import_from_text()
 #except BivariateIOError:
-#    two = compute_bivariate(*singles)
+#    two = compute_bivariate(*univs)
 #    two.export_text()
 #
 #print('Cross-correlation: OK')
 
 # %% STATIONARY CROSS-CORRELATIONS
-couple = singles[2:]
+couple = univs[2:]
 s1, s2 = couple
 try:
     stwo = initialize_stationary_bivariate(s1, s2, region, options)
