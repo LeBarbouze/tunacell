@@ -39,8 +39,10 @@ gr = Observable(raw='exp_ou_int', differentiate=True, scale='log',
                 local_fit=True, time_window=15.)
 
 # define cell-cycle observables
-average_gr = Observable(raw='ou', differentiate=False, scale='linear', local_fit=False, mode='average', timing='g')
-division_size = Observable(raw='exp_ou_int', differentiate=False, scale='log', local_fit=False, mode='division', timing='g')
+average_gr = Observable(raw='ou', differentiate=False, scale='linear',
+                        local_fit=False, mode='average', timing='g')
+division_size = Observable(raw='exp_ou_int', differentiate=False, scale='log',
+                           local_fit=False, mode='division', timing='g')
 
 # %% loop over both observables
 univs = []
@@ -67,10 +69,13 @@ for obs in [ou, gr, average_gr, division_size]:
         univ.export_text()
     univs.append(univ)
 
-#    sglplt = UnivariatePlot(univ)
-#    sglplt.make_onepoint(mean_show_sd=True, mean_ref=ref_mean)
-#    sglplt.make_twopoints(trefs=[40., 80.])
-#    sglplt.save(extension='.png')
+    uplt = UnivariatePlot(univ)
+    uplt.make_onepoint(mean_show_sd=True, mean_ref=ref_mean)
+    if obs.timing != 'g':
+        uplt.make_twopoints(trefs=[40., 80., 120.])
+    else:
+        uplt.make_twopoints(trefs=[0, 1, 2])
+    uplt.save(extension='.png')
 
 print('univ objects: OK')
 
@@ -81,8 +86,7 @@ regs.add(label='ALL', tmin=None, tmax=None)
 
 region = regs.get('ALL')
 
-## define computation options
-
+# define computation options
 options = CompuParams()
 # %% STATIONARY univs
 for index, obs in enumerate([ou, gr, average_gr, division_size]):
@@ -97,36 +101,44 @@ for index, obs in enumerate([ou, gr, average_gr, division_size]):
         stat.export_text()
     stats.append(stat)
 
-#    fig = plot_stationary(stat, fitlog=True, epsilon=.1, ref_decay=ref_decayrate)
-#    folderpath = univ.master._get_obs_path()
-#    basename = 'stationary_' + region.name
-#    fname = os.path.join(folderpath, basename + '.png')
-#    fig.savefig(fname)
+    fig = plot_stationary(stat, fitlog=True, epsilon=.1, ref_decay=ref_decayrate)
+    folderpath = univ.master._get_obs_path()
+    basename = 'stationary_' + stat.region.name
+    fname = os.path.join(folderpath, basename + '.png')
+    fig.savefig(fname)
 
 print('Stationary univ objects: OK')
 
 
 # %% CROSS CORRELATION
+# unpack univariate objects
+u_ou, u_gr, u_avou, u_lendiv = univs
 
-#try:
-#    two = initialize_bivariate(*univs)
-#    two.import_from_text()
-#except BivariateIOError:
-#    two = compute_bivariate(*univs)
-#    two.export_text()
-#
-#print('Cross-correlation: OK')
+bivs = []
+for u1, u2 in [(u_ou, u_gr), (u_avou, u_lendiv)]:
+    try:
+        biv = initialize_bivariate(u1, u2)
+        biv.import_from_text()
+    except BivariateIOError:
+        biv = compute_bivariate(u1, u2)
+        biv.export_text()
+    bivs.append(biv)
+print('Cross-correlation: OK')
 
 # %% STATIONARY CROSS-CORRELATIONS
-couple = univs[2:]
-s1, s2 = couple
-try:
-    stwo = initialize_stationary_bivariate(s1, s2, region, options)
-    stwo.import_from_text()
-except StationaryBivariateIOError:
-    stwo = compute_stationary_bivariate(s1, s2, region, options)
-    stwo.export_text()
+sbivs = []
+for u1, u2 in [(u_ou, u_gr), (u_avou, u_lendiv)]:
+    try:
+        sbiv = initialize_stationary_bivariate(u1, u2, region, options)
+        sbiv.import_from_text()
+    except StationaryBivariateIOError:
+        sbiv = compute_stationary_bivariate(u1, u2, region, options)
+        sbiv.export_text()
+        sbivs.append(sbiv)
 
+    fig = plot_stationary(sbiv)
+    folderpath = sbiv.master._get_obs_path()
+    basename = 'stationary_bivariate_' + stat.region.name
+    fname = os.path.join(folderpath, basename + '.png')
+    fig.savefig(fname)
 print('Stationary cross-correlation: OK')
-
-plot_stationary(stwo)
