@@ -3,13 +3,12 @@
 """
 This module sets up:
     * iterating over timeseries
-    * indexifying, used to compute auto-/cross-correlations
-      functions
+    * defining regions for stationary analysis
+    * defining computation options for stationary analysis
 """
 import os
 import string
 import warnings
-import decimal  # for indexify
 import numpy as np
 import pandas as pd
 
@@ -157,14 +156,15 @@ class Regions(object):
         if not os.path.exists(text_file):
             raise RegionsIOError
         regs = pd.read_csv(text_file, sep='\t', index_col='label')
-        self._df = regs[[ 'tmin', 'tmax']]
+        self._df = regs[['tmin', 'tmax']]
         return
 
     def save_to_text(self):
         if self._df is not None:
             analysis_path = text.get_analysis_path(self.exp, write=True)
             text_file = os.path.join(analysis_path, 'regions.tsv')
-            self._df.to_csv(text_file, sep='\t', index_label=self._df.index.name)
+            self._df.to_csv(text_file, sep='\t',
+                            index_label=self._df.index.name)
         return
 
     def add(self, label=None, tmin=None, tmax=None):

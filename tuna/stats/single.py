@@ -54,15 +54,19 @@ class UnivariateConditioned(object):
         (ordered) sequence of times at which data is collected (binned)
     count_one : 1d array of ints
         number of samples for one point function, associated to corresponding
-        time in time array.
+        time array.
     average : 1d array of floats
-        sample average associated to corresponding time in time array
+        sample average associated to time array
+    var : 1d array of floats
+        sample variance associated to time array
+    std : 1d array of floats
+        sample standard deviation (square root of the variance)
     count_two : 2d array of ints
         matrix of two-point counts (number of trajectory connecting times i and
         j, where i and j are row, column indices to corresponding time in time
         array)
     autocorr : 2d array of floats
-        matrix of sample autocorrelation between times i and j, associated to
+        matrix of sample autocovariance between times i and j, associated to
         corresponding entries in time array.
 
     See also
@@ -593,22 +597,30 @@ class StationaryUnivariate(object):
 
     Parameters
     ----------
-    single : :class:`Univariate` instance
+    univariate : :class:`Univariate` instance
         from which one needs to compute stationary autocorrelation function
-    label : str (default None)
-        label to be given to the stationary object, serves as to distinguish
-        stationary objects computed on different time intervals
+    region : pandas.Series
+        name is the label of the region, and two items under index [tmin, tmax]
+    options : :class:`tuna.stats.utils.CompuParams` instance
+        define how to substract mean value and how to accept segments
+
+    Attributes
+    ----------
+    univariate : :class:`Univariate` instance
+        from which one needs to compute stationary autocorrelation function
+    region : pandas.Series
+        name is the label of the region, and two items under index [tmin, tmax]
     tmin : float (default None)
         minimum time (included) allowed in collecting timeseries
     tmax : float (default None)
         maximum time (excluded) allowed in collecting timeseries
+    options : :class:`tuna.stats.utils.CompuParams` instance
+        define how to substract mean value and how to accept segments
     adjust_mean : str {'global', 'local'}
         whether to use local average estimate (average estimated at single
         time points), or global average estimate (pool of all estimated values
         between tmin and tmax)
-
-    Attributes
-    ----------
+    disjoint : bool {True, False}
     _items : dictionary
         keys are condition labels, values are StationaryUnivariateConditioned
         instances.

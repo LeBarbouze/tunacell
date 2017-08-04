@@ -350,7 +350,8 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
             lab = '{:.0f} mins'.format(tref)
 
             ax = axs[0]
-            dat, = ax.plot(times[:], counts[index, :], ls=lt,
+            ok = np.where(counts[index, :] > 0)
+            dat, = ax.plot(times[ok], counts[index, :][ok], ls=lt,
                            label=r'$t_{{\mathrm{{ref}}}}=${}'.format(lab))
             color = dat.get_color()
             ax.plot((tref, tref), (0, counts[index, index]),
@@ -390,9 +391,8 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
             ax.plot(times[valid[index, :]] - tref,
                     corr[index, :][valid[index, :]]/var[index], ls=lt)
             # ax.set_yscale('log')
-            xmin, xmax = ax.xaxis.get_data_interval()
             ax.axhline(0, ls='--', color='k')
-            trangeleft, trangeright = trange
+            trangeleft, trangeright = xmin-xmax, xmax-xmin
             ax.set_xlim(left=trangeleft, right=trangeright)
             ax.set_xlabel('Delta' + timelabel)
 
