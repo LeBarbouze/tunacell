@@ -74,12 +74,12 @@ myplot.save(user_bname='tutorial_sample', add_obs=False, extension='.png')
 ou = Observable(raw='ou')
 
 from tuna.stats.api import compute_univariate_dynamics
-single = compute_univariate_dynamics(parser, ou)
+univariate = compute_univariate_dynamics(parser, ou)
 
 # %% Plotting the statistics
 
 from tuna.plotting.dynamics import UnivariatePlot
-singleplt = UnivariatePlot(single)
-singleplt.make_onepoint(mean_show_sd=True)
-singleplt.make_twopoints()
-singleplt.save(label='tutorial', extension='.png')
+uplt = UnivariatePlot(univariate)
+uplt.make_onepoint(mean_show_sd=True)
+uplt.make_twopoints()
+uplt.save(label='tutorial', extension='.png')
