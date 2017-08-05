@@ -436,10 +436,16 @@ class FilterSet(object):
         """
         self.label = label
         # initialize filters
+        self._obs = []  # needed to compute testable observables
         self.cell_filter = filtercell
         self.lineage_filter = filterlineage
         self.colony_filter = filtertree
         self.container_filter = filtercontainer
+        
+        for filtertype in [filtercell, filterlineage, filtertree, filtercontainer]:
+            for obs in filtertype._obs:
+                if obs not in self._obs:
+                    self._obs.append(obs)
 
         self._named_list = [('label', self.label),
                             ('filtercell', self.cell_filter),
