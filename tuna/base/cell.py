@@ -394,6 +394,7 @@ class Cell(tlib.Node):
         # associate continous observable and build corresponding ._sdata
         cobs = deepcopy(obs)
         cobs.mode = 'dynamics'
+        cobs.timing = 't'
         clabel = cobs.label()
         # discard result as it can mix cell, and parent cell data
         _ = self.build_timelapse(cobs)
