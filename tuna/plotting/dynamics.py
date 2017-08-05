@@ -32,13 +32,13 @@ class UnivariatePlot(object):
         return
 
     def make_onepoint(self, show_cdts='all', left=None, right=None,
+                      show_ci=True,
                       mean_ref=None, mean_lims=(None, None),
-                      mean_show_sd=False,
                       var_ref=None, var_lims=(None, None)):
         fig = plot_onepoint(self.univariate, show_cdts=show_cdts,
                             left=left, right=right,
                             mean_ref=mean_ref, mean_lims=mean_lims,
-                            mean_show_sd=mean_show_sd,
+                            show_ci=show_ci,
                             var_ref=var_ref, var_lims=var_lims)
         self.fig1 = fig
         return
@@ -117,7 +117,7 @@ def _append_cdt(univariate, this_cdt, cdt_list):
 
 def plot_onepoint(univariate, show_cdts='all', left=None, right=None,
                   mean_ref=None, mean_lims=(None, None),
-                  mean_show_sd=False,
+                  show_ci=False,
                   var_ref=None, var_lims=(None, None)):
     """Plot one point statistics.
 
@@ -144,7 +144,8 @@ def plot_onepoint(univariate, show_cdts='all', left=None, right=None,
     """
     if not isinstance(univariate, Univariate):
         raise TypeError('Input is not {}'.format(Univariate))
-    fig, axs = plt.subplots(3, 1, figsize=(6, 6))
+    vsize = 2.5
+    fig, axs = plt.subplots(3, 1, figsize=(6, 3*vsize))
 
     obs = univariate.obs
 
@@ -200,7 +201,7 @@ def plot_onepoint(univariate, show_cdts='all', left=None, right=None,
 
         ax = axs[1]
         ax.plot(times, mean, color=color, alpha=0.8, label=c_label)
-        if mean_show_sd:
+        if show_ci:
             fill_std = ax.fill_between(times, mean-se, mean+se,
                                        facecolor=color, alpha=.3,
                                        label='.99 C.I. for ({})'.format(letter))
@@ -275,10 +276,17 @@ def plot_onepoint(univariate, show_cdts='all', left=None, right=None,
     axs[1].set_ylabel('Average', fontsize='large')
     axs[2].set_ylabel('Variance', fontsize='large')
     # legend
-    axs[0].legend(loc=2, borderaxespad=0.)
+    if len(conditions) > 2:
+        axs[0].legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+    else:
+        axs[0].legend(loc=0)
     if additional_handles:
         labels = [item.get_label() for item in additional_handles]
-        axs[1].legend(handles=additional_handles, labels=labels, loc=0)
+        if len(conditions) >2:
+            axs[1].legend(handles=additional_handles, labels=labels,
+                          bbox_to_anchor=(1.05, 1), loc=2)
+        else:
+            axs[1].legend(handles=additional_handles, labels=labels, loc=0)
 
     # add info above first ax
 #    info = '(binning interval {})'.format(univariate.indexify.binsize)
@@ -442,7 +450,8 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
 
 
 def plot_stationary(stationary, show_cdts='all',
-                    fitlog=False, epsilon=0.1, ref_decay=None):
+                    fitlog=False, epsilon=0.1, ref_decay=None,
+                    interval_max=None):
     """Plot stationary autocorrelation.
 
     Parameters
@@ -590,6 +599,17 @@ def plot_stationary(stationary, show_cdts='all',
             yy = np.exp(-ref_decay*tt)
             ax3.plot(tt, yy, '--', color='k', alpha=.5,
                      label=r'$\tau = {:.1f}$ mins'.format(1./ref_decay))
+    
+    if interval_max is not None and interval_max < tright:
+        _right = interval_max
+        if isinstance(stationary, StationaryUnivariate):
+            _left = 0.
+        else:
+            _left = -interval_max
+        ax1.set_xlim(left=_left, right=_right)
+        ax2.set_xlim(left=_left, right=_right)
+        if fitlog:
+            ax3.set_xlim(left=_left, right=_right)
 
     formatter = ScalarFormatter(useMathText=True, useOffset=False)
     formatter.set_powerlimits((-2, 3))
@@ -599,7 +619,10 @@ def plot_stationary(stationary, show_cdts='all',
     ax2.set_ylabel(r'Autocorr. $g_s(\Delta t)$', fontsize='large')
 
     ax2.set_ylim(bottom=-1.2, top=1.2)
-    ax1.legend(loc=0)
+    if len(conditions) > 2:
+        ax1.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+    else:
+        ax1.legend(loc=0)
     if nplots == 2:
         ax = ax2
     elif nplots == 3:
@@ -617,7 +640,11 @@ def plot_stationary(stationary, show_cdts='all',
     # confidence interval legend
     if additional_handles:
         labels = [item.get_label() for item in additional_handles]
-        ax2.legend(handles=additional_handles, labels=labels, loc=0)
+        if len(conditions) > 2:
+            ax2.legend(handles=additional_handles, labels=labels,
+                       bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        else:
+            ax2.legend(handles=additional_handles, labels=labels, loc=0)
 
     if fitlog and isinstance(stationary, StationaryUnivariate):
         ax3.set_yscale('log')
