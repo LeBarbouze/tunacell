@@ -13,3 +13,6 @@
 
 # except .gitignore
 !.gitignore
+
+# Virtualenv
+/venv/
