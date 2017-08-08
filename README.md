@@ -1,7 +1,7 @@
       _                              _ _ 
      | |_ _   _ _ __   __ _  ___ ___| | |
      | __| | | | '_ \ / _` |/ __/ _ \ | |   tune-a-cell
-     | |_| |_| | | | | (_| | (_|  __/ | |   Time-lapse of UNiCELLular organisms Analyzer
+     | |_| |_| | | | | (_| | (_|  __/ | |   Analysis of Timeseries from dividing UNicellular microorganisms
       \__|\__,_|_| |_|\__,_|\___\___|_|_|
      
 
