@@ -80,6 +80,6 @@ univariate = compute_univariate_dynamics(parser, ou)
 
 from tuna.plotting.dynamics import UnivariatePlot
 uplt = UnivariatePlot(univariate)
-uplt.make_onepoint(mean_show_sd=True)
+uplt.make_onepoint(show_ci=True)
 uplt.make_twopoints()
 uplt.save(label='tutorial', extension='.png')
