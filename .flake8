@@ -1,0 +1,48 @@
+[flake8]
+max-complexity = 30
+max-line-length = 120
+
+# Ignored rules:
+#
+# F401 'tasks.lib.utils.group_iter' imported but unused
+# E501 line too long (494 > 400 characters)
+
+# E731 do not assign a lambda expression, use a def
+# W503 line break before binary operator
+
+# E111 indentation is not a multiple of four
+# E121 continuation line under-indented for hanging indent
+# E114 indentation is not a multiple of four (comment)
+# E402 module level import not at top of file
+# E231 missing whitespace after ':'
+# E302 expected 2 blank lines, found 1
+# E126 continuation line over-indented for hanging indent
+# E261 at least two spaces before inline comment
+# E265 block comment should start with '# '
+# E202 whitespace before ')'
+# E303 too many blank lines (3)
+# E305 expected 2 blank lines after class or function definition, found 1
+# E226 missing whitespace around arithmetic operator
+# W391 blank line at end of file
+# E128 continuation line under-indented for visual indent
+# E116 unexpected indentation (comment)
+# W191 indentation contains tabs
+# E401 multiple imports on one line
+# W291 trailing whitespace
+# E131 continuation line unaligned for hanging indent
+# E306 expected 1 blank line before a nested definition, found 0
+# E262 inline comment should start with '# '
+# W292 no newline at end of file
+# E122 continuation line missing indentation or outdented
+# E115 expected an indented block (comment)
+# E127 continuation line over-indented for visual indent
+# E123 closing bracket does not match indentation of opening bracket's line
+# E266 too many leading '#' for block comment
+# E201 whitespace after '('
+# E124 closing bracket does not match visual indentation
+# E203 whitespace before ':'
+# W293 blank line contains whitespace
+# E301 expected 1 blank line, found 0
+
+
+ignore = E111,E121,E114,E402,E231,E302,E126,E261,E265,E202,E303,E305,E226,W391,E128,E116,E401,W191,W291,E131,E306,E262,W292,E122,E115,E127,E123,E266,E201,E124,E203,E501,W293,E301,F401,W503,E731

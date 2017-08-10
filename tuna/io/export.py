@@ -49,11 +49,11 @@ def output_by_lineages(exp,
         bn = 'flat-lineages_experiment-' + exp.metadata.label
     else:
         bn = outname.split('.txt')[0]
-    
+
     # edit README from 'edit_readme.md'
     readmefilename = os.path.join(export_path, 'readme_' + bn + '.md')
     freadme = open(readmefilename, 'w')
-    
+
     local_dir = os.path.dirname(__file__)
     print local_dir
     editreadmefilename = os.path.join(local_dir, 'edit_readme.md')
@@ -62,7 +62,7 @@ def output_by_lineages(exp,
             if line[0] != '!':
                 freadme.write(line)
     freadme.close()
-                
+
     # write proper output
     fname = os.path.join(export_path, bn + '.txt')
 
@@ -116,7 +116,7 @@ def output_by_lineages(exp,
                     alldat = datatools.make_obs(c.data)
 
                     times, volumes, fluos = zip(*alldat[['time', 'volume', 'fluo']])
-                    
+
                     tau, rate = None, None
                     voli, volf = None, None
                     fi, ff = None, None
