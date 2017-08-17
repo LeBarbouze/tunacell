@@ -20,6 +20,11 @@ class TimeSeries(object):
     ids : sequence of cell identifiers from which data was collected
     index_cycles : sequence of couples (index_first, index_last)
        that delimit data corresponding to cell id
+    slices : sequence of slice objects
+        each item can be used to slice the entire table
+    time_bounds : sequence of couples of floats
+        for each cell, first element is the lower bound of cell cycle, the
+        second element is the upper bound of cell cycle
     select_ids : sequences of True/False values corresponding whether or
        not to include data from cell id in timeseries
     """
