@@ -644,7 +644,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
                         fontsize='large')
     if n_axes > 1:
         axes[0].xaxis.set_label_position('top')
-        axes[0].set_xlabel('Time (mins)', x=.95,  horizontalalignment='right',
+        axes[0].set_xlabel('Time (mins)', x=.95, horizontalalignment='right',
                            fontsize='large')
 
     # add legend

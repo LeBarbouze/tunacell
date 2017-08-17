@@ -95,7 +95,7 @@ class Experiment(object):
         PARSER API CLASS.
     """
 
-    def __init__(self,  path='.', filetype=None):
+    def __init__(self, path='.', filetype=None):
         self.abspath = None
         self.label = None
         self.datatype = None  # Will be updated for text filetype

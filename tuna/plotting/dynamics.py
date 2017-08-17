@@ -282,7 +282,7 @@ def plot_onepoint(univariate, show_cdts='all', left=None, right=None,
         axs[0].legend(loc=0)
     if additional_handles:
         labels = [item.get_label() for item in additional_handles]
-        if len(conditions) >2:
+        if len(conditions) > 2:
             axs[1].legend(handles=additional_handles, labels=labels,
                           bbox_to_anchor=(1.05, 1), loc=2)
         else:

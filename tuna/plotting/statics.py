@@ -1,11 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
-tuna package
-============
-
-plotting/statics.py module
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+This module is deprecated...
 """
 
 import numpy as np

@@ -115,8 +115,8 @@ def _check_params(region, options):
     if not isinstance(options, CompuParams):
         raise ParamsError('options must be a CompuParams instance')
     if ((not hasattr(region, 'tmin')) or
-        (not hasattr(region, 'tmax')) or
-        (not hasattr(region, 'name'))):
+         (not hasattr(region, 'tmax')) or
+         (not hasattr(region, 'name'))):
         raise ParamsError('region must have name, tmin, tmax attributes')
     return
 

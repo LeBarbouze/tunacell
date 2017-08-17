@@ -190,8 +190,7 @@ class Regions(object):
             params['tmax'] = tmax
         # check that these parameters do not correspond to a stored item
         for item in self._df.itertuples():
-            if (item.tmin == params['tmin'] and
-                item.tmax == params['tmax']):
+            if (item.tmin == params['tmin'] and item.tmax == params['tmax']):
                 warnings.warn('Parameters correspond to '
                               'region {}'.format(item.Index))
                 return

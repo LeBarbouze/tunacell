@@ -573,15 +573,15 @@ def build_cells(arr, container=None, report_NaNs=True,
                 if 'f' in dtype.kind:
                     if np.isnan(arr[label]).any():
                         # row = arr[np.isnan(arr[label])]
-                        msg= ('NaN detected for {}'.format(label) + ' in:'
-                              'container {}, cell {}'.format(container, cid))
+                        msg = ('NaN detected for {}'.format(label) + ' in:'
+                               'container {}, cell {}'.format(container, cid))
                         logging.info(msg)
                 # for integer types, they seem to be replaced by largest value
                 elif ('u' in dtype.kind) or ('i' in dtype.kind):
                     if np.amax(arr[label]) == np.iinfo(dtype).max:
                         # row = arr[arr[label] == np.iinfo(dtype).max]
-                        msg= ('NaN detected for {}'.format(label) + ' in:'
-                              'container {}, cell {}'.format(container, cid))
+                        msg = ('NaN detected for {}'.format(label) + ' in:'
+                               'container {}, cell {}'.format(container, cid))
                         logging.info(msg)
         # attach data to Cell instance
         cell.data = arr

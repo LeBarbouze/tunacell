@@ -589,6 +589,6 @@ class Parser(object):
                 cell = self.get_cell(sample_id)
                 yield cell
                 count += 1
-                if size is not None and count  >= size:
+                if size is not None and count >= size:
                     break
         return

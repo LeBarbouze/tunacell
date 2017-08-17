@@ -490,7 +490,7 @@ def update_2(row_timeseries, col_timeseries, row_eval_times, col_eval_times,
     else:
         row_t, row_val = map(np.array, zip(*row_ts))
         row_f = interp1d(row_t, row_val, kind='linear',
-                         assume_sorted=True,  bounds_error=False)
+                         assume_sorted=True, bounds_error=False)
         row_arr = row_f(row_eval_times) - row_mean
     # if all NaNs, nothing to do
     if np.all(np.isnan(row_arr)):
@@ -672,7 +672,7 @@ def update_stationary_cross(row_timeseries, col_timeseries, eval_times,
     else:
         row_t, row_val = map(np.array, zip(*row_ts))
         row_f = interp1d(row_t, row_val, kind='linear',
-                         assume_sorted=True,  bounds_error=False)
+                         assume_sorted=True, bounds_error=False)
         row_arr = row_f(eval_times) - row_mean
     # if all NaNs, nothing to do
     if np.all(np.isnan(row_arr)):
