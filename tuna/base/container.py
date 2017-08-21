@@ -114,7 +114,7 @@ class Container(object):
         self.cells = []
         self.trees = []
 
-        # acquisition periodicity
+        # acquisition period
         self.period = self.metadata.loc['period']
 
         # cases against filetype

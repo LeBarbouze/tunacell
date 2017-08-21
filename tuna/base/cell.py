@@ -226,7 +226,7 @@ class Cell(tlib.Node):
            experiment metadata, this parameter will be imported; otherwise if
            there are at least 2 consecutive values, it will be inferred from
            data (at the risk of making mistakes if there are too many missing
-           values); if there is only one point, it is set to 5 (minutes)...
+           values)
         """
         label = str(obs.label())
         yaxis = obs.raw
@@ -244,9 +244,6 @@ class Cell(tlib.Node):
                 arr = self.data['time']
                 time_increments = arr[1:] - arr[:-1]
                 dt = np.round(np.amin(np.abs(time_increments)), decimals=2)
-            # if it's not detected, use default dt
-            else:
-                dt = self.container.period
 
         # define which function to apply to cell to retrieve individual
         # timeseries

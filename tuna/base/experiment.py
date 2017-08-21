@@ -35,8 +35,6 @@ import warnings
 import shutil
 
 from tuna.base.container import Container
-
-#from tuna.base.metadata import Metadata, get_time_interval
 from tuna.io import text, metadata
 
 
@@ -122,7 +120,7 @@ class Experiment(object):
             fns = text.container_filename_parser(self.abspath)
             # extract only container labels
             self.containers = list(zip(*map(os.path.splitext, fns))[0])
-
+            # get metadata
             fn = text._check_up('metadata.csv', self.abspath, level=2)
             df = metadata.load_from_csv(fn, sep=',')
             meta = metadata.fill_rows(df, self.label, self.containers)
