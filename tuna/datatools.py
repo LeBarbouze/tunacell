@@ -44,6 +44,7 @@ class Coordinates(object):
 
     @property
     def clear_x(self):
+        """Returns x coordinates for which y is valid"""
         if len(self._y) > 0:
             return self._x[self.valid]
         else:
@@ -51,10 +52,25 @@ class Coordinates(object):
 
     @property
     def clear_y(self):
+        """Returns y coordinates when y is valid"""
         if len(self._y) > 0:
             return self._y[self.valid]
         else:
             return np.array([], dtype=float)
+
+    @property
+    def clear(self):
+        """Returns coordinates cleared off NaNs"""
+        return Coordinates(self.clear_x, self.clear_y)
+
+    def as_array(self, x_name=None, y_name=None):
+        if x_name is None:
+            x_name = 'x'
+        if y_name is None:
+            y_name = 'y'
+        array = np.array(zip(self.clear_x, self.clear_y),
+                         dtype=[(x_name, 'f8'), (y_name, 'f8')])
+        return array
 
 
 # %% NEW LOCAL FIT ESTIMATE USING ARRAYS
@@ -299,288 +315,6 @@ def compute_rates(x, y, x_break=None,
     return out_rate, out_y, out_anterior_rate, out_anterior_y, all_x, all_y
 
 
-# %% build timeseries over cell instances
-
-def local_rate(cell, yaxis='length', yscale='log',
-               time_window=15., dt=5.,
-               join_points=3,
-               testing=False):
-    """Performs derivative estimate of observable yaxis over variable 'time'.
-
-    Shifting time window estimate of 'time' -> d(yaxis)/d('time') (axis)
-    using cell and parent cell values when possible.
-
-    Use this function when you expect that the derivative (of log) of yaxis is
-    continuous at cell divisions.
-
-    Parameters
-    ----------
-    cell : Cell instance
-       (should have a .data attribute, being a Numpy structured array)
-    yaxis : str (default 'length')
-       member of cell.data.dtypes.names
-       (measurements of this variable are expected to be noisy, hence the local
-       fits)
-    yscale : str (default 'log'')
-       how data is treated to join parent end/cell start, and for rates
-       (use 'log' for a quantity that you expect to be exponentially growing,
-       otherwise 'linear' is a safe call)
-    time_window : float
-       time window over which data points are collected for fitting procedure
-    dt : float
-       expected 'time' interval between two consecutive data points in array
-    join_points : int (default 3)
-       minimal number of data points taken to estimate cell cycle boundary
-       values (birth value of cell, division value of parent cell)
-    testing : bool (default False)
-       set to True to have a verbose description printed on standard output
-       while function is called.
-
-    Returns
-    -------
-    output, adjusted_yaxis_timeseries
-
-    output : NumPy structured array
-       columns: time, cellID, rate_<yaxis>, fit_<yaxis>
-       rate_<yaxis> is the derivative of (optionally log of) yaxis, estimated
-       by a the linear coefficient of the fit over time_window
-       fit_<yaxis>: fit over the time window of <yaxis> values
-
-    adjusted_yaxis : NumPy structured array
-        columns: time, cellID, <yaxis> label
-        corresponds to the concatenation of parent and daughter values, with
-        parent values adjusted to ensure 'continuity' at division
-
-    Notes
-    -----
-    Try to put time_window as a multiple of dt, and avoid values of the from
-    (2q+1)*dt/2, since it may create undesired boundaries effect.
-    """
-    # derivative of values, or of the log(values)
-    if yscale == 'log':
-        y_operator = np.log
-        y_inv_operator = np.exp
-    elif yscale == 'linear':
-        y_operator = lambda x: x
-        y_inv_operator = lambda x: x
-
-    output = []
-    yaxis_timeseries = []
-
-    if testing:
-        print('Starting to compute local growth rates of ' + yaxis)
-        print('for cell: {}'.format(cell))
-
-    epsilon = dt/10.  # auxiliary delta time
-
-    # number of points per time window
-    n_points = int(np.round(time_window/dt, decimals=0))
-    if testing:
-        print('Local fits will be performed over {} points'.format(n_points))
-        
-    if n_points < 2:
-        msg = ('Trying to perform linear fit over less than 2 points. '
-               'Please use a larger time_window parameter.')
-        raise LocalFitError(msg)
-    elif n_points == 2:
-        msg = ('Performing linear fit over 2 points: '
-               'for rate computation experimental errors are not smoothed')
-        warnings.warn(msg)
-    value_0 = None  # estimate of cell log initial value
-    T0 = None  # start of time for cell
-    offset = None
-    times = []
-    values = []
-    cids = []
-    parent_times = []
-    adjusted_parent_values = []
-    pids = []
-    id_type = 'u2'  # default
-
-    # define the number of points for estimates at cell birth, parent division
-    if n_points >= join_points:
-        n_joints = n_points
-    else:
-        n_joints = join_points
-    if testing:
-        print('For values at division/birth:')
-        print('  try to fit over {} points (local fits)'.format(n_points))
-        print('  but allows to reduce up to {} points'.format(
-                join_points))
-        print()
-
-    # find initial time and if possible initial value
-    if cell.data is not None and len(cell.data) > 0:
-        times = cell.data['time']
-#        cids = cell.data['cellID']
-#        id_type = cids.dtype
-        values = y_operator(cell.data[yaxis])
-        if cell.birth_time is not None:
-            T0 = cell.birth_time
-        else:
-            T0 = times[0] - dt/2.  # artificial birth time
-        if len(times) >= join_points:
-            # fit to at least join_points, more if possible
-            r, i = np.polyfit(times[:n_joints],
-                              values[:n_joints], 1)
-            value_0 = i + r * T0
-
-        if testing:
-            print('Okay we found some data for input cell:')
-            print('times: {}'.format(times))
-            print(yaxis + ': {}'.format(y_inv_operator(values)))
-            if value_0 is not None:
-                msg = ('We extrapolate this value for birth value'
-                       'time, value: '
-                       '{}, {}'.format(T0, y_inv_operator(value_0)))
-                print(msg)
-            print()
-
-        # let's go: find parent values if they exist
-        parent_value_1 = None  # estimate of parent end log value
-        if cell.parent is not None and value_0 is not None:
-            # use parent cell for first estimates
-            if cell.parent.data is not None:
-                PT1 = cell.parent.division_time  # parent time of division
-                parent_times = cell.parent.data['time']
-#                pids = cell.parent.data['cellID']
-                parent_values = y_operator(cell.parent.data[yaxis])
-                if testing:
-                    print('Okay, we found some data for parent cell')
-                    print('times: {}'.format(parent_times))
-                    print(yaxis + ': {}'.format(y_inv_operator(parent_values)))
-                # 2 checks:
-                #   1. there at enough points to get the final value estimate
-                cdt1 = len(parent_times) >= join_points
-                #   2. check if parent division and cell division coincide
-                cdt2 = np.abs(PT1 - T0) < epsilon
-                #   3. intial value is determined
-                cdt3 = value_0 is not None
-                if cdt1 and cdt2 and cdt3:
-                    r, i = np.polyfit(parent_times[-n_joints:],
-                                      parent_values[-n_joints:], 1)
-                    parent_value_1 = i + r * PT1
-                    if testing:
-                        msg = ('We extrapolate this value for division value'
-                               'time, value: '
-                               '{}, {}'.format(PT1,
-                                               y_inv_operator(parent_value_1)))
-                        print(msg)
-                        print()
-                    # adjust values by translating
-                    offset = parent_value_1 - value_0
-                    adjusted_parent_values = parent_values - offset
-                    if testing:
-                        msg = ('Values of parent cell are rescaled such that:'
-                               'rescaled ' + yaxis + ': '
-                               '{}'.format(adjusted_parent_values))
-                        print(msg)
-                # not enough point in parent cell to estimate parent_value_1
-                # reset to empty lists
-                else:
-                    parent_times = []
-#                    pids = []
-                    adjusted_parent_values = []
-                    # maybe not enough point in parent to find adjacent timepoint
-#                    while np.amin(np.abs(parent_times - t_start)) > dt + epsilon:
-#                        t_start += dt
-
-        # concatenate arrays (may be done in structured arrays)
-        ts = np.concatenate((parent_times, times))
-        vals = np.concatenate((adjusted_parent_values, values))
-#        ids = np.concatenate((pids, cids))
-        if testing:
-            print('size of ts {}, size of vals {}'.format(len(ts), len(vals)))
-
-        # define adjusted timeseries as structured array
-        label = 'adjusted_' + yaxis
-        yaxis_timeseries = np.zeros(len(ts), dtype=[('time', 'f8'),
-                                                    (label, 'f8'),
-#                                                    ('cellID', id_type)
-                                                    ]
-                                    )
-        yaxis_timeseries['time'] = ts
-        yaxis_timeseries[label] = y_inv_operator(vals)
-#        yaxis_timeseries['cellID'] = ids
-
-#        yaxis_timeseries = zip(ts, y_inv_operator(vals))
-
-        # start the earliest possible in parent cell such that
-        # the time window intercepts at least one frame in cell
-        t_start = T0 - time_window + dt
-        t_stop = t_start + time_window
-        # values within cell cycle
-
-        if testing:
-            print('Loop to compute local rates')
-
-        # in principle, there are as many points as cell timepoints
-
-        new_times = np.zeros_like(times)
-#        new_ids = np.zeros(len(times), dtype=id_type)
-        new_vals = np.zeros(len(new_times), dtype='f8')
-        rates = np.zeros(len(new_times), dtype='f8')
-
-        for index, t in enumerate(times):
-            t_stop = t + dt/2.  # convention
-            t_start = t_stop - time_window
-            # time of evaluation
-            time_eval = (t_start + t_stop)/2.
-            new_times[index] = time_eval
-            # reduce to points to fit
-            lower = ts > t_start
-            upper = ts <= t_stop
-            boo = np.logical_and(lower, upper)
-            if testing:
-                print('+ Time window:', end=' ')
-                print('{} < t < {} '.format(t_start, t_stop), end=' ')
-                print('({} points)'.format(len(ts[boo])))
-            # check if n_points > 3
-            if len(ts[boo]) < n_points:
-                if testing:
-                    print('Not enough points on this time window')
-                    print('({} instead of {})'.format(len(ts[boo]), n_points))
-                    print('Going to next time window')
-                    print()
-                # not enough point in this window: insert NaN
-                rates[index] = np.nan
-                new_vals[index] = np.nan
-            else:
-                if testing:
-                    print('local fit over {} points'.format(len(ts[boo])))
-                rate, intercept = np.polyfit(ts[boo], vals[boo], 1)
-                new_vals[index] = rate * time_eval + intercept
-                rates[index] = rate
-        # offset parent values
-        boo = new_times < T0
-        if offset is not None:
-            new_vals[boo] = new_vals[boo] + offset
-        # assign cellID column
-#        if len(pids) > 0:
-#            new_ids[boo] = pids[0]
-#        new_ids[np.logical_not(boo)] = cids[0]
-
-        # inverse operator for fitted values
-        new_vals = y_inv_operator(new_vals)
-
-        # build structured array for output
-        output = np.zeros(len(new_times), dtype=[('time', 'f8'),
-                                                 ('fit_' + yaxis, 'f8'),
-                                                 ('rate_' + yaxis, 'f8'),
-#                                                 ('cellID', id_type)
-                                                 ])
-        output['time'] = new_times
-        output['fit_' + yaxis] = new_vals
-        output['rate_' + yaxis] = rates
-#        output['cellID'] = new_ids
-
-        # clean NaNs
-        boo = np.logical_not(np.isnan(rates))
-        output = output[boo]
-
-    return output, yaxis_timeseries
-
-
 class ExtrapolationError(Exception):
     pass
 
@@ -647,42 +381,51 @@ def extrapolate_endpoints(cell, timeseries=None, yaxis='length', scale='log',
 
     return y_inv_operator(val)
 
-# %% List of operator acting on timeseries
+# %% List of operator acting on Coordinates
 
-def _cycle_linear(timeseries):
-    times, values = map(np.array, zip(*timeseries))
-    a, b = np.polyfit(times, values, 1)
+
+def _cycle_linear(coords):
+    if len(coords.valid) < 2:
+        raise ValueError('Not enough valid coordinates')
+    a, b = np.polyfit(coords.clear_x, coords.clear_y, 1)
     return a, b
 
 
-def _cycle_log(timeseries):
-    logtimeseries = logarithm(timeseries)
-    return _cycle_linear(logtimeseries)
+def _cycle_log(coords):
+    logcoords = logarithm(coords)
+    return _cycle_linear(logcoords)
 
 
-def logarithm(timeseries):
-    t, x = map(np.array, zip(*timeseries))
-    return (t, np.log(x))
+def logarithm(coords):
+    if len(coords.valid) < 2:
+        raise ValueError('Not enough valid coordinates')
+    return Coordinates(coords.x, np.log(coords.y))
 
 
-def derivative(timeseries):
-    times, values = map(np.array, zip(*timeseries))
-    values = np.array(values, dtype='f8')
-    delta_t = additive_increments(times)
-    delta_v = additive_increments(values)
-    newtimes = (times[1:] + times[:-1]) / 2
-    der = delta_v / delta_t
-    return (newtimes, der)
+def derivative(coords):
+    delta_x = additive_increments(coords.clear_x)
+    delta_y = additive_increments(coords.clear_y)
+    new_x = (coords.clear_x[1:] + coords.clear_y[:-1])/2.
+    new_y = delta_y/delta_x
+    # interpolate to associate to initial times
+    f = interp1d(new_x, new_y, kind='linear', assume_sorted=True, bounds_error=False)
+    out_y = np.array(len(coords.x) * [np.nan, ])
+    if len(coords.valid) > 0:
+        out_y[coords.valid] = f(coords.clear_x)
+    return Coordinates(coords.x, out_y)
 
 
-def logderivative(timeseries):
-    times, values = map(np.array, zip(*timeseries))
-    values = np.array(values, dtype='f8')
-    delta_t = additive_increments(times)
-    delta_v = multiplicative_increments(values)
-    newtimes = (times[1:] + times[:-1])/2.
-    logder = np.log(delta_v) / delta_t
-    return (newtimes, logder)
+def logderivative(coords):
+    delta_x = additive_increments(coords.clear_x)
+    delta_y = multiplicative_increments(coords.clear_y)
+    new_x = (coords.clear_x[1:] + coords.clear_y[:-1])/2.
+    new_y = np.log(delta_y)/delta_x
+    # interpolate to associate to initial times
+    f = interp1d(new_x, new_y, kind='linear', assume_sorted=True, bounds_error=False)
+    out_y = np.array(len(coords.x) * [np.nan, ])
+    if len(coords.valid) > 0:
+        out_y[coords.valid] = f(coords.clear_x)
+    return Coordinates(coords.x, out_y)
 
 
 # %% list of operators acting on 1-D arrays
@@ -941,5 +684,12 @@ if __name__ == '__main__':
     anterior_y[np.arange(-20, 0, 5, dtype=int)] = 4.
     y[np.arange(0, len(x), 5, dtype=int)] = 2.
     r, f, ar, af, xx, yy = compute_rates(x, y, x_break=-.5, scale='linear',
-                                 anterior_x=anterior_x, anterior_y=anterior_y,
-                                 dt=1, time_window=15., testing=True)
+                                         anterior_x=anterior_x,
+                                         anterior_y=anterior_y,
+                                         dt=1, time_window=15., testing=True)
+    coords = Coordinates(np.concatenate([anterior_x, x]),
+                         np.concatenate([af, f]))
+    array = coords.as_array(x_name='time', y_name='value')
+    print(array['time'])
+    print(array['value'])
+    
