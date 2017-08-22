@@ -12,7 +12,8 @@ from copy import deepcopy
 import treelib as tlib
 
 
-from tuna.datatools import (local_rate, extrapolate_endpoints,
+from tuna.datatools import (Coordinates, compute_rates,
+                            local_rate, extrapolate_endpoints,
                             derivative, logderivative, ExtrapolationError)
 
 
@@ -197,14 +198,15 @@ class Cell(tlib.Node):
     def build_timelapse(self, obs):
         """Builds timeseries corresponding to observable of mode 'dynamics'.
 
+        Result is an array of same length as time array, stored in a dictionary
+        _sdata, which keys are obs.label(). When using sliding windows,
+        estimate in a given cell actualize data in its parent cell, if and only
+        if it has not been actualized before (check disjoint time intervals).
+
         Parameters
         ----------
         obs : Observable instance
             mode must be 'dynamics'
-
-        Returns
-        -------
-        Numpy structured array with 3 columns 'time', <obs.label>, 'cellID'
 
         Notes
         -----
@@ -229,13 +231,18 @@ class Cell(tlib.Node):
            values)
         """
         label = str(obs.label())
-        yaxis = obs.raw
+        raw = obs.raw
+        coords = Coordinates(self.data['time'], self.data[raw])
+        if self.parent is not None and len(self.parent.data) > 0:
+            anteriors = Coordinates(self.parent.data['time'],
+                                    self.parent.data[raw])
+        else:
+            anteriors = Coordinates(np.array([], dtype=float),
+                                    np.array([], dtype=float))
         # if empty, return empty array of appropriate type
         if len(self.data) == 0:  # there is no data, but it has some dtype
-            arr = np.array([], dtype=[('time', 'f8'),
-                                      (label, 'f8'),
-                                      ('cellID', self.data.dtype['cellID'])])
-            return arr  # empty array is returned with appropriate dtype
+            return Coordinates(np.array([], dtype=float),
+                               np.array([], dtype=float))
 
         dt = self.container.period
         if dt is None:
@@ -245,126 +252,47 @@ class Cell(tlib.Node):
                 time_increments = arr[1:] - arr[:-1]
                 dt = np.round(np.amin(np.abs(time_increments)), decimals=2)
 
-        # define which function to apply to cell to retrieve individual
-        # timeseries
-        # case: differentiation
-        time, array = [], []
-        if obs.differentiate:
-
-            # case : no local fit, use finite differences
-            if not obs.local_fit:
+        # case : no local fit, use data, or finite differences
+        if not obs.local_fit:
+            if obs.differentiate:
                 if obs.scale == 'linear':
                     if len(self.data) > 1:
-                        out = derivative(self.data[['time', yaxis]])
-                        time, array = out
+                        new = derivative(coords)
                 elif obs.scale == 'log':
                     if len(self.data) > 1:
-                        out = logderivative(self.data[['time', yaxis]])
-                        time, array = out
-                idarray = self.data['cellID'][:len(time)]  # resize
-            # case : local estimates using local_rates
+                        new = logderivative(coords)
             else:
-                # dismiss the adjusted values
-                fit, adjusted = local_rate(self, yaxis=yaxis,
-                                           yscale=obs.scale,
-                                           time_window=obs.time_window,
-                                           dt=dt,
-                                           join_points=obs.join_points)
-                time = fit['time']
-                array = fit['rate_' + yaxis]
-                idarray = fit['cellID']
+                new = coords
+            self._sdata[label] = new.y
 
-        # case: no differentiation
+        # case : local estimates using  compute_rates
         else:
-            # case : no local fitting, retrieve data
-            if not obs.local_fit:
-                time = self.data['time']
-                array = self.data[yaxis]
-                idarray = self.data['cellID']
-            # case : local fits using local_rate
+            r, f, ar, af, xx, yy = compute_rates(coords.x, coords.y,
+                                                 x_break=self.birth_time,
+                                                 anterior_x=anteriors.x,
+                                                 anterior_y=anteriors.y,
+                                                 scale=obs.scale,
+                                                 time_window=obs.time_window,
+                                                 dt=dt,
+                                                 join_points=obs.join_points)
+            if obs.differentiate:
+                to_cell = r
+                to_parent = ar
             else:
-                fit, adjusted = local_rate(self, yaxis=yaxis,
-                                           yscale=obs.scale,
-                                           time_window=obs.time_window,
-                                           dt=dt,
-                                           join_points=obs.join_points)
-                time = fit['time']
-                array = fit['fit_' + yaxis]
-                idarray = fit['cellID']
+                to_cell = f
+                to_parent = af
+            self._sdata[label] = to_cell
 
-        # when local fitting is used, the result may span 2 cells:
-        # current cell, and its parent
-        out = np.zeros(len(time), dtype=[('time', 'f8'),
-                                         (label, 'f8'),
-                                         ('cellID', idarray.dtype)])
-        out['time'] = time[:]
-        out[label] = array[:]
-        out['cellID'] = idarray[:]
-
-        # update cell values
-        if idarray.dtype.kind in ['i', 'u']:
-            boo = idarray == int(self.identifier)  # text idtype is integer
-        else:
-            boo = idarray == self.identifier  # text type is set as strings
-
-        # check if non-empty and non-intersecting
-        if label in self._sdata.keys():
-            to_concat = out[boo]
-            existing = self._sdata[label]
-            if _disjoint_time_sets(to_concat['time'], existing['time']):
-                self._sdata[label] = np.concatenate((to_concat, existing))
-                # this should be well sorted since operations on parents
-                # would provide data towards end of cell-cycle
-        else:
-            self._sdata[label] = out[boo]
-
-        # update parent cell values if existing and not updated yet by sibling
-        if self.parent is not None:
-            pid = self.parent.identifier
-            if idarray.dtype.kind in ['i', 'u']:
-                boo = idarray == int(pid)
-            else:
-                boo = idarray == pid
-            new = out[boo]
-            # not updated yet
+            addendum = Coordinates(anteriors.x, to_parent)
             if label not in self.parent._sdata.keys():
-                self.parent._sdata[label] = new
-            # check that present data is time disjoint
-            elif _disjoint_time_sets(new['time'],
-                                     self.parent._sdata[label]['time']):
-                arr = self.parent._sdata[label]
-                self.parent._sdata[label] = np.concatenate((arr, new))
+                self.parent._sdata[label] = to_parent
+            elif len(addendum.valid) > 0:
+                existing = Coordinates(anteriors.x, self.parent._sdata[label])
+                # test for disjoint time ranges
+                if _disjoint_time_sets(existing.clear_x, addendum.clear_x):
+                    self.parent._sdata[label][addendum.valid] = addendum.clear_y
 
-#        # update parent cell values if they were not updated by sibling
-#        if self.bpointer is not None:
-#            # check that sibling has not been computed
-#            fill_parent = False
-#            # TODO ERASE TRY BLOCK WHEN UNBUGGED
-##            try:
-##                if len(self.parent.childs) > 1:
-##                    pass
-##            except AttributeError as ae:
-##                print(self.identifier)
-##                raise ae
-#            ###
-#            if len(self.parent.childs) > 1:
-#                for ch in self.parent.childs:
-#                    if ch.identifier != self.identifier:
-#                        break
-#                if label not in ch._sdata.keys():
-#                    fill_parent = True
-#            else:
-#                fill_parent = True
-#            if fill_parent:
-#                boo = idarray == int(self.parent.identifier)
-#                new = out[boo]
-#                if label not in self.parent._sdata.keys():
-#                    self.parent._sdata[label] = new
-#                else:
-#                    # collect previously computed values, concatenate new
-#                    arr = self.parent._sdata[label]
-#                    self.parent._sdata[label] = np.concatenate((arr, new))
-        return out
+        return
 
     def compute_cyclized(self, obs):
         """Computes observable when mode is different from 'dynamics'.
