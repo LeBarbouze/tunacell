@@ -109,14 +109,18 @@ def compute_rates(x, y, x_break=None,
         array of rates estimated at x array (uses interpolation)
     fits : 1d ndarray
         array of fitted values at x array
+    anterior_rates : 1d ndarray
+        array of rates estimated at anterior_x array
+    anterior_fits : 1d ndarray
+        array of fitter values at anterior_x array
     used_x : 1d ndarray
         concatenation with derivative continuity hypothesis of anterior_x and x
     used_y : 1d ndarray
         concatenation with derivative continuity hypothesis of anterior_y and y
     """
-    # check array lengths
+    # check array lengths and associate cleaning ordinate NaNs
     coords = Coordinates(x, y)
-    anterior_coords = Coordinates(anterior_x, anterior_y)
+    anteriors = Coordinates(anterior_x, anterior_y)
 
     # define x_break by convention
     if x_break is None:
@@ -133,22 +137,16 @@ def compute_rates(x, y, x_break=None,
         def y_inv_operator(vals):
             return vals
 
-    # remove NaN values
-    clean_x = coords.clear_x
-    clean_y = coords.clear_y
-    clean_ax = anterior_coords.clear_x
-    clean_ay = anterior_coords.clear_y
-
     # find period (can be different from dt when multiple acquisition periods)
-    if len(clean_x) == 0:
-        return [], [], [], []
+    if len(coords.clear_x) == 0:
+        return [], [], [], [], [], []
     # too small x range to fit anything
-    elif clean_x[-1] - clean_x[0] < time_window:
+    elif coords.clear_x[-1] - coords.clear_x[0] < time_window:
         only_nans = len(x) * [np.nan, ]
-        return only_nans, only_nans, x, y
+        return only_nans, only_nans, [], [], x, y
 
-    # clean_x is necesarily of length >=2
-    period = np.amin(clean_x[1:] - clean_x[:-1])
+    # coords.clear_x is necesarily of length >=2
+    period = np.amin(coords.clear_x[1:] - coords.clear_x[:-1])
 
     # number of points per time window
     n_points = int(np.round(time_window/period, decimals=0))
@@ -179,30 +177,31 @@ def compute_rates(x, y, x_break=None,
     op_y_break = None  # estimate of y value at joining (value at birth)
     op_ay_break = None  # estimate of anterior y value at joining (at division)
 
-    op_y = y_operator(clean_y)
+    op_y = y_operator(coords.clear_y)
 
-    if len(clean_x) >= join_points:
+    if len(coords.clear_x) >= join_points:
         # fit to at least join_points, more if possible
-        r, i = np.polyfit(clean_x[:n_joints], op_y[:n_joints], 1)
+        r, i = np.polyfit(coords.clear_x[:n_joints], op_y[:n_joints], 1)
         op_y_break = i + r * x_break
 
     if testing:
         msg = ('Data to fit:\n'
-               'x : {}'.format(clean_x) + '\n'
-               'y : {}'.format(clean_y))
+               'x : {}'.format(coords.clear_x) + '\n'
+               'y : {}'.format(coords.clear_y))
         print(msg)
 
     # try to use anterior values : compute break offset
     trans_op_ay = []  # translated, operated anterior values; default: empty
-    if len(clean_ax) > 0:
-        op_ay = y_operator(clean_ay)
+    offset = None
+    if len(anteriors.clear_x) > 0:
+        op_ay = y_operator(anteriors.clear_y)
         # 2 checks:
         #   1. there at enough points to get the final value estimate
-        cdt1 = len(clean_ax) >= join_points
+        cdt1 = len(anteriors.clear_x) >= join_points
         #   2. initial value is determined
         cdt2 = op_y_break is not None
         if cdt1 and cdt2:
-            r, i = np.polyfit(clean_ax[-n_joints:],
+            r, i = np.polyfit(anteriors.clear_x[-n_joints:],
                               op_ay[-n_joints:], 1)
             op_ay_break = i + r * x_break
             if testing:
@@ -210,16 +209,21 @@ def compute_rates(x, y, x_break=None,
                        'break time, value: '
                        '{}, {}'.format(x_break, y_inv_operator(op_ay_break)))
                 print(msg)
-                print()
+                msg = ('Anterior data used for fitting:\n'
+                       'x : {}'.format(anteriors.clear_x) + '\n'
+                       'y : {}'.format(anteriors.clear_y))
+                print(msg)
             # adjust values by translating
-            trans_op_ay = op_ay - op_ay_break + op_y_break
+            offset = op_ay_break - op_y_break
+            trans_op_ay = op_ay - offset
     if testing:
         msg = ('Translated, operated anterior values are:\n'
-               '{}'.format(trans_op_ay))
+               'y\' {}'.format(trans_op_ay))
         print(msg)
+        print()
 
     # concatenate operated values
-    all_x = np.concatenate([clean_ax, clean_x])
+    all_x = np.concatenate([anteriors.clear_x, coords.clear_x])
     all_op_y = np.concatenate([trans_op_ay, op_y])
     all_y = y_inv_operator(all_op_y)
 
@@ -238,13 +242,16 @@ def compute_rates(x, y, x_break=None,
         if t_stop <= x_break:
             fit_op_y[index] = np.nan
             rate_op_y[index] = np.nan
+            if testing:
+                msg = ('+ window range does not intercept x range: next')
+                print(msg)
             continue
         # reduce to points to fit
         lower = all_x > t_start
         upper = all_x <= t_stop
         boo = np.logical_and(lower, upper)
         if testing:
-            print('+ Time window:', end=' ')
+            print('+ window:', end=' ')
             print('{} < t < {} '.format(t_start, t_stop), end=' ')
             print('({} points)'.format(len(all_x[boo])))
         # check if n_points > 3
@@ -252,35 +259,44 @@ def compute_rates(x, y, x_break=None,
             if testing:
                 print('Not enough points on this time window')
                 print('({} instead of {})'.format(len(all_x[boo]), n_points))
-                print('Going to next time window')
-                print()
+                print('next')
             # not enough point in this window: insert NaN
             rate_op_y[index] = np.nan
             fit_op_y[index] = np.nan
         else:
-            if testing:
-                print('local fit over {} points'.format(len(all_x[boo])))
             rate, intercept = np.polyfit(all_x[boo], all_op_y[boo], 1)
             fit_op_y[index] = rate * time_eval + intercept
             rate_op_y[index] = rate
+            if testing:
+                msg = ('time          : {}'.format(time_eval) + '\n'
+                       'fitted value  : {}'.format(fit_op_y[index]) + '\n'
+                       'computed rate : {}'.format(rate))
+                print(msg)
 
     # new values: linear interpolation
     fit_op_coords = Coordinates(fit_x, fit_op_y)
     f = interp1d(fit_op_coords.clear_x, fit_op_coords.clear_y, kind='linear',
                  assume_sorted=True, bounds_error=False)
+    # interpolation may be defined over both x range and anterior_x range
     out_y = np.array(len(coords.x) * [np.nan, ])  # initialize to NaNs
+    out_anterior_y = np.array(len(anteriors.x) * [np.nan, ])
     # valid data points: interpolation at initial x coordinates
     out_y[coords.valid] = y_inv_operator(f(coords.clear_x))
+    if len(anteriors.valid) > 0 and offset is not None:
+        out_anterior_y[anteriors.valid] = y_inv_operator(f(anteriors.clear_x) + offset)
 
     # rates : linear interpolation
     rate_coords = Coordinates(fit_x, rate_op_y)
     f = interp1d(rate_coords.clear_x, rate_coords.clear_y, kind='linear',
                  assume_sorted=True, bounds_error=False)
     out_rate = np.array(len(coords.x) * [np.nan, ])
+    out_anterior_rate = np.array(len(anteriors.x) * [np.nan, ])
     # valid data points: interpolation at initial x coordinates
     out_rate[coords.valid] = f(coords.clear_x)
+    if len(anteriors.valid) > 0 and offset is not None:
+        out_anterior_rate[anteriors.valid] = f(anteriors.clear_x)
 
-    return out_rate, out_y, all_x, all_y
+    return out_rate, out_y, out_anterior_rate, out_anterior_y, all_x, all_y
 
 
 # %% build timeseries over cell instances
@@ -924,6 +940,6 @@ if __name__ == '__main__':
     anterior_y = np.array(len(anterior_x) * [np.nan, ])
     anterior_y[np.arange(-20, 0, 5, dtype=int)] = 4.
     y[np.arange(0, len(x), 5, dtype=int)] = 2.
-    r, f, xx, yy = compute_rates(x, y, x_break=-.5,
+    r, f, ar, af, xx, yy = compute_rates(x, y, x_break=-.5, scale='linear',
                                  anterior_x=anterior_x, anterior_y=anterior_y,
-                                 dt=1, time_window=15.)
+                                 dt=1, time_window=15., testing=True)
