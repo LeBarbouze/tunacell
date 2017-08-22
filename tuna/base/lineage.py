@@ -8,6 +8,7 @@ from __future__ import print_function
 import numpy as np
 import random
 import collections
+from tuna.datatools import Coordinates
 
 from tuna.observable import Observable
 
@@ -192,7 +193,7 @@ class Lineage(object):
             for cid in self.idseq:
                 cell = self.colony.get_node(cid)
                 for sobs in suppl_obs:
-                    _ = cell.build(sobs)
+                    cell.build(sobs)
 
         # build timeseries depending on obs mode
         if obs.mode == 'dynamics':
@@ -285,9 +286,7 @@ class Lineage(object):
         # build timeseries by concatenating each cell's timeseries
         # when time_window is called, some values from the estimate at cell <c>
         # are in fact evaluated in its parent cell time range
-        ts = []
-        arrays = []
-        valid_previous_cell = False
+        label = obs.label()
         # lineage conditions mask
         time_bounds = []
         for cid in self.idseq:
@@ -305,79 +304,25 @@ class Lineage(object):
             else:
                 tright = - np.infty
             time_bounds.append((tleft, tright))
-            local = cell.build(obs)  # get local timeseries
-            # cut extrapolated values if there is no previous cell
-            if len(local) > 0:
-                # this is to dismiss data used in other lineages
-                if (not valid_previous_cell) and (cell.birth_time is not None):
-                    for index, time in enumerate(local['time']):
-                        if time >= cell.birth_time:
-                            break
-                    local = local[index:]
-            arrays.append(local)
-            # id is added even if not data is reported BY THIS CELL
-            # but its daughter cell potentially can report for data
-            # in THIS CELL time range due to the local_build() procedure
-            valid_previous_cell = cell.data is not None and len(cell.data) > 0
-
-        # try to identify closest frames to cell birth/division
+            cell.build(obs)  # get local timeseries
+        # build array
+        arrays = []
         index_cycles = []
-
+        count = 0
+        for cid in self.idseq:
+            cell = self.colony.get_node(cid)
+            if len(cell.data) > 0:
+                coords = Coordinates(cell.data['time'], cell._sdata[label])
+                arrays.append(coords.as_array(x_name='time', y_name=label))
+                size = len(arrays[-1])
+                index_cycles.append((count, count + size - 1))
+                count += size
+            else:
+                index_cycles.append(None)
         ts = np.concatenate(arrays)
-        if len(ts) > 0:
-
-            # get array of times
-            times = ts['time']
-            frames = len(times)
-            index = 0
-
-            # report indices of timeseries for cell's time range
-            index_ts_birth = None
-            index_ts_division = None
-            for cid in self.idseq:
-                cell = self.colony.get_node(cid)
-                # cell without data: no range for
-                if cell.data is None or len(cell.data) == 0:
-                    index_cycles.append(None)
-                    continue  # move to next cell
-
-                # last cell may not have data in timeseries
-                if cell.birth_time is not None:
-                    if cell.birth_time > times[-1]:
-                        index_cycles.append(None)
-                        continue
-
-                    # if cell.birth_time is defined, look for first frame
-                    while index < frames and times[index] < cell.birth_time:
-                        index += 1
-                    if index < frames:
-                        index_ts_birth = index  # index of cell's first frame
-
-                # if no birth is reported, then index_ts_birth is kept to None
-                # just checking that cell's data is not beyond time values
-                elif cell.data['time'][0] > times[-1]:
-                    index_cycles.append(None)
-                    continue
-
-                # if cell.division_time is defined, look for last frame
-                if cell.division_time is not None:
-                    while index < frames and times[index] < cell.division_time:
-                        index += 1
-                    if index <= frames:
-                        index_ts_division = index - 1  # index of cell's last frame
-                # if it's not, it means it is last cell in lineage
-                else:
-                    index_ts_division = None  # slice til the end
-                index_cycles.append((index_ts_birth, index_ts_division))
-        # if no data has been retrieved, there might still be cells in the lineage
-        # but with too few points to
-        else:
-            index_cycles = [None for cid in self.idseq]
-
         select_ids = self.get_boolean_tests(cset)
-
         # return a TimeSeries instance
-        timeseries = TimeSeries(label=obs.label(),
+        timeseries = TimeSeries(label=label,
                                 ts=ts,
                                 ids=self.idseq[:],
                                 time_bounds=time_bounds,
