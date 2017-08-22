@@ -6,6 +6,7 @@ This module implements general data operations.
 from __future__ import print_function  # start to adapt to Python 3
 
 import numpy as np
+from scipy.interpolate import interp1d
 from numpy.lib.recfunctions import append_fields
 import warnings
 
@@ -16,6 +17,270 @@ class MissingLabel(Exception):
 
 class LocalFitError(Exception):
     pass
+
+
+class Coordinates(object):
+    """Clear timeseries from NaNs and other functionalities"""
+
+    def __init__(self, x, y):
+        if np.any(np.isnan(x)):
+            msg = 'NaN value(s) detected in x-array: please remove beforehand'
+            raise ValueError(msg)
+        if len(x) != len(y):
+            msg = 'Arrays of different lengths! Check x and y input'
+            raise ValueError(msg)
+        self._x = x
+        self._y = y
+        self.valid = np.logical_not(np.isnan(y))
+        return
+
+    @property
+    def x(self):
+        return self._x
+
+    @property
+    def y(self):
+        return self._y
+
+    @property
+    def clear_x(self):
+        if len(self._y) > 0:
+            return self._x[self.valid]
+        else:
+            return np.array([], dtype=float)
+
+    @property
+    def clear_y(self):
+        if len(self._y) > 0:
+            return self._y[self.valid]
+        else:
+            return np.array([], dtype=float)
+
+
+# %% NEW LOCAL FIT ESTIMATE USING ARRAYS
+
+def compute_rates(x, y, x_break=None,
+                  anterior_x=[], anterior_y=[],
+                  scale='log',
+                  time_window=15., dt=5.,
+                  join_points=3,
+                  testing=False):
+    """Computes rates of array y against x by local fits over shifting window.
+
+    Results are evaluated at coordinate array x by linear interpolation, so
+    that fitted and rate arrays are of same size of x and y.
+    When possible, it uses anterior values (in parent cell in tunacell context)
+    to extend the result range. When a timeseries is expected to cover multiple
+    cell cycles, with continuity hypothesis at the level of rates, it allows to
+    use parent cell data to extend the range over which the dferivative can be
+    evaluated.
+
+    Parameters
+    ----------
+    x : 1d ndarray
+        co-ordinate array (usually array of times for timeseries)
+    y : 1d ndarray
+        ordinate (array of values of same length as x array)
+    x_break : float
+        value of co-ordinate at which continuity joining is performed: in
+        tunacell context, this is the time of birth for present cell, and it
+        corresponds to division time of its parent cell
+    anterior_x : 1d ndarray
+        extra-bound anterior co-ordinate array: in tunacell context, this is
+        the time array extracted from parent cell
+    anterior_y : 1d ndarray
+        extra-bound anterior ordinate array: in tunacell context, this is the
+        array of values extracted from parent cell
+    scale : str {'linear', 'log'}
+        expected scale of y versus x. For exponential growth, use 'log' scale.
+    time_window : float
+        size of time window over which local fit is performed
+    dt : float
+        acquisition period of time array
+    join_points : int (default 3)
+        minimal number of points used when performing local fits to make
+        continuity between anterior and present timeseries
+    testing : bool {False, True}
+        verbose output for testing
+
+    Returns
+    -------
+    rates : 1d ndarray
+        array of rates estimated at x array (uses interpolation)
+    fits : 1d ndarray
+        array of fitted values at x array
+    used_x : 1d ndarray
+        concatenation with derivative continuity hypothesis of anterior_x and x
+    used_y : 1d ndarray
+        concatenation with derivative continuity hypothesis of anterior_y and y
+    """
+    # check array lengths
+    coords = Coordinates(x, y)
+    anterior_coords = Coordinates(anterior_x, anterior_y)
+
+    # define x_break by convention
+    if x_break is None:
+        x_break = coords.x[0] - dt/2.  # artificial birth time (CONVENTION)
+
+    #  operators and their inverse
+    if scale == 'log':
+        y_operator = np.log
+        y_inv_operator = np.exp
+    elif scale == 'linear':
+        def y_operator(vals):
+            return vals
+
+        def y_inv_operator(vals):
+            return vals
+
+    # remove NaN values
+    clean_x = coords.clear_x
+    clean_y = coords.clear_y
+    clean_ax = anterior_coords.clear_x
+    clean_ay = anterior_coords.clear_y
+
+    # find period (can be different from dt when multiple acquisition periods)
+    if len(clean_x) == 0:
+        return [], [], [], []
+    # too small x range to fit anything
+    elif clean_x[-1] - clean_x[0] < time_window:
+        only_nans = len(x) * [np.nan, ]
+        return only_nans, only_nans, x, y
+
+    # clean_x is necesarily of length >=2
+    period = np.amin(clean_x[1:] - clean_x[:-1])
+
+    # number of points per time window
+    n_points = int(np.round(time_window/period, decimals=0))
+    if testing:
+        print('Local fits will be performed over {} points'.format(n_points))
+    if n_points < 2:
+        msg = ('Trying to perform linear fit over less than 2 points. '
+               'Please use a larger time_window parameter.')
+        raise LocalFitError(msg)
+    elif n_points == 2:
+        msg = ('Performing linear fit over 2 points: '
+               'for rate computation experimental errors are not smoothed')
+        warnings.warn(msg)
+
+    # define the number of points for estimates at cell birth, parent division
+    if n_points >= join_points:
+        n_joints = n_points
+    else:
+        n_joints = join_points
+    if testing:
+        print('For values at division/birth:')
+        print('  try to fit over {} points (local fits)'.format(n_points))
+        print('  but allows to reduce up to {} points'.format(
+                join_points))
+        print()
+
+    # auxiliary variables
+    op_y_break = None  # estimate of y value at joining (value at birth)
+    op_ay_break = None  # estimate of anterior y value at joining (at division)
+
+    op_y = y_operator(clean_y)
+
+    if len(clean_x) >= join_points:
+        # fit to at least join_points, more if possible
+        r, i = np.polyfit(clean_x[:n_joints], op_y[:n_joints], 1)
+        op_y_break = i + r * x_break
+
+    if testing:
+        msg = ('Data to fit:\n'
+               'x : {}'.format(clean_x) + '\n'
+               'y : {}'.format(clean_y))
+        print(msg)
+
+    # try to use anterior values : compute break offset
+    trans_op_ay = []  # translated, operated anterior values; default: empty
+    if len(clean_ax) > 0:
+        op_ay = y_operator(clean_ay)
+        # 2 checks:
+        #   1. there at enough points to get the final value estimate
+        cdt1 = len(clean_ax) >= join_points
+        #   2. initial value is determined
+        cdt2 = op_y_break is not None
+        if cdt1 and cdt2:
+            r, i = np.polyfit(clean_ax[-n_joints:],
+                              op_ay[-n_joints:], 1)
+            op_ay_break = i + r * x_break
+            if testing:
+                msg = ('Extrapolated anterior value at break:\n '
+                       'break time, value: '
+                       '{}, {}'.format(x_break, y_inv_operator(op_ay_break)))
+                print(msg)
+                print()
+            # adjust values by translating
+            trans_op_ay = op_ay - op_ay_break + op_y_break
+    if testing:
+        msg = ('Translated, operated anterior values are:\n'
+               '{}'.format(trans_op_ay))
+        print(msg)
+
+    # concatenate operated values
+    all_x = np.concatenate([clean_ax, clean_x])
+    all_op_y = np.concatenate([trans_op_ay, op_y])
+    all_y = y_inv_operator(all_op_y)
+
+    fit_x = np.zeros_like(all_x)
+    fit_op_y = np.zeros_like(all_x)  # fitted values
+    rate_op_y = np.zeros_like(all_x)   # rates of local fits
+
+    # sliding window
+    for index, t in enumerate(all_x):
+        t_start = t - period/2.  # convention
+        t_stop = t_start + time_window
+        # time of evaluation
+        time_eval = (t_start + t_stop)/2.
+        fit_x[index] = time_eval
+        # check that at least one time point is larger than break point
+        if t_stop <= x_break:
+            fit_op_y[index] = np.nan
+            rate_op_y[index] = np.nan
+            continue
+        # reduce to points to fit
+        lower = all_x > t_start
+        upper = all_x <= t_stop
+        boo = np.logical_and(lower, upper)
+        if testing:
+            print('+ Time window:', end=' ')
+            print('{} < t < {} '.format(t_start, t_stop), end=' ')
+            print('({} points)'.format(len(all_x[boo])))
+        # check if n_points > 3
+        if len(all_x[boo]) < n_points:
+            if testing:
+                print('Not enough points on this time window')
+                print('({} instead of {})'.format(len(all_x[boo]), n_points))
+                print('Going to next time window')
+                print()
+            # not enough point in this window: insert NaN
+            rate_op_y[index] = np.nan
+            fit_op_y[index] = np.nan
+        else:
+            if testing:
+                print('local fit over {} points'.format(len(all_x[boo])))
+            rate, intercept = np.polyfit(all_x[boo], all_op_y[boo], 1)
+            fit_op_y[index] = rate * time_eval + intercept
+            rate_op_y[index] = rate
+
+    # new values: linear interpolation
+    fit_op_coords = Coordinates(fit_x, fit_op_y)
+    f = interp1d(fit_op_coords.clear_x, fit_op_coords.clear_y, kind='linear',
+                 assume_sorted=True, bounds_error=False)
+    out_y = np.array(len(coords.x) * [np.nan, ])  # initialize to NaNs
+    # valid data points: interpolation at initial x coordinates
+    out_y[coords.valid] = y_inv_operator(f(coords.clear_x))
+
+    # rates : linear interpolation
+    rate_coords = Coordinates(fit_x, rate_op_y)
+    f = interp1d(rate_coords.clear_x, rate_coords.clear_y, kind='linear',
+                 assume_sorted=True, bounds_error=False)
+    out_rate = np.array(len(coords.x) * [np.nan, ])
+    # valid data points: interpolation at initial x coordinates
+    out_rate[coords.valid] = f(coords.clear_x)
+
+    return out_rate, out_y, all_x, all_y
 
 
 # %% build timeseries over cell instances
@@ -131,8 +396,8 @@ def local_rate(cell, yaxis='length', yscale='log',
     # find initial time and if possible initial value
     if cell.data is not None and len(cell.data) > 0:
         times = cell.data['time']
-        cids = cell.data['cellID']
-        id_type = cids.dtype
+#        cids = cell.data['cellID']
+#        id_type = cids.dtype
         values = y_operator(cell.data[yaxis])
         if cell.birth_time is not None:
             T0 = cell.birth_time
@@ -149,8 +414,10 @@ def local_rate(cell, yaxis='length', yscale='log',
             print('times: {}'.format(times))
             print(yaxis + ': {}'.format(y_inv_operator(values)))
             if value_0 is not None:
-                print('We extrapolate this value for birth value')
-                print('time, value: {}, {}'.format(T0, y_inv_operator(value_0)))
+                msg = ('We extrapolate this value for birth value'
+                       'time, value: '
+                       '{}, {}'.format(T0, y_inv_operator(value_0)))
+                print(msg)
             print()
 
         # let's go: find parent values if they exist
@@ -160,7 +427,7 @@ def local_rate(cell, yaxis='length', yscale='log',
             if cell.parent.data is not None:
                 PT1 = cell.parent.division_time  # parent time of division
                 parent_times = cell.parent.data['time']
-                pids = cell.parent.data['cellID']
+#                pids = cell.parent.data['cellID']
                 parent_values = y_operator(cell.parent.data[yaxis])
                 if testing:
                     print('Okay, we found some data for parent cell')
@@ -168,30 +435,35 @@ def local_rate(cell, yaxis='length', yscale='log',
                     print(yaxis + ': {}'.format(y_inv_operator(parent_values)))
                 # 2 checks:
                 #   1. there at enough points to get the final value estimate
+                cdt1 = len(parent_times) >= join_points
                 #   2. check if parent division and cell division coincide
-                if (len(parent_times) >= join_points and
-                       np.abs(PT1 - T0) < epsilon and
-                       value_0 is not None):
+                cdt2 = np.abs(PT1 - T0) < epsilon
+                #   3. intial value is determined
+                cdt3 = value_0 is not None
+                if cdt1 and cdt2 and cdt3:
                     r, i = np.polyfit(parent_times[-n_joints:],
                                       parent_values[-n_joints:], 1)
                     parent_value_1 = i + r * PT1
                     if testing:
-                        print('We extrapolate this value for division value')
-                        print('time, value: {}, {}'.format(PT1,
-                                          y_inv_operator(parent_value_1)))
+                        msg = ('We extrapolate this value for division value'
+                               'time, value: '
+                               '{}, {}'.format(PT1,
+                                               y_inv_operator(parent_value_1)))
+                        print(msg)
                         print()
                     # adjust values by translating
                     offset = parent_value_1 - value_0
                     adjusted_parent_values = parent_values - offset
                     if testing:
-                        print('Values of parent cell are rescaled such that:')
-                        print('rescaled ' + yaxis + ': {}'.format(
-                                adjusted_parent_values))
+                        msg = ('Values of parent cell are rescaled such that:'
+                               'rescaled ' + yaxis + ': '
+                               '{}'.format(adjusted_parent_values))
+                        print(msg)
                 # not enough point in parent cell to estimate parent_value_1
                 # reset to empty lists
                 else:
                     parent_times = []
-                    pids = []
+#                    pids = []
                     adjusted_parent_values = []
                     # maybe not enough point in parent to find adjacent timepoint
 #                    while np.amin(np.abs(parent_times - t_start)) > dt + epsilon:
@@ -200,7 +472,7 @@ def local_rate(cell, yaxis='length', yscale='log',
         # concatenate arrays (may be done in structured arrays)
         ts = np.concatenate((parent_times, times))
         vals = np.concatenate((adjusted_parent_values, values))
-        ids = np.concatenate((pids, cids))
+#        ids = np.concatenate((pids, cids))
         if testing:
             print('size of ts {}, size of vals {}'.format(len(ts), len(vals)))
 
@@ -208,10 +480,12 @@ def local_rate(cell, yaxis='length', yscale='log',
         label = 'adjusted_' + yaxis
         yaxis_timeseries = np.zeros(len(ts), dtype=[('time', 'f8'),
                                                     (label, 'f8'),
-                                                    ('cellID', id_type)])
+#                                                    ('cellID', id_type)
+                                                    ]
+                                    )
         yaxis_timeseries['time'] = ts
         yaxis_timeseries[label] = y_inv_operator(vals)
-        yaxis_timeseries['cellID'] = ids
+#        yaxis_timeseries['cellID'] = ids
 
 #        yaxis_timeseries = zip(ts, y_inv_operator(vals))
 
@@ -227,7 +501,7 @@ def local_rate(cell, yaxis='length', yscale='log',
         # in principle, there are as many points as cell timepoints
 
         new_times = np.zeros_like(times)
-        new_ids = np.zeros(len(times), dtype=id_type)
+#        new_ids = np.zeros(len(times), dtype=id_type)
         new_vals = np.zeros(len(new_times), dtype='f8')
         rates = np.zeros(len(new_times), dtype='f8')
 
@@ -266,22 +540,23 @@ def local_rate(cell, yaxis='length', yscale='log',
         if offset is not None:
             new_vals[boo] = new_vals[boo] + offset
         # assign cellID column
-        if len(pids) > 0:
-            new_ids[boo] = pids[0]
-        new_ids[np.logical_not(boo)] = cids[0]
+#        if len(pids) > 0:
+#            new_ids[boo] = pids[0]
+#        new_ids[np.logical_not(boo)] = cids[0]
 
         # inverse operator for fitted values
         new_vals = y_inv_operator(new_vals)
 
         # build structured array for output
         output = np.zeros(len(new_times), dtype=[('time', 'f8'),
-                          ('fit_' + yaxis, 'f8'),
-                          ('rate_' + yaxis, 'f8'),
-                          ('cellID', id_type)])
+                                                 ('fit_' + yaxis, 'f8'),
+                                                 ('rate_' + yaxis, 'f8'),
+#                                                 ('cellID', id_type)
+                                                 ])
         output['time'] = new_times
         output['fit_' + yaxis] = new_vals
         output['rate_' + yaxis] = rates
-        output['cellID'] = new_ids
+#        output['cellID'] = new_ids
 
         # clean NaNs
         boo = np.logical_not(np.isnan(rates))
@@ -640,3 +915,15 @@ def show_jumps(t, x, threshold=3., mode='multiplicative'):
         except ZeroDivisionError:
             continue
     return valids
+
+
+if __name__ == '__main__':
+    x = np.arange(50, dtype=float)
+    y = np.array(len(x) * [np.nan, ])
+    anterior_x = np.arange(-20, 0, dtype=int)
+    anterior_y = np.array(len(anterior_x) * [np.nan, ])
+    anterior_y[np.arange(-20, 0, 5, dtype=int)] = 4.
+    y[np.arange(0, len(x), 5, dtype=int)] = 2.
+    r, f, xx, yy = compute_rates(x, y, x_break=-.5,
+                                 anterior_x=anterior_x, anterior_y=anterior_y,
+                                 dt=1, time_window=15.)
