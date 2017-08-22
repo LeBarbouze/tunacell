@@ -13,7 +13,7 @@ import treelib as tlib
 
 
 from tuna.datatools import (Coordinates, compute_rates,
-                            local_rate, extrapolate_endpoints,
+                            extrapolate_endpoints,
                             derivative, logderivative, ExtrapolationError)
 
 
