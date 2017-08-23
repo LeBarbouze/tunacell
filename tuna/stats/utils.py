@@ -119,8 +119,7 @@ class CompuParams(object):
 class Regions(object):
     """Class that stores regions for stationary analysis.
 
-    A region is defined by lower- and upper-bound for times, as well as the
-    method to evaluate average value ('global' or 'local') within these bounds
+    A region is defined by lower- and upper-bound for times.
 
     Parameters
     ----------
