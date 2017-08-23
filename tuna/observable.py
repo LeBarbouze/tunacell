@@ -89,7 +89,7 @@ class Observable(object):
                  raw=None, differentiate=False, scale='linear',
                  local_fit=False, time_window=0., join_points=3,
                  mode='dynamics', timing='t', tref=None):
-        self._attr_names = ['name',
+        self._attr_names = ['label',
                             'raw',
                             'scale',
                             'differentiate',
@@ -279,6 +279,7 @@ class FunctionalObservable(object):
     """Combination of :class:`Observable` instances"""
 
     def __init__(self, name, f, observables):
+        self.mode = 'func'
         self.name = name
         if not callable(f):
             raise ValueError('f must be callable')
@@ -288,6 +289,11 @@ class FunctionalObservable(object):
         if len(observables) != len(argspec.args):
             msg = ('length of observable list must match number of arguments of f ')
             raise ValueError(msg)
+        for obs in observables:
+            if not isinstance(obs, Observable):
+                msg = ('observables argument must be a list of Observables '
+                       'instances')
+                raise TypeError(msg)
         return
 
 

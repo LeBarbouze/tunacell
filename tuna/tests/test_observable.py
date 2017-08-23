@@ -18,7 +18,8 @@ from itertools import product
 from tuna.observable import Observable, ObservableStringError
 
 
-t_params = (('raw', ['soup', 'duck']),
+t_params = (('label', ['mysoup', 'donald']),
+            ('raw', ['soup', 'duck']),
             ('scale', ['linear', 'log']),
             ('mode', ['dynamics',
                       'birth', 'division',
@@ -33,20 +34,20 @@ t_params = (('raw', ['soup', 'duck']),
             )
 
 
-@pytest.fixture
-def random_strings():
-    average_string_length = 100
-    number_of_samples = 20
-    lengths = np.random.poisson(lam=average_string_length,
-                                size=number_of_samples)
-
-    def gen_random_strings(sizes):
-        chars = list(string.printable)
-        for size in sizes:
-            array = np.random.randint(0, high=len(chars), size=size)
-            yield ''.join([chars[k] for k in array])
-
-    return gen_random_strings(lengths)
+#@pytest.fixture
+#def random_strings():
+#    average_string_length = 100
+#    number_of_samples = 20
+#    lengths = np.random.poisson(lam=average_string_length,
+#                                size=number_of_samples)
+#
+#    def gen_random_strings(sizes):
+#        chars = list(string.printable)
+#        for size in sizes:
+#            array = np.random.randint(0, high=len(chars), size=size)
+#            yield ''.join([chars[k] for k in array])
+#
+#    return gen_random_strings(lengths)
 
 
 @pytest.fixture(scope='module')
@@ -66,12 +67,6 @@ def test_observable_init(all_params):
         obs = Observable(**kwargs)
         for attr in obs._attr_names:
             assert getattr(obs, attr) == kwargs[attr]
-
-
-def test_observable_str_error(random_strings):
-    for word in random_strings:
-        with pytest.raises(ObservableStringError):
-            _ = Observable(from_string=word)
 
 
 def test_observable_str(all_params):
