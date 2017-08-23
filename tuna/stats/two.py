@@ -396,7 +396,7 @@ class StationaryBivariate(object):
             res = text.get_filter_path(analysis_path, fset, write=True)
             index_filter, filter_path = res
             o1, o2 = [uni.obs for uni in self.univariates]
-            basename = 'data_{}_{}---{}'.format(self.label, o1.label(), o2.label())
+            basename = 'data_{}_{}---{}'.format(self.label, o1.label, o2.label)
             text_file = os.path.join(filter_path, basename + '.csv')
             self.dataframe.to_csv(text_file, index=False)
         return
@@ -412,8 +412,10 @@ class StationaryBivariate(object):
             res = text.get_filter_path(analysis_path, fset, write=False)
             index_filter, filter_path = res
             o1, o2 = [uni.obs for uni in self.univariates]
-            basename = 'data_{}_{}---{}'.format(self.label, o1.label(), o2.label())
+            basename = 'data_{}_{}---{}'.format(self.label, o1.label, o2.label)
             text_file = os.path.join(filter_path, basename + '.csv')
+            if not os.path.exists(text_file):
+                raise text.MissingFileError
             self.dataframe = pd.read_csv(text_file, index_col=False)
         except (text.MissingFileError, text.MissingFolderError):
             raise StationaryBivariateIOError
