@@ -219,7 +219,7 @@ class FilterObservableBound(FilterCell):
     upper_bound : float (default None)
     """
 
-    def __init__(self, obs=Observable(), tref=None,
+    def __init__(self, obs=Observable(label='undefined'), tref=None,
                  lower_bound=None, upper_bound=None):
         self.obs = obs  # as a param to be correctly represented
         self._obs = [obs, ]  # hidden to be computed at for filtering purpose
