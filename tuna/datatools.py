@@ -27,11 +27,13 @@ class Coordinates(object):
             msg = 'NaN value(s) detected in x-array: please remove beforehand'
             raise ValueError(msg)
         if len(x) != len(y):
-            msg = 'Arrays of different lengths! Check x and y input'
+            msg = ('Arrays of different lengths! Check x and y input\n'
+                   'x : {}'.format(x) + '\n'
+                   'y : {}'.format(y))
             raise ValueError(msg)
-        self._x = x
-        self._y = y
-        self.valid = np.logical_not(np.isnan(y))
+        self._x = np.array(x)
+        self._y = np.array(y)
+        self.valid = np.where(np.logical_not(np.isnan(y)))
         return
 
     @property
@@ -136,7 +138,9 @@ def compute_rates(x, y, x_break=None,
     """
     # check array lengths and associate cleaning ordinate NaNs
     coords = Coordinates(x, y)
+    nans_coords = len(x) * [np.nan, ]
     anteriors = Coordinates(anterior_x, anterior_y)
+    nans_anteriors = len(anterior_x) * [np.nan, ]
 
     # define x_break by convention
     if x_break is None:
@@ -154,12 +158,10 @@ def compute_rates(x, y, x_break=None,
             return vals
 
     # find period (can be different from dt when multiple acquisition periods)
-    if len(coords.clear_x) == 0:
-        return [], [], [], [], [], []
-    # too small x range to fit anything
-    elif coords.clear_x[-1] - coords.clear_x[0] < time_window:
-        only_nans = len(x) * [np.nan, ]
-        return only_nans, only_nans, [], [], x, y
+    no_data = len(coords.clear_x) == 0
+    too_few_data = coords.clear_x[-1] - coords.clear_x[0] < time_window
+    if no_data or too_few_data:
+        return nans_coords, nans_coords, nans_anteriors, nans_anteriors, [], []
 
     # coords.clear_x is necesarily of length >=2
     period = np.amin(coords.clear_x[1:] - coords.clear_x[:-1])
@@ -209,7 +211,7 @@ def compute_rates(x, y, x_break=None,
     # try to use anterior values : compute break offset
     trans_op_ay = []  # translated, operated anterior values; default: empty
     offset = None
-    if len(anteriors.clear_x) > 0:
+    if op_y_break is not None and len(anteriors.clear_x) > 0:
         op_ay = y_operator(anteriors.clear_y)
         # 2 checks:
         #   1. there at enough points to get the final value estimate
@@ -238,9 +240,13 @@ def compute_rates(x, y, x_break=None,
         print(msg)
         print()
 
-    # concatenate operated values
-    all_x = np.concatenate([anteriors.clear_x, coords.clear_x])
-    all_op_y = np.concatenate([trans_op_ay, op_y])
+    # concatenate operated values if enough previous values to comppute offset
+    if len(trans_op_ay) > 0:
+        all_x = np.concatenate([anteriors.clear_x, coords.clear_x])
+        all_op_y = np.concatenate([trans_op_ay, op_y])
+    else:
+        all_x = coords.clear_x
+        all_op_y = op_y
     all_y = y_inv_operator(all_op_y)
 
     fit_x = np.zeros_like(all_x)

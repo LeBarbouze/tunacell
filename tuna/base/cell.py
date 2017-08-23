@@ -288,20 +288,19 @@ class Cell(tlib.Node):
             if obs.differentiate:
                 to_cell = r
                 to_parent = ar
+                if len(ar) != len(anteriors.x):
+                    print('This is awkward')
             else:
                 to_cell = f
                 to_parent = af
             self._sdata[label] = to_cell
-
-            addendum = Coordinates(anteriors.x, to_parent)
-            if label not in self.parent._sdata.keys():
-                self.parent._sdata[label] = to_parent
-            elif len(addendum.valid) > 0:
-                existing = Coordinates(anteriors.x, self.parent._sdata[label])
-                # test for disjoint time ranges
-                if _disjoint_time_sets(existing.clear_x, addendum.clear_x):
-                    self.parent._sdata[label][addendum.valid] = addendum.clear_y
-
+            if self.parent is not None:
+                if label not in self.parent._sdata.keys():
+                    self.parent._sdata[label] = to_parent
+                else:
+                    existing = self.parent._sdata[label]
+                    # if existing is nan, try to put addedum values
+                    self.parent._sdata[label] = np.where(np.isnan(existing), to_parent, existing)
         return
 
     def compute_cyclized(self, obs):
@@ -330,8 +329,8 @@ class Cell(tlib.Node):
         # discard result as it can mix cell, and parent cell data
         self.build_timelapse(cobs)
         # now we compute cell cycle observable using created _sdata: only cell
-        time = self._sdata[clabel]['time']
-        array = self._sdata[clabel][clabel]
+        time = self.data['time']
+        array = self._sdata[clabel]
         # get value
         try:
             if obs.mode == 'birth':
