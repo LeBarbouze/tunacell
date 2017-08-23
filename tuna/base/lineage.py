@@ -10,7 +10,7 @@ import random
 import collections
 from tuna.datatools import Coordinates
 
-from tuna.observable import Observable
+from tuna.observable import Observable, FunctionalObservable
 
 from tuna.base.timeseries import TimeSeries
 
@@ -48,9 +48,9 @@ class Lineage(object):
     -------
     get_generations(tref=None)
         Returns generation indices of cell sequence.
-    get_boolean_tests(cset=None)
+    get_boolean_tests(cset=[])
         Performs boolean test over cells in the sequence
-    get_timeseries(obs, cset=None, suppl_obs=[], dt=5.)
+    get_timeseries(obs, cset=[])
         Returns :class:`Timeseries` instance of :class:`Observable`
         :param:`obs` in current lineage
 
@@ -59,15 +59,11 @@ class Lineage(object):
     def __init__(self, tree, identifier_sequence):
         self.colony = tree
         self.idseq = identifier_sequence
+        self.cellseq = [tree.get_node(cid) for cid in self.idseq]  # loops
         self.division_timings = get_division_timing(self.idseq, tree)
-        self._data = get_lineage_data(self.idseq, tree)
-        # self.slices = self.split()
         return
 
-    @property
-    def data(self):
-        return self._data
-
+    # DEPRECATED: CHECK WHERE IT IS USED
     def iter_cells(self, shuffle=False):
         """Iterator over cells in current lineage."""
         idseq = self.idseq
@@ -156,11 +152,10 @@ class Lineage(object):
                    fset.lineage_filter(self))
             # cell selections
             # initialize all to False
-            arrbool = np.array(len(self.idseq) * [False])
+            arrbool = np.array(len(self.idseq) * [False, ])
             # perform tests only if upstream tests where True
             if boo:
-                for index, cid in enumerate(self.idseq):
-                    cell = col.get_node(cid)
+                for index, cell in enumerate(self.cellseq):
                     arrbool[index] = fset.cell_filter(cell)
             select_ids[repr(fset)] = arrbool
         return select_ids
@@ -177,6 +172,7 @@ class Lineage(object):
         -------
         TimeSeries instance
         """
+        label = obs.label
         # check for supplementary observables to be computed
         suppl_obs = []
         for filt in cset:
@@ -190,48 +186,12 @@ class Lineage(object):
                             suppl_obs.append(item)
         # compute suppl obs for all cells in lineage
         if suppl_obs:
-            for cid in self.idseq:
-                cell = self.colony.get_node(cid)
+            for cell in self.cellseq:
                 for sobs in suppl_obs:
                     cell.build(sobs)
 
-        # build timeseries depending on obs mode
-        if obs.mode == 'dynamics':
-            return self.get_continuous_timeseries(obs, cset)
-        else:
-            return self.get_cyclized_timeseries(obs, cset)
-
-    def get_cyclized_timeseries(self, obs, cset=[]):
-        """Constructs timeseries for cell cycle observables.
-
-        Parameters
-        ----------
-        obs : :class:`Observable` instance
-            mode should be different from 'dynamics'
-        cset: sequence of :class:`FilterSet` instances (default [])
-
-        Returns
-        -------
-        :class:`TimeSeries` instance
-        """
-        label = obs.label
-        if obs.timing == 'g':
-            try:
-                gens = self.get_generations(tref=obs.tref)
-            except NoAncestry:
-                # return empty TimeSeries
-                # TODO : should be filtered upstream?
-                new = TimeSeries(label=label, ts=[], ids=self.idseq[:],
-                                 index_cycles=[None for _ in self.idseq],
-                                 select_ids=self.get_boolean_tests(cset))
-                return new
-
-        # browse ids and retrieve stuff
-        index_cycles = []
-        cts = []
         time_bounds = []
-        for index, cid in enumerate(self.idseq):
-            cell = self.colony.get_node(cid)
+        for cell in self.cellseq:
             if cell.birth_time is not None:
                 tleft = cell.birth_time
             elif len(cell.data) > 0:
@@ -245,90 +205,99 @@ class Lineage(object):
             else:
                 tright = - np.infty
             time_bounds.append((tleft, tright))
-            value = cell.build(obs)
-            # time value
-            if obs.timing == 'b':
-                tt = cell.birth_time
-            elif obs.timing == 'd':
-                tt = cell.division_time
-            elif obs.timing == 'm':
-                try:
-                    tt = (cell.division_time + cell.birth_time)/2.
-                except TypeError:
-                    tt = None
-            elif obs.timing == 'g':
-                tt = gens[index]
-            # append new value
-            cts.append((tt, value, int(cell.identifier)))
-            index_cycles.append((index, index))
 
+        # build _sdata for each obs
+        modes = []
+        mode = None
+        timings = []
+        timing = None
+        if isinstance(obs, FunctionalObservable):
+            for item in obs.observables:
+                modes.append(item.mode)
+                timings.append(item.timing)
+            # first round: build all _sdata
+            for cell in self.cellseq:
+                for item in obs.observables:
+                    cell.build(item)
+            # second round: define new sdata with functional form
+            for cell in self.cellseq:
+                cell._sdata[obs.label] = obs.f(*obs.observables)
+            if 'dynamics' in modes:
+                mode = 'dynamics'  # time-lapse: arrays
+                timing = 't'
+            else:
+                mode = 'cycle'  # single value
+                timing = timings[0]  # default : first argument timing
+        elif isinstance(obs, Observable):
+            if obs.mode == 'dynamics':
+                mode = 'dynamics'
+                timing = 't'
+            else:
+                mode = 'cycle'
+                timing = obs.timing
+            for cell in self.cellseq:
+                cell.build(obs)
+
+        # boolean tests
         select_ids = self.get_boolean_tests(cset)
-        cts = np.array(cts, dtype=[('time', 'f8'), (label, 'f8'),
-                                   ('cellID', 'u2')])
-        new = TimeSeries(label=label, ts=cts, ids=self.idseq[:],
-                         time_bounds=time_bounds,
-                         index_cycles=index_cycles, select_ids=select_ids)
-        return new
 
-    def get_continuous_timeseries(self, obs, cset=[]):
-        """Method that computes timeseries associated to observable obs.
-
-        Parameters
-        ----------
-        obs : :class:`Observable` instance
-            It defines how to get observable from Numpy structured arrays
-        cset: sequence of :class:`FilterSet` instances (default [])
-
-        Returns
-        -------
-        :class:`TimeSeries` instance
-        """
-        # build timeseries by concatenating each cell's timeseries
-        # when time_window is called, some values from the estimate at cell <c>
-        # are in fact evaluated in its parent cell time range
-        label = obs.label
-        # lineage conditions mask
-        time_bounds = []
-        for cid in self.idseq:
-            cell = self.colony.get_node(cid)
-            if cell.birth_time is not None:
-                tleft = cell.birth_time
-            elif len(cell.data) > 0:
-                tleft = np.amin(cell.data['time'])
-            else:
-                tleft = np.infty
-            if cell.division_time is not None:
-                tright = cell.division_time
-            elif len(cell.data) > 0:
-                tright = np.amax(cell.data['time'])
-            else:
-                tright = - np.infty
-            time_bounds.append((tleft, tright))
-            cell.build(obs)  # get local timeseries
-        # build array
         arrays = []
         index_cycles = []
-        count = 0
-        for cid in self.idseq:
-            cell = self.colony.get_node(cid)
-            if len(cell.data) > 0:
-                coords = Coordinates(cell.data['time'], cell._sdata[label])
-                arrays.append(coords.as_array(x_name='time', y_name=label))
-                size = len(arrays[-1])
-                index_cycles.append((count, count + size - 1))
-                count += size
-            else:
-                index_cycles.append(None)
-        ts = np.concatenate(arrays)
-        select_ids = self.get_boolean_tests(cset)
-        # return a TimeSeries instance
-        timeseries = TimeSeries(label=label,
-                                ts=ts,
-                                ids=self.idseq[:],
-                                time_bounds=time_bounds,
-                                index_cycles=index_cycles,
-                                select_ids=select_ids)
+        # at this point all _sdata are ready for action. Distinguish modes
+        if mode == 'dynamics':
+            # build array
+            count = 0
+            for cell in self.cellseq:
+                if len(cell.data) > 0:
+                    coords = Coordinates(cell.data['time'], cell._sdata[label])
+                    arrays.append(coords.as_array(x_name='time', y_name=label))
+                    size = len(arrays[-1])
+                    index_cycles.append((count, count + size - 1))
+                    count += size
+                else:
+                    index_cycles.append(None)
+            ts = np.concatenate(arrays)
+            # return a TimeSeries instance
+            timeseries = TimeSeries(label=label,
+                                    ts=ts,
+                                    ids=self.idseq[:],
+                                    time_bounds=time_bounds,
+                                    index_cycles=index_cycles,
+                                    select_ids=select_ids)
+        # otherwise it's of 'cycle' mode
+        else:
+            for index, cell in enumerate(self.cellseq):
+                if timing == 'g':
+                    try:
+                        gens = self.get_generations(tref=obs.tref)
+                        tt = gens[index]
+                    except NoAncestry:
+                        # return empty TimeSeries
+                        # TODO : should be filtered upstream?
+                        new = TimeSeries(label=label, ts=[], ids=self.idseq[:],
+                                         index_cycles=[None for _ in self.idseq],
+                                         select_ids=select_ids)
+                        return new
+                # time value
+                elif timing == 'b':
+                    tt = cell.birth_time
+                elif timing == 'd':
+                    tt = cell.division_time
+                elif timing == 'm':
+                    try:
+                        tt = (cell.division_time + cell.birth_time)/2.
+                    except TypeError:
+                        tt = None
 
+                # append new value
+                arrays.append((tt, cell._sdata[label]))
+                index_cycles.append((index, index))
+
+            ts = np.array(arrays, dtype=[('time', 'f8'), (label, 'f8')])
+            timeseries = TimeSeries(label=label, ts=ts, ids=self.idseq[:],
+                                    time_bounds=time_bounds,
+                                    index_cycles=index_cycles,
+                                    select_ids=select_ids)
         return timeseries
 
     def split(self):
@@ -363,27 +332,3 @@ def get_division_timing(idseq, tree):
         node = tree.get_node(cid)
         timings.append(node.division_time)
     return timings
-
-
-def get_lineage_data(idseq, tree, subcellcycle_smooth=False,
-                     subcellcycle_smooth_timescale=20.):
-    """Builds a numpy array that concatenate data along lineage of a given tree
-
-    Arguments
-    ---------
-    idline -- list of node identifiers
-    tree -- treelib.Tree instance
-
-    Returns
-    -------
-    ndarray (structured array)
-    """
-    data = []
-    for cid in idseq:
-        d = tree.get_node(cid).data
-        if d is not None:
-            data.append(d)
-    if data:
-        return np.concatenate(data)
-    else:
-        return None

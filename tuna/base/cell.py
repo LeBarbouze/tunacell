@@ -11,7 +11,7 @@ from copy import deepcopy
 
 import treelib as tlib
 
-
+from tuna.observable import Observable, FunctionalObservable
 from tuna.datatools import (Coordinates, compute_rates,
                             extrapolate_endpoints,
                             derivative, logderivative, ExtrapolationError)
@@ -190,10 +190,20 @@ class Cell(tlib.Node):
 
     def build(self, obs):
         """Builds timeseries"""
-        if obs.mode == 'dynamics':
-            return self.build_timelapse(obs)
+        if isinstance(obs, FunctionalObservable):
+            # first build every single Observable
+            for item in obs.observables:
+                self.build(item)
+            self._sdata[obs.label] = obs.f(*obs.observables)
+            # note that with sliding windows, results might be affected by
+            # later operation on daugther cell -> adjust in lineage.build
+        elif isinstance(obs, Observable):
+            if obs.mode == 'dynamics':
+                self.build_timelapse(obs)
+            else:
+                self.compute_cyclized(obs)
         else:
-            return self.compute_cyclized(obs)
+            raise TypeError('obs must be of type Observable or FunctionalObservable')
 
     def build_timelapse(self, obs):
         """Builds timeseries corresponding to observable of mode 'dynamics'.
@@ -302,10 +312,6 @@ class Cell(tlib.Node):
         obs : Observable instance
             mode must be different from 'dynamics'
 
-        Returns
-        -------
-        float corresponding to desired observable
-
         Raises
         ------
         ValueError
@@ -322,7 +328,7 @@ class Cell(tlib.Node):
         cobs.timing = 't'
         clabel = cobs.label
         # discard result as it can mix cell, and parent cell data
-        _ = self.build_timelapse(cobs)
+        self.build_timelapse(cobs)
         # now we compute cell cycle observable using created _sdata: only cell
         time = self._sdata[clabel]['time']
         array = self._sdata[clabel][clabel]
@@ -366,7 +372,7 @@ class Cell(tlib.Node):
             warnings.warn(msg)
             value = np.nan  # missing information
         self._sdata[label] = value
-        return value
+        return
 
 
 def _disjoint_time_sets(ts1, ts2):
