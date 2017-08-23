@@ -34,14 +34,17 @@ even = FilterCellIDparity('even')
 condition = FilterSet(label='evenID', filtercell=even)
 
 # define dynamic observables
-ou = Observable(raw='ou')
-gr = Observable(raw='exp_ou_int', differentiate=True, scale='log',
+ou = Observable(label='exact-growth-rate', raw='ou')
+gr = Observable(label='approx-growth-rate', raw='exp_ou_int',
+                differentiate=True, scale='log',
                 local_fit=True, time_window=15.)
 
 # define cell-cycle observables
-average_gr = Observable(raw='ou', differentiate=False, scale='linear',
+average_gr = Observable(label='averate-growth-rate', raw='ou',
+                        differentiate=False, scale='linear',
                         local_fit=False, mode='average', timing='g')
-division_size = Observable(raw='exp_ou_int', differentiate=False, scale='log',
+division_size = Observable(label='division-size', raw='exp_ou_int',
+                           differentiate=False, scale='log',
                            local_fit=False, mode='division', timing='g')
 
 # %% loop over both observables
@@ -70,7 +73,7 @@ for obs in [ou, gr, average_gr, division_size]:
     univs.append(univ)
 
     uplt = UnivariatePlot(univ)
-    uplt.make_onepoint(mean_show_sd=True, mean_ref=ref_mean)
+    uplt.make_onepoint(show_ci=True, mean_ref=ref_mean)
     if obs.timing != 'g':
         uplt.make_twopoints(trefs=[40., 80., 120.])
     else:
