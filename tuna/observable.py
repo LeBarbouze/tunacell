@@ -13,8 +13,10 @@ from __future__ import print_function
 
 import warnings
 import re
+import inspect
 
 
+# DEPRECATED
 _re_codestring = 'T([a-z])(\d*[\.,]*\d*)M([a-z\-]+)J(\d+)'
 
 
@@ -40,12 +42,11 @@ class Observable(object):
 
     Parameters
     ----------
-    from_string : str (default None)
-        when provided, will set up Observable instance
-        (works only for 'dynamics' mode)
-    raw : str (default 'none')
+    label : str
+        user name for this observable (can be one of the raw observable)
+    raw : str (default None)
         raw name of the observable: must be a column name of raw data, i.e.
-        must be the first element of an entry of Experiment.datatype
+        first element of one entry of Experiment.datatype
     differentiate : boolean (default False)
         whether to differentiate raw observable
     scale : str {'linear', 'log'}
@@ -84,11 +85,12 @@ class Observable(object):
         that bounds this reference time
     """
 
-    def __init__(self, from_string=None,
-                 raw='none', differentiate=False, scale='linear',
+    def __init__(self, label,
+                 raw=None, differentiate=False, scale='linear',
                  local_fit=False, time_window=0., join_points=3,
                  mode='dynamics', timing='t', tref=None):
-        self._attr_names = ['raw',
+        self._attr_names = ['name',
+                            'raw',
                             'scale',
                             'differentiate',
                             'local_fit',
@@ -97,26 +99,28 @@ class Observable(object):
                             'mode',
                             'timing',
                             'tref']
-        if from_string is not None:
-            self.load_from_string(from_string)
+
+        self._label = label
+        if raw is None:
+            self.raw = label
         else:
             self.raw = raw
-#            # warn if raw is 'none'
-#            if raw == 'none':
-#                msg = ("'raw' is set to 'none'.\n"
-#                       "Update to a valid column name of your experiment.")
-#                warnings.warn(msg)
-            self.differentiate = differentiate
-            self.scale = scale
-            self.local_fit = local_fit
-            self.time_window = time_window
-            self.join_points = join_points
-            self.mode = mode
-            self.timing = timing
-            self.tref = tref
+        self.differentiate = differentiate
+        self.scale = scale
+        self.local_fit = local_fit
+        self.time_window = time_window
+        self.join_points = join_points
+        self.mode = mode
+        self.timing = timing
+        self.tref = tref
         return
 
+    @property
     def label(self):
+        return self._label
+
+    # DEPRECATED
+    def old_label(self):
         """Label is outputing a string representation suitable for file label.
 
         This method creates a string label that specifies each parameter to
@@ -151,6 +155,7 @@ class Observable(object):
         msg += self.raw
         return msg
 
+    # DEPRECATED
     def load_from_string(self, codestring):
         """Set Observable instance from string code created by `label` method
 
@@ -258,7 +263,7 @@ class Observable(object):
         return output
 
     def __str__(self):
-        return self.label()
+        return self.label
 
     def __repr__(self):
         name = type(self).__name__
@@ -268,3 +273,28 @@ class Observable(object):
             chain += '{}={}, '.format(attr, repr(val))
         chain += ')'
         return chain
+
+
+class FunctionalObservable(object):
+    """Combination of :class:`Observable` instances"""
+
+    def __init__(self, name, f, observables):
+        self.name = name
+        if not callable(f):
+            raise ValueError('f must be callable')
+        self.f = f
+        argspec = inspect.getargspec(f)
+        self.observables = observables
+        if len(observables) != len(argspec.args):
+            msg = ('length of observable list must match number of arguments of f ')
+            raise ValueError(msg)
+        return
+
+
+if __name__ == '__main__':
+    length = Observable('length', raw='length')
+    width = Observable('width', raw='width')
+    def volume(x, y):
+        return x * y**2
+    combo = FunctionalObservable('volume', volume, [length, width])
+    
