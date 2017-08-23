@@ -303,7 +303,7 @@ class Container(object):
         # this will be done in lineage.get_timeseries()
         for cell in self.cells:
             for obs in suppl_obs:
-                del cell._sdata[obs.label()]
+                del cell._sdata[obs.label]
         if verbose:
             msg = 'After filtering, we get {} cells.'.format(len(self.cells))
             print(msg)

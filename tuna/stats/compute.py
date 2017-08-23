@@ -585,14 +585,14 @@ def set_stationary_crosscorrelation(iter_timeseries,
         df = row_ts.to_dataframe()
         # interpolate second timeseries
         tt = col_ts['time']
-        col_data = col_ts[col_obs.label()]
+        col_data = col_ts[col_obs.label]
         if len(col_data) == 0 or np.isnan(col_data).all():
             continue
         col_interpol = interp1d(tt, col_data, kind='linear',
                                 assume_sorted=True,  # saves computational time
                                 bounds_error=False)  # return NaN off bounds
         interpolated_col_data = col_interpol(df.time)
-        df[col_obs.label()] = interpolated_col_data
+        df[col_obs.label] = interpolated_col_data
         df = df[np.logical_and(df.time >= tmin, df.time < tmax)]
         # reindex for concatenating
 #        if dfs:

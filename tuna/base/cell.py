@@ -199,7 +199,7 @@ class Cell(tlib.Node):
         """Builds timeseries corresponding to observable of mode 'dynamics'.
 
         Result is an array of same length as time array, stored in a dictionary
-        _sdata, which keys are obs.label(). When using sliding windows,
+        _sdata, which keys are obs.label. When using sliding windows,
         estimate in a given cell actualize data in its parent cell, if and only
         if it has not been actualized before (check disjoint time intervals).
 
@@ -230,7 +230,7 @@ class Cell(tlib.Node):
            data (at the risk of making mistakes if there are too many missing
            values)
         """
-        label = str(obs.label())
+        label = str(obs.label)
         raw = obs.raw
         coords = Coordinates(self.data['time'], self.data[raw])
         if self.parent is not None and len(self.parent.data) > 0:
@@ -313,14 +313,14 @@ class Cell(tlib.Node):
         """
         scale = obs.scale
         npts = obs.join_points
-        label = obs.label()
+        label = obs.label
         if obs.mode == 'dynamics':
             raise ValueError('Called build_cyclized for dynamics mode')
         # associate continous observable and build corresponding ._sdata
         cobs = deepcopy(obs)
         cobs.mode = 'dynamics'
         cobs.timing = 't'
-        clabel = cobs.label()
+        clabel = cobs.label
         # discard result as it can mix cell, and parent cell data
         _ = self.build_timelapse(cobs)
         # now we compute cell cycle observable using created _sdata: only cell

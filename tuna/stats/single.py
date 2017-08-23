@@ -356,7 +356,7 @@ class Univariate(object):
                'STATISTICS OF THE DYNAMICS' + '\n'
                '--------------------------' + '\n'
                '' + '\n'
-               'OBSERVABLE: {}'.format(self.obs.label()) + '\n'
+               'OBSERVABLE: {}'.format(self.obs.label) + '\n'
                'CONDITIONS:' + '\n'
                '  * `master` (no condition)' + '\n'
                )
@@ -396,7 +396,7 @@ class Univariate(object):
 #        fset = self.parser.fset
 #        index_filter, filter_path = text.get_filter_path(analysis_path, fset,
 #                                                         write=True)
-#        basename = 'indexify_' + obs.label() + '.txt'
+#        basename = 'indexify_' + obs.label + '.txt'
 #        text_file = os.path.join(filter_path, basename)
 #        with open(text_file, 'w') as f:
 #            f.write(repr(self.indexify))
@@ -432,7 +432,7 @@ class Univariate(object):
 #        if not os.path.exists(filter_path):
 #            raise UnivariateIOError('Missing folder {}'.format(filter_path))
 #        # reading Indexify file
-#        basename = 'indexify_' + obs.label() + '.txt'
+#        basename = 'indexify_' + obs.label + '.txt'
 #        text_file = os.path.join(filter_path, basename)
 #        try:
 #            with open(text_file, 'r') as f:
@@ -683,7 +683,7 @@ class StationaryUnivariate(object):
                'STATISTICS OF THE DYNAMICS: STATIONARY ANALYSIS' + '\n'
                '-----------------------------------------------' + '\n'
                '' + '\n'
-               'OBSERVABLE: {}'.format(self.obs.label()) + '\n'
+               'OBSERVABLE: {}'.format(self.obs.label) + '\n'
                'CONDITIONS:' + '\n'
                '  * `master` (no condition)' + '\n'
                )
@@ -712,7 +712,7 @@ class StationaryUnivariate(object):
                                                    write=True)
             res = text.get_filter_path(analysis_path, fset, write=True)
             index_filter, filter_path = res
-            basename = 'data_{}_{}'.format(self.label, self.obs.label())
+            basename = 'data_{}_{}'.format(self.label, self.obs.label)
             text_file = os.path.join(filter_path, basename + '.csv')
             self.dataframe.to_csv(text_file, index=False)
         return
@@ -727,7 +727,7 @@ class StationaryUnivariate(object):
                                                    write=False)
             res = text.get_filter_path(analysis_path, fset, write=False)
             index_filter, filter_path = res
-            basename = 'data_{}_{}'.format(self.label, self.obs.label())
+            basename = 'data_{}_{}'.format(self.label, self.obs.label)
             text_file = os.path.join(filter_path, basename + '.csv')
             self.dataframe = pd.read_csv(text_file, index_col=False)
         except (text.MissingFileError, text.MissingFolderError):

@@ -230,7 +230,7 @@ class FilterObservableBound(FilterCell):
 #            raise ValueError(msg)
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
-        label = '{} <= {}'.format(lower_bound, obs.label())
+        label = '{} <= {}'.format(lower_bound, obs.label)
         if tref is not None:
             label += ' (t={})'.format(tref)
         label += ' < {}'.format(upper_bound)
@@ -245,7 +245,7 @@ class FilterObservableBound(FilterCell):
                              FilterTimeInCycle(tref=self.tref))
         else:
             filt = FilterData()
-        label = self.obs.label()
+        label = self.obs.label
         if filt(cell):
             # retrieve data
             array = cell._sdata[label]  # two cases: array, or single value

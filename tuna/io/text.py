@@ -332,7 +332,7 @@ def get_condition_path(filter_path, condition, write=True):
 def get_observable_path(condition_path, obs, write=True):
     if not os.path.exists(condition_path):
         raise MissingFolderError('condition-folder')
-    basename = obs.label()
+    basename = obs.label
     path = os.path.join(condition_path, basename)
     if write and not os.path.exists(path):
         os.makedirs(path)
@@ -348,7 +348,7 @@ def get_observable_path(condition_path, obs, write=True):
 def get_biobservable_path(condition_path, obss, write=True):
     if not os.path.exists(condition_path):
         raise MissingFolderError('condition-folder')
-    basename = '---'.join([obs.label() for obs in obss])
+    basename = '---'.join([obs.label for obs in obss])
     path = os.path.join(condition_path, basename)
     if write and not os.path.exists(path):
         os.makedirs(path)
@@ -401,7 +401,7 @@ def get_biobservable_path(condition_path, obss, write=True):
 #def find_observable_path(filterset_path, obs):
 #    if not os.path.exists(filterset_path):
 #        raise MissingFolderError('filterset')
-#    path = os.path.join(filterset_path, obs.label())
+#    path = os.path.join(filterset_path, obs.label)
 #    return path
 #
 #

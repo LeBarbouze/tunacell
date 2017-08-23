@@ -214,7 +214,7 @@ class Lineage(object):
         -------
         :class:`TimeSeries` instance
         """
-        label = obs.label()
+        label = obs.label
         if obs.timing == 'g':
             try:
                 gens = self.get_generations(tref=obs.tref)
@@ -286,7 +286,7 @@ class Lineage(object):
         # build timeseries by concatenating each cell's timeseries
         # when time_window is called, some values from the estimate at cell <c>
         # are in fact evaluated in its parent cell time range
-        label = obs.label()
+        label = obs.label
         # lineage conditions mask
         time_bounds = []
         for cid in self.idseq:
