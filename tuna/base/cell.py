@@ -194,7 +194,8 @@ class Cell(tlib.Node):
             # first build every single Observable
             for item in obs.observables:
                 self.build(item)
-            self._sdata[obs.label] = obs.f(*obs.observables)
+            arrays = [self._sdata[item.label] for item in obs.observables]
+            self._sdata[obs.label] = obs.f(*arrays)
             # note that with sliding windows, results might be affected by
             # later operation on daugther cell -> adjust in lineage.build
         elif isinstance(obs, Observable):
@@ -303,6 +304,7 @@ class Cell(tlib.Node):
                     self.parent._sdata[label] = np.where(np.isnan(existing), to_parent, existing)
         return
 
+
     def compute_cyclized(self, obs):
         """Computes observable when mode is different from 'dynamics'.
 
@@ -315,47 +317,52 @@ class Cell(tlib.Node):
         ------
         ValueError
             when Observable mode is 'dynamics'
+
+        Note
+        ----
+        To compute a cell-cycle observable (e.g. birth growth rate), it is
+        necessary to know the value of the timelapse counterpart (e.g. growth
+        rate here). The timelapse observable may work by joining values at
+        divisions, and hence a single call to Cell.build_timelapse() will
+        result in a different result array than when it has beenalso  called in
+        a daughter cell (potentially affecting values toward the end of current
+        cell cycle). Hence, in that circumstances when continuity is used to
+        join timeseries at divisions, enhancing results with fitting
+        over sliding windows, it is the user's task to compute first the
+        timelapse observable over the entire lineage, and only then, evaluate
+        cell-cycle values. This is why the function below tries first to read
+        an already present array from timelapse counterpart, and only if it
+        fails will it compute it using only this current cell data.
         """
         scale = obs.scale
         npts = obs.join_points
         label = obs.label
         if obs.mode == 'dynamics':
             raise ValueError('Called build_cyclized for dynamics mode')
-        # associate continous observable and build corresponding ._sdata
-        cobs = deepcopy(obs)
-        cobs.mode = 'dynamics'
-        cobs.timing = 't'
+        # associate timelapse counterpart
+        cobs = obs.as_timelapse()
         clabel = cobs.label
-        # discard result as it can mix cell, and parent cell data
-        self.build_timelapse(cobs)
-        # now we compute cell cycle observable using created _sdata: only cell
         time = self.data['time']
-        array = self._sdata[clabel]
-        # get value
+        # if it has been computed already, the clabel key exists in sdata
         try:
+            array = self._sdata[clabel]
+        # otherwise compute the timelapse counterpart
+        except KeyError:
+            self.build_timelapse(cobs)
+            array = self._sdata[clabel]
+        # get value
+        try:                
             if obs.mode == 'birth':
-                value = extrapolate_endpoints(self,
-                                              zip(time, array),
-                                              scale=scale,
-                                              end_point='birth',
-                                              join_points=npts)
+                value = extrapolate_endpoints(time, array, self.birth_time,
+                                              scale=scale, join_points=npts)
             elif obs.mode == 'division':
-                value = extrapolate_endpoints(self,
-                                              zip(time, array),
-                                              scale=scale,
-                                              end_point='division',
-                                              join_points=npts)
+                value = extrapolate_endpoints(time, array, self.division_time,
+                                              scale=scale, join_points=npts)
             elif 'net-increase' in obs.mode:
-                dval = extrapolate_endpoints(self,
-                                             zip(time, array),
-                                             scale=scale,
-                                             end_point='division',
-                                             join_points=npts)
-                bval = extrapolate_endpoints(self,
-                                             zip(time, array),
-                                             scale=scale,
-                                             end_point='birth',
-                                             join_points=npts)
+                dval = extrapolate_endpoints(time, array, self.division_time,
+                                              scale=scale, join_points=npts)
+                bval = extrapolate_endpoints(time, array, self.birth_time,
+                                              scale=scale, join_points=npts)
                 if obs.mode == 'net-increase-additive':
                     value = dval - bval
                 elif obs.mode == 'net-increase-multiplicative':

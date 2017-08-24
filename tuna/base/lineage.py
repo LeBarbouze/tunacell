@@ -184,11 +184,22 @@ class Lineage(object):
                     for item in filt._obs:
                         if isinstance(item, Observable):
                             suppl_obs.append(item)
-        # compute suppl obs for all cells in lineage
-        if suppl_obs:
-            for cell in self.cellseq:
-                for sobs in suppl_obs:
-                    cell.build(sobs)
+        # check for supplentary observables when obs is FunctionalObservable
+        if isinstance(obs, FunctionalObservable):
+            suppl_obs.extend(obs.observables)
+        elif isinstance(obs, Observable):
+            suppl_obs.append(obs)
+
+        # compute timelapsed obs for all cells in lineage
+        for cell in self.cellseq:
+            for sobs in suppl_obs:
+                cell.build(sobs.as_timelapse())
+        # now that all timelapse observables have been computed,
+        # compute those that are of cell-cycle mode
+        for cell in self.cellseq:
+            for sobs in suppl_obs:
+                if sobs.mode != 'dynamics':
+                    cell.compute_cyclized(sobs)
 
         time_bounds = []
         for cell in self.cellseq:
@@ -206,37 +217,14 @@ class Lineage(object):
                 tright = - np.infty
             time_bounds.append((tleft, tright))
 
-        # build _sdata for each obs
-        modes = []
-        mode = None
-        timings = []
-        timing = None
+        # perform functional operation
+        # TODO : only works for dynamics -> extend to cell-cycle modes
         if isinstance(obs, FunctionalObservable):
-            for item in obs.observables:
-                modes.append(item.mode)
-                timings.append(item.timing)
-            # first round: build all _sdata
+            # define new sdata with functional form
             for cell in self.cellseq:
-                for item in obs.observables:
-                    cell.build(item)
-            # second round: define new sdata with functional form
-            for cell in self.cellseq:
-                cell._sdata[obs.label] = obs.f(*obs.observables)
-            if 'dynamics' in modes:
-                mode = 'dynamics'  # time-lapse: arrays
-                timing = 't'
-            else:
-                mode = 'cycle'  # single value
-                timing = timings[0]  # default : first argument timing
-        elif isinstance(obs, Observable):
-            if obs.mode == 'dynamics':
-                mode = 'dynamics'
-                timing = 't'
-            else:
-                mode = 'cycle'
-                timing = obs.timing
-            for cell in self.cellseq:
-                cell.build(obs)
+                arrays = [cell._sdata[item.label] for item in obs.observables]
+                result_array = obs.f(*arrays)
+                cell._sdata[obs.label] = result_array
 
         # boolean tests
         select_ids = self.get_boolean_tests(cset)
@@ -244,7 +232,7 @@ class Lineage(object):
         arrays = []
         index_cycles = []
         # at this point all _sdata are ready for action. Distinguish modes
-        if mode == 'dynamics':
+        if obs.mode == 'dynamics':
             # build array
             count = 0
             for cell in self.cellseq:
