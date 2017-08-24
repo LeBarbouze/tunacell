@@ -10,6 +10,7 @@ import os
 import matplotlib.pyplot as plt
 
 from tuna import Parser, Observable, FilterSet
+from tuna.observable import FunctionalObservable
 from tuna.filters.cells import FilterCellIDparity
 from tuna.plotting.dynamics import UnivariatePlot, plot_stationary
 # import api functions
@@ -35,6 +36,7 @@ condition = FilterSet(label='evenID', filtercell=even)
 
 # define dynamic observables
 ou = Observable(label='exact-growth-rate', raw='ou')
+ou2 = FunctionalObservable('double-growth-rate', lambda x : 2 * x, [ou, ])
 gr = Observable(label='approx-growth-rate', raw='exp_ou_int',
                 differentiate=True, scale='log',
                 local_fit=True, time_window=15.)
@@ -59,7 +61,7 @@ tmin = md.start
 tmax = md.stop
 period = md.period
 # %% univ OBJECTS
-for obs in [ou, gr, average_gr, division_size]:
+for obs in [ou, ou2, gr, average_gr, division_size]:
 
     # Statistics: if import fails, compute
     try:
