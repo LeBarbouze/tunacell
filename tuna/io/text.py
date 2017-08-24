@@ -10,7 +10,8 @@ import re
 import glob
 
 import numpy as np
-import pandas as pd
+
+from tuna.observable import Observable, FunctionalObservable
 
 
 class TextParsingError(Exception):
@@ -332,23 +333,26 @@ def get_condition_path(filter_path, condition, write=True):
 def get_observable_path(condition_path, obs, write=True):
     if not os.path.exists(condition_path):
         raise MissingFolderError('condition-folder')
-    basename = obs.label
+    basename = obs.name
     path = os.path.join(condition_path, basename)
     if write and not os.path.exists(path):
         os.makedirs(path)
         text_file = os.path.join(path, basename + '.txt')
         with open(text_file, 'w') as f:
-            f.write('{}\n\n{}\n\n{}\n\n{}'.format(repr(obs),
-                                                  str(obs),
-                                                  obs.as_latex_string(),
-                                                  obs.as_string_table()))
+            if isinstance(obs, Observable):
+                f.write('{}\n\n{}\n\n{}\n\n{}'.format(repr(obs),
+                                                      str(obs),
+                                                      obs.as_latex_string(),
+                                                      obs.as_string_table()))
+            elif isinstance(obs, FunctionalObservable):
+                f.write('{}'.format(basename))
     return path
 
 
 def get_biobservable_path(condition_path, obss, write=True):
     if not os.path.exists(condition_path):
         raise MissingFolderError('condition-folder')
-    basename = '---'.join([obs.label for obs in obss])
+    basename = '---'.join([obs.name for obs in obss])
     path = os.path.join(condition_path, basename)
     if write and not os.path.exists(path):
         os.makedirs(path)
