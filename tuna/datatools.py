@@ -325,33 +325,46 @@ class ExtrapolationError(Exception):
     pass
 
 
-# TODO : extend to rates generated observables using above function?
-def extrapolate_endpoints(cell, timeseries=None, yaxis='length', scale='log',
-                          end_point='birth', join_points=3):
-    """Extrapolate values at cell birth and cell division.
+class TooFewPoints(ExtrapolationError):
+    pass
+
+
+class TooRemoteFromTarget(ExtrapolationError):
+    pass
+
+
+def extrapolate_endpoints(x, y, x_target,
+                          scale='log', join_points=3,
+                          distance_max=None):
+    """Extrapolate y values at x_target
 
     Parameters
     ----------
-    cell : Cell instance
-    timeseries : optional, sequence of (time, value) (default None)
-        if provided, the extrapolation will use these values
-        if not, the sequence of (time, value) is retrieved from cell.data
-        using yaxis parameter
-    yaxis : str
-        raw observable to evaluate at end_point (e.g. 'length')
-    scale : str, {'linear', 'log'}
-        expected scale of observable
-    end_point : str, {'birth', 'division'}
-    join_points : int, number of points over which fit is done
+    x : 1d ndarray
+        co-ordinate array (usually array of times for timeseries)
+    y : 1d ndarray
+        ordinate (array of values of same length as x array)
+    x_target : float
+        value of co-ordinate at which y is inter-/extra-polated
+    scale : str {'linear', 'log'}
+        expected scale of y versus x. For exponential growth, use 'log' scale.
+    join_points : int (default 3)
+        minimal number of points used when performing local fits to make
+        continuity between anterior and present timeseries
+    distance_max : float (default None)
+        upper bound to the distance between closest x to x_target to accept
+        extrapolation
 
     Returns
     -------
-    value - value estimated at birth/division for <yaxis> observable
+    float
+        value estimated at x_target for y array
 
     Raises
     ------
-    ExtrapolationError: when extrapolation fails due to too less points, or
-                        when birth or division are not defined on Cell instance
+    ExtrapolationError
+        when extrapolation fails due to too less points, or
+        when closest x to x_target is further away than distance_max
     """
     npts = join_points
     if scale == 'log':
@@ -361,31 +374,31 @@ def extrapolate_endpoints(cell, timeseries=None, yaxis='length', scale='log',
         y_operator = lambda x: x
         y_inv_operator = lambda x: x
 
-    # arrays of time and observable
-    if timeseries is not None:
-        times, values = map(np.array, zip(*timeseries))
+    coords = Coordinates(x, y)
+
+    if len(coords.clear_x) < join_points:
+        raise TooFewPoints('{} < {}'.format(len(coords.clear_x), join_points))
+
+    op_values = y_operator(coords.clear_y)
+
+    # when target is inside : interpolate
+    if np.amin(coords.clear_x) <= x_target <= np.amax(coords.clear_x):
+        f = interp1d(coords.clear_x, op_values, kind='linear',
+                     bounds_error=False)
+        return y_inv_operator(f(x_target))
+
+    # othgerwise we extrapolate
+    if distance_max is not None:
+        dist = np.amin(np.abs(coords.clear_x - x_target))
+        if dist > distance_max:
+            msg = ('Distance to target: {} > {}'.format(dist, distance_max))
+            raise TooRemoteFromTarget(msg)
+    if x_target > np.amax(coords.clear_x):
+        rate, intercept = np.polyfit(coords.clear_x[-npts:], op_values[-npts:], 1)
     else:
-        times, values = map(np.array, zip(*cell.data[['time', yaxis]]))
+        rate, intercept = np.polyfit(coords.clear_x[:npts], op_values[:npts], 1)
 
-    op_values = y_operator(values)
-    if len(times) < join_points:
-        msg = ('not enough points to fit end-point: '
-               '{} instead of {}'.format(len(times), join_points))
-        raise ExtrapolationError(msg)
-
-    if end_point == 'birth' or end_point == 'b':
-        if cell.birth_time is None:
-            raise ExtrapolationError('cell with no birth time defined')
-        rate, intercept = np.polyfit(times[:npts], op_values[:npts], 1)
-        val = rate * cell.birth_time + intercept
-
-    if end_point == 'division' or end_point == 'd':
-        if cell.division_time is None:
-            raise ExtrapolationError('cell with no division time defined')
-        rate, intercept = np.polyfit(times[-npts:], op_values[-npts:], 1)
-        val = rate * cell.division_time + intercept
-
-    return y_inv_operator(val)
+    return y_inv_operator(rate * x_target + intercept)
 
 # %% List of operator acting on Coordinates
 
