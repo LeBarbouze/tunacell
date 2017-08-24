@@ -12,11 +12,10 @@ Classes
 from __future__ import print_function
 
 import warnings
-import re
 import inspect
+import re
 
 
-# DEPRECATED
 _re_codestring = 'T([a-z])(\d*[\.,]*\d*)M([a-z\-]+)J(\d+)'
 
 
@@ -85,11 +84,11 @@ class Observable(object):
         that bounds this reference time
     """
 
-    def __init__(self, label,
+    def __init__(self, name=None, from_string=None,
                  raw=None, differentiate=False, scale='linear',
                  local_fit=False, time_window=0., join_points=3,
                  mode='dynamics', timing='t', tref=None):
-        self._attr_names = ['label',
+        self._attr_names = ['name',
                             'raw',
                             'scale',
                             'differentiate',
@@ -99,29 +98,29 @@ class Observable(object):
                             'mode',
                             'timing',
                             'tref']
-
-        self._label = label
-        if raw is None:
-            self.raw = label
+        if from_string is not None:
+            self.load_from_string(from_string)
         else:
+            self.name = name
             self.raw = raw
-        self.differentiate = differentiate
-        self.scale = scale
-        self.local_fit = local_fit
-        self.time_window = time_window
-        self.join_points = join_points
-        self.mode = mode
-        self.timing = timing
-        self.tref = tref
+#            # warn if raw is 'none'
+#            if raw == 'none':
+#                msg = ("'raw' is set to 'none'.\n"
+#                       "Update to a valid column name of your experiment.")
+#                warnings.warn(msg)
+            self.differentiate = differentiate
+            self.scale = scale
+            self.local_fit = local_fit
+            self.time_window = time_window
+            self.join_points = join_points
+            self.mode = mode
+            self.timing = timing
+            self.tref = tref
         return
 
     @property
     def label(self):
-        return self._label
-
-    # DEPRECATED
-    def old_label(self):
-        """Label is outputing a string representation suitable for file label.
+        """Label is outputing a unique string representation
 
         This method creates a string label that specifies each parameter to
         re-construct the Observable. The output string is
@@ -155,7 +154,11 @@ class Observable(object):
         msg += self.raw
         return msg
 
-    # DEPRECATED
+    @label.setter
+    def label(self, value):
+        """Set Observable instance using given codestring"""
+        self.load_from_string(value)
+
     def load_from_string(self, codestring):
         """Set Observable instance from string code created by `label` method
 
@@ -226,9 +229,9 @@ class Observable(object):
 
         msg += formatting(['parameter', 'value'])
         msg += '\n' + formatting(['----', '----'])
-        for attr in self._attr_names:
-            val = self.__getattribute__(attr)
-            msg += '\n' + formatting([attr, val])
+        for key in self._attrs:
+            val = self._dic[key]
+            msg += '\n' + formatting([key, val])
         msg += '\n'
         return msg
 
@@ -268,9 +271,9 @@ class Observable(object):
     def __repr__(self):
         name = type(self).__name__
         chain = name + '('
-        for attr in self._attr_names:
-            val = self.__getattribute__(attr)
-            chain += '{}={}, '.format(attr, repr(val))
+        for key in self._attr_names:
+            val = self.__getattribute__(key)
+            chain += '{}={}, '.format(key, repr(val))
         chain += ')'
         return chain
 
@@ -278,9 +281,8 @@ class Observable(object):
 class FunctionalObservable(object):
     """Combination of :class:`Observable` instances"""
 
-    def __init__(self, name, f, observables):
-        self.mode = 'func'
-        self.name = name
+    def __init__(self, label, f, observables):
+        self.label = label
         if not callable(f):
             raise ValueError('f must be callable')
         self.f = f
@@ -296,6 +298,30 @@ class FunctionalObservable(object):
                 raise TypeError(msg)
         return
 
+    @property
+    def timing(self):
+        """Return timing depending on observables passed as parameters"""
+        timing = None
+        timings = []
+        for item in self.observables:
+            timings.append(item.timing)
+        if 't' in timings:
+            return 't'
+        else:
+            return timings[0]  # default
+
+    @property
+    def mode(self):
+        """Returns mode depending on observables passed as parameters"""
+        mode = None
+        modes = []
+        for item in self.observables:
+            modes.append(item.mode)
+        if 'dynamics' in modes:
+            return 'dynamics'
+        else:
+            return 'cell-cycle'
+
 
 if __name__ == '__main__':
     length = Observable('length', raw='length')
@@ -303,4 +329,7 @@ if __name__ == '__main__':
     def volume(x, y):
         return x * y**2
     combo = FunctionalObservable('volume', volume, [length, width])
+    divlength = Observable('divlength', raw='length', scale='log',
+                           mode='division', timing='d')
+
     
