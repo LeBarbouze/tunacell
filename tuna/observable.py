@@ -14,6 +14,7 @@ from __future__ import print_function
 import warnings
 import inspect
 import re
+from copy import deepcopy
 
 
 _re_codestring = 'T([a-z])(\d*[\.,]*\d*)M([a-z\-]+)J(\d+)'
@@ -117,6 +118,21 @@ class Observable(object):
             self.timing = timing
             self.tref = tref
         return
+
+    def as_timelapse(self):
+        """Convert current observable to its dynamic counterpart
+
+        This is needed when computing cell-cycle observables.
+        """
+        if self.mode == 'dynamics' and self.timing == 't':
+            # everything's fine
+            return self
+        else:
+            tobs = deepcopy(self)
+            tobs.mode = 'dynamics'
+            tobs.timing = 't'
+            tobs.name = '_timelapsed_' + self.name
+            return tobs
 
     @property
     def label(self):
@@ -324,12 +340,11 @@ class FunctionalObservable(object):
 
 
 if __name__ == '__main__':
-    length = Observable('length', raw='length')
+    length = Observable('length', raw='length', scale='log')
     width = Observable('width', raw='width')
     def volume(x, y):
         return x * y**2
     combo = FunctionalObservable('volume', volume, [length, width])
     divlength = Observable('divlength', raw='length', scale='log',
                            mode='division', timing='d')
-
-    
+    print(length.label == divlength.as_timelapse().label)
