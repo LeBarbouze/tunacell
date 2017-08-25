@@ -692,7 +692,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
 
     # add title
     ax = axes[0]
-    ax.text(0.5, 1.3, r'{}'.format(obs.as_latex_string()),
+    ax.text(0.5, 1.3, r'{}'.format(obs.as_latex_string),
             size='x-large',
             horizontalalignment='center',
             verticalalignment='bottom',

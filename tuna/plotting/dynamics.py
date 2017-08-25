@@ -293,7 +293,7 @@ def plot_onepoint(univariate, show_cdts='all', left=None, right=None,
 #    axs[2].text(0., -.2, info, va='top', transform=axs[2].transAxes)
 
     # title
-    latex_obs = obs.as_latex_string()
+    latex_obs = obs.as_latex_string
     axs[0].text(0.5, 1.3, r' One-point stats for {}'.format(latex_obs),
                 size='large',
                 horizontalalignment='center',
@@ -439,7 +439,7 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
     axs[2].set_ylabel(r'Shifted $g(t_{\mathrm{ref}}, t- t_{\mathrm{ref}})$',
                       fontsize='large')
 
-    latex_obs = obs.as_latex_string()
+    latex_obs = obs.as_latex_string
     axs[0].text(0.5, 1.3, r' Autocorrelation fcts for {}'.format(latex_obs),
                 size='large',
                 horizontalalignment='center',
@@ -653,11 +653,11 @@ def plot_stationary(stationary, show_cdts='all',
     # writting observable
     # case: obs is a single observable
     if isinstance(stationary, StationaryUnivariate):
-        latex_obs = obs.as_latex_string()
+        latex_obs = obs.as_latex_string
         msg = 'autocorrelation'
     # case: obs is a couple of observables
     else:
-        latex_obs = ', '.join([ob.as_latex_string() for ob in obs])
+        latex_obs = ', '.join([ob.as_latex_string for ob in obs])
         msg = 'covariance'
 
     ax1.text(0.5, 1.1, r' Stationary {} for {}'.format(msg, latex_obs),

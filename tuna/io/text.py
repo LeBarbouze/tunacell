@@ -342,7 +342,7 @@ def get_observable_path(condition_path, obs, write=True):
             if isinstance(obs, Observable):
                 f.write('{}\n\n{}\n\n{}\n\n{}'.format(repr(obs),
                                                       str(obs),
-                                                      obs.as_latex_string(),
+                                                      obs.as_latex_string,
                                                       obs.as_string_table()))
             elif isinstance(obs, FunctionalObservable):
                 f.write('{}'.format(basename))
