@@ -218,7 +218,6 @@ class Lineage(object):
             time_bounds.append((tleft, tright))
 
         # perform functional operation
-        # TODO : only works for dynamics -> extend to cell-cycle modes
         if isinstance(obs, FunctionalObservable):
             # define new sdata with functional form
             for cell in self.cellseq:
