@@ -254,7 +254,7 @@ class Lineage(object):
         # otherwise it's of 'cycle' mode
         else:
             for index, cell in enumerate(self.cellseq):
-                if timing == 'g':
+                if obs.timing == 'g':
                     try:
                         gens = self.get_generations(tref=obs.tref)
                         tt = gens[index]
@@ -266,11 +266,11 @@ class Lineage(object):
                                          select_ids=select_ids)
                         return new
                 # time value
-                elif timing == 'b':
+                elif obs.timing == 'b':
                     tt = cell.birth_time
-                elif timing == 'd':
+                elif obs.timing == 'd':
                     tt = cell.division_time
-                elif timing == 'm':
+                elif obs.timing == 'm':
                     try:
                         tt = (cell.division_time + cell.birth_time)/2.
                     except TypeError:
