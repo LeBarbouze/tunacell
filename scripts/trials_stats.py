@@ -35,17 +35,17 @@ even = FilterCellIDparity('even')
 condition = FilterSet(label='evenID', filtercell=even)
 
 # define dynamic observables
-ou = Observable(label='exact-growth-rate', raw='ou')
-ou2 = FunctionalObservable('double-growth-rate', lambda x : 2 * x, [ou, ])
-gr = Observable(label='approx-growth-rate', raw='exp_ou_int',
+ou = Observable(name='exact-growth-rate', raw='ou')
+ou2 = FunctionalObservable(name='double-growth-rate', f=lambda x : 2 * x, observables=[ou, ])
+gr = Observable(name='approx-growth-rate', raw='exp_ou_int',
                 differentiate=True, scale='log',
                 local_fit=True, time_window=15.)
 
 # define cell-cycle observables
-average_gr = Observable(label='averate-growth-rate', raw='ou',
+average_gr = Observable(name='averate-growth-rate', raw='ou',
                         differentiate=False, scale='linear',
                         local_fit=False, mode='average', timing='g')
-division_size = Observable(label='division-size', raw='exp_ou_int',
+division_size = Observable(name='division-size', raw='exp_ou_int',
                            differentiate=False, scale='log',
                            local_fit=False, mode='division', timing='g')
 
