@@ -325,6 +325,10 @@ class ExtrapolationError(Exception):
     pass
 
 
+class NoTarget(ExtrapolationError):
+    pass
+
+
 class TooFewPoints(ExtrapolationError):
     pass
 
@@ -366,6 +370,8 @@ def extrapolate_endpoints(x, y, x_target,
         when extrapolation fails due to too less points, or
         when closest x to x_target is further away than distance_max
     """
+    if x_target is None or np.isnan(x_target):
+        raise NoTarget('x_target: {} is not a number'.format(x_target))
     npts = join_points
     if scale == 'log':
         y_operator = np.log
