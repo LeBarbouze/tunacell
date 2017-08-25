@@ -712,7 +712,7 @@ class StationaryUnivariate(object):
                                                    write=True)
             res = text.get_filter_path(analysis_path, fset, write=True)
             index_filter, filter_path = res
-            basename = 'data_{}_{}'.format(self.label, self.obs.label)
+            basename = 'data_{}_{}'.format(self.label, self.obs.name)
             text_file = os.path.join(filter_path, basename + '.csv')
             self.dataframe.to_csv(text_file, index=False)
         return
@@ -727,7 +727,7 @@ class StationaryUnivariate(object):
                                                    write=False)
             res = text.get_filter_path(analysis_path, fset, write=False)
             index_filter, filter_path = res
-            basename = 'data_{}_{}'.format(self.label, self.obs.label)
+            basename = 'data_{}_{}'.format(self.label, self.obs.name)
             text_file = os.path.join(filter_path, basename + '.csv')
             self.dataframe = pd.read_csv(text_file, index_col=False)
         except (text.MissingFileError, text.MissingFolderError):
