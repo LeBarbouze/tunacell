@@ -61,7 +61,7 @@ tmin = md.start
 tmax = md.stop
 period = md.period
 # %% univ OBJECTS
-for obs in [ou, ou2, gr, average_gr, division_size]:
+for obs in [ou, gr, average_gr, division_size, ou2]:
 
     # Statistics: if import fails, compute
     try:
@@ -75,7 +75,12 @@ for obs in [ou, ou2, gr, average_gr, division_size]:
     univs.append(univ)
 
     uplt = UnivariatePlot(univ)
-    uplt.make_onepoint(show_ci=True, mean_ref=ref_mean)
+    if obs == ou2:
+        uplt.make_onepoint(show_ci=True, mean_ref=2*ref_mean)
+    elif obs == division_size:
+        uplt.make_onepoint(show_ci=True)
+    else:
+        uplt.make_onepoint(show_ci=True, mean_ref=ref_mean)
     if obs.timing != 'g':
         uplt.make_twopoints(trefs=[40., 80., 120.])
     else:
@@ -117,7 +122,7 @@ print('Stationary univ objects: OK')
 
 # %% CROSS CORRELATION
 # unpack univariate objects
-u_ou, u_gr, u_avou, u_lendiv = univs
+u_ou, u_gr, u_avou, u_lendiv, u_ou2 = univs
 
 bivs = []
 for u1, u2 in [(u_ou, u_gr), (u_avou, u_lendiv)]:
