@@ -251,6 +251,7 @@ class Observable(object):
         msg += '\n'
         return msg
 
+    @property
     def as_latex_string(self):
         """Export as LaTeX string.
         """
@@ -297,8 +298,10 @@ class Observable(object):
 class FunctionalObservable(object):
     """Combination of :class:`Observable` instances"""
 
-    def __init__(self, label, f, observables):
-        self.label = label
+    def __init__(self, name=None, f=None, observables=[]):
+        if name is None:
+            raise ValueError('name must be a unique name string')
+        self.name = name
         if not callable(f):
             raise ValueError('f must be callable')
         self.f = f
@@ -327,6 +330,15 @@ class FunctionalObservable(object):
             return timings[0]  # default
 
     @property
+    def tref(self):
+        # tref is used only when timing is 'g' (generations)
+        if self.timing == 'g':
+            t = self.observables[0].tref
+        else:
+            t = None
+        return t
+
+    @property
     def mode(self):
         """Returns mode depending on observables passed as parameters"""
         mode = None
@@ -338,6 +350,24 @@ class FunctionalObservable(object):
         else:
             return 'cell-cycle'
 
+    @property
+    def label(self):
+        """get unique string identifier"""
+        msg = self.name + '('
+        for item in self.observables:
+            msg += item.label + ', '
+        msg += ')'
+        return msg
+    
+    @property
+    def as_latex_string(self):
+        msg = 'f('
+        for item in self.observables:
+            msg += item.as_latex_string + ', '
+        msg.rstrip(' ,')
+        msg += ')'
+        return msg
+
 
 if __name__ == '__main__':
     length = Observable('length', raw='length', scale='log')
@@ -347,4 +377,5 @@ if __name__ == '__main__':
     combo = FunctionalObservable('volume', volume, [length, width])
     divlength = Observable('divlength', raw='length', scale='log',
                            mode='division', timing='d')
+    newcombo = FunctionalObservable('resc_length', f=lambda x, y: x/y, observables=[length, divlength])
     print(length.label == divlength.as_timelapse().label)
