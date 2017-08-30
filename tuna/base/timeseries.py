@@ -3,8 +3,11 @@
 """
 This module will define useful objects for conditional analysis
 """
+import collections
 import numpy as np
 import pandas as pd
+
+from tuna.datatools import Coordinates
 
 
 # define an object to handle heterogeneous types of time series
@@ -13,28 +16,48 @@ class TimeSeries(object):
 
     Parameters
     ----------
-    label: str
-       label to be given to yaxis values (e.g. 'dot_width')
-       this label may be used for subsequent output labelling
-    ts : sequence of couples (time, value) (or numpy array)
+    ts : :class:`Coordinates` instance, or 2d structured ndarray
+        better to use Coordinates, so that names can be carried along
     ids : sequence of cell identifiers from which data was collected
     index_cycles : sequence of couples (index_first, index_last)
-       that delimit data corresponding to cell id
+       that delimit data corresponding to cell id, must be same length as ids
     slices : sequence of slice objects
         each item can be used to slice the entire table
     time_bounds : sequence of couples of floats
         for each cell, first element is the lower bound of cell cycle, the
-        second element is the upper bound of cell cycle
+        second element is the upper bound of cell cycle, must be same length
+        as ids
     select_ids : sequences of True/False values corresponding whether or
-       not to include data from cell id in timeseries
+       not to include data from cell id in timeseries, must be same length as
+       ids
     """
 
-    def __init__(self, label, ts=[], ids=[], index_cycles=[], slices=None,
-                 time_bounds=[],
-                 select_ids={}):
-        self.label = label  # label is the string label to be given to yaxis
-#        self._groups = groups
-        self._timeseries = ts
+    def __init__(self, ts=[], ids=[], index_cycles=[], slices=None,
+                 time_bounds=[], select_ids={}, container_label=None,
+                 experiment_label=None):
+        # ts is a Coordinates instance
+        self.container_label = container_label
+        self.experiment_label = experiment_label
+        if isinstance(ts, Coordinates):
+            self._timeseries = ts
+        # ts is a numpy array (structured if possible)
+        elif isinstance(ts, np.ndarray):
+            # convert structured arrays to 2d ndarrays
+            if ts.dtype.names is not None:
+                _arr = ts.view((float, len(ts.dtype.names)))
+                _x_name, _y_name = ts.dtype.names[:2]  # take only first 2 cols
+            else:
+                _arr = ts
+                _x_name, _y_name = 'x', 'y'
+            _x = _arr[:, 0]
+            _y = _arr[:, 1]
+            self._timeseries = Coordinates(_x, _y,
+                                           x_name=_x_name, y_name=_y_name)
+        # ... list of couples
+        elif isinstance(ts, collections.Iterable):
+            _ts = list(ts)
+            _x, _y = map(np.array, zip(*_ts))
+            self._timeseries = Coordinates(_x, _y)
         self.time_bounds = time_bounds
         self.slices = []
         if index_cycles:  # array indices corresponding to (first, last) frame for each cell
@@ -77,7 +100,7 @@ class TimeSeries(object):
 
         Parameter
         ---------
-        label : str (default 'master')
+        condition_label : str (default 'master')
             must be a key of dictionary self.selections, and corresponds to
             the repr of a given :class:`FilterSet` instance.
         sharp_left : float (default None)
@@ -89,10 +112,10 @@ class TimeSeries(object):
 
         Returns
         -------
-        List of couples (time, value) for valid cells
+        Coordinates instance made of valid (x, y) points
         """
         selection = self.selections[condition_label]
-        toconcat = []
+        xs, ys = [], []
         for index, cid in enumerate(self.ids):
             if selection[index] and self.slices[index] is not None:
                 if sharp_tleft is not None:
@@ -101,26 +124,28 @@ class TimeSeries(object):
                 if sharp_tright is not None:
                     if self.time_bounds[index][1] > sharp_tright:
                         continue
-                toconcat.append(self.timeseries[self.slices[index]])
-        if len(toconcat) > 0:
-            out = np.concatenate(toconcat)
+                xs.append(self.timeseries.x[self.slices[index]])
+                ys.append(self.timeseries.y[self.slices[index]])
+        if len(xs) > 0:
+            _x = np.concatenate(xs)
+            _y = np.concatenate(ys)
         else:
-            out = np.array([], dtype=[('time', 'f8'), (self.label, 'f8')])
-        if len(out) > 0:
-            if 'time' in out.dtype.names and self.label in out.dtype.names:
-                out = out[['time', self.label]]
+            _x = []
+            _y = []
+        out = Coordinates(_x, _y, x_name=self.timeseries.x_name,
+                          y_name=self.timeseries.y_name)
         return out
 
     @property
     def timeseries(self):
         return self._timeseries
+#
+#    @timeseries.setter
+#    def timeseries(self, ts):
+#        self._timeseries = ts
 
-    @timeseries.setter
-    def timeseries(self, ts):
-        self._timeseries = ts
-
-    def __getitem__(self, key):
-        return self.timeseries[key]
+#    def __getitem__(self, key):
+#        return self.timeseries[key]
 
     def __repr__(self):
         return repr(self.timeseries)
@@ -137,17 +162,23 @@ class TimeSeries(object):
         print_labels : bool {False, True}
             first line is labels, followed by empty line
         """
-        labels = None
-        if isinstance(self.timeseries, np.ndarray):
-            labels = self.timeseries.dtype.names
         printout = ''
+        labels = [self.timeseries.x_name,
+                  self.timeseries.y_name,
+                  'cellID',
+                  'containerID',
+                  'experimentID']
         if print_labels and labels is not None:
             printout += '\t'.join(labels) + '\n'
         printout += '\n'
-        for sl in self.slices:
+        for index, sl in enumerate(self.slices):
             chunk = ''
-            local = self.timeseries[sl]
-            for line in local:
+            x = self.timeseries.x[sl]
+            y = self.timeseries.y[sl]
+            ids = len(x) * [self.ids[index]]
+            container_id = len(x) * [self.container_label, ]
+            exp_id = len(x) * [self.experiment_label, ]
+            for line in zip(x, y, ids, container_id, exp_id):
                 chunk += '{}'.format(sep).join(['{}'.format(item) for item in line]) + '\n'
             printout += chunk
             printout += cell_sep
@@ -155,21 +186,20 @@ class TimeSeries(object):
 
     def to_dataframe(self, start_index=0):
         dic = {}
-        # initialize dict of empty lists
-        dic['time'] = []
-        dic[self.label] = []
-        dic['id'] = []
-        for label in self.selections.keys():
-            dic[label] = []
-        for index, cid in enumerate(self.ids):
-            if self.slices[index] is not None:
-                ts = self.timeseries[self.slices[index]]
-                times = ts['time']
-                dic['time'].extend(times)
-                dic[self.label].extend(ts[self.label])
-                dic['id'].extend([cid for _ in times])
-                for label in self.selections.keys():
-                    boo = self.selections[label][index]
-                    dic[label].extend([boo for _ in times])
-        df = pd.DataFrame(dic, index=range(start_index, start_index + len(dic['time'])))
+        dic[self.timeseries.x_name] = self.timeseries.x
+        dic[self.timeseries.y_name] = self.timeseries.y
+        size = len(self.timeseries.x)
+        # add cell ID, container ID, experiment ID, and TRUE/FALSE for each cdt
+        for index, sl in enumerate(self.slices):
+            _x = self.timeseries.x[sl]
+            dic['cellID'] = len(_x) * [self.ids[index], ]
+            dic['containerID'] = len(_x) * [self.container_label, ]
+            dic['experimentID'] = len(_x) * [self.experiment_label, ]
+            # True/False for each
+            for key, val in self.selection.items():
+                # master: all True, useless to printout
+                if key == 'master':
+                    continue
+                dic[key] = len(_x) * [val, ]
+        df = pd.DataFrame(dic, index=range(start_index, start_index + size))
         return df
