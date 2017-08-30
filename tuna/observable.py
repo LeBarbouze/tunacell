@@ -42,7 +42,7 @@ class Observable(object):
 
     Parameters
     ----------
-    label : str
+    name : str
         user name for this observable (can be one of the raw observable)
     raw : str (default None)
         raw name of the observable: must be a column name of raw data, i.e.
@@ -245,8 +245,8 @@ class Observable(object):
 
         msg += formatting(['parameter', 'value'])
         msg += '\n' + formatting(['----', '----'])
-        for key in self._attrs:
-            val = self._dic[key]
+        for key in self._attr_names:
+            val = self.__getattribute__(key)
             msg += '\n' + formatting([key, val])
         msg += '\n'
         return msg
@@ -296,7 +296,25 @@ class Observable(object):
 
 
 class FunctionalObservable(object):
-    """Combination of :class:`Observable` instances"""
+    """Combination of :class:`Observable` instances
+
+    Parameters
+    ----------
+    name : str
+        user defined name for this observable
+    f : callable
+        the function to apply to observables
+    observables : list of :class:`Observable` instances
+        parameters of the function f to be applied
+
+    Warning
+    -------
+    Contrary to :class:`Observable`, instances of :class:`FunctionalObservable`
+    cannot be represented as a string using :func:`repr()`, that could be
+    turned into a new instance with identical parameters using :func:`eval()`.
+    This is due to the applied function, difficult to serialize as a string
+    AND keeping a human-readable format to read its definition.
+    """
 
     def __init__(self, name=None, f=None, observables=[]):
         if name is None:

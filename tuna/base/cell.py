@@ -219,7 +219,7 @@ class Cell(tlib.Node):
         obs : Observable instance
             mode must be 'dynamics'
 
-        Notes
+        Note
         -----
         Some observables carry the 'local_fit' option True. In this case,
         local fits over shifting time-windows are performed. If one would keep
@@ -303,7 +303,6 @@ class Cell(tlib.Node):
                     # if existing is nan, try to put addedum values
                     self.parent._sdata[label] = np.where(np.isnan(existing), to_parent, existing)
         return
-
 
     def compute_cyclized(self, obs):
         """Computes observable when mode is different from 'dynamics'.
