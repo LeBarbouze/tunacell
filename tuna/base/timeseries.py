@@ -188,18 +188,25 @@ class TimeSeries(object):
         dic = {}
         dic[self.timeseries.x_name] = self.timeseries.x
         dic[self.timeseries.y_name] = self.timeseries.y
+        dic['cellID'] = []
+        dic['containerID'] = []
+        dic['experimentID'] = []
+        for key in self.selections.keys():
+            if key == 'master':
+                continue
+            dic[key] = []
         size = len(self.timeseries.x)
         # add cell ID, container ID, experiment ID, and TRUE/FALSE for each cdt
         for index, sl in enumerate(self.slices):
             _x = self.timeseries.x[sl]
-            dic['cellID'] = len(_x) * [self.ids[index], ]
-            dic['containerID'] = len(_x) * [self.container_label, ]
-            dic['experimentID'] = len(_x) * [self.experiment_label, ]
+            dic['cellID'].extend(len(_x) * [self.ids[index], ])
+            dic['containerID'].extend(len(_x) * [self.container_label, ])
+            dic['experimentID'].extend(len(_x) * [self.experiment_label, ])
             # True/False for each
-            for key, val in self.selection.items():
+            for key, val in self.selections.items():
                 # master: all True, useless to printout
                 if key == 'master':
                     continue
-                dic[key] = len(_x) * [val, ]
+                dic[key].extend(len(_x) * [val, ])
         df = pd.DataFrame(dic, index=range(start_index, start_index + size))
         return df

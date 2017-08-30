@@ -244,10 +244,11 @@ def set_stationary_autocorrelation(iter_timeseries, univariate, stationary,
 #            df.set_index([range(dfs[-1].index[-1] + 1, dfs[-1].index[-1] + 1 + len(df))])
         dfs.append(df)
         for condition_lab in ts.selections.keys():
-            local = ts.use_condition(condition_label=condition_lab)
-            if len(local) == 0:
+            coords = ts.use_condition(condition_label=condition_lab)
+            if len(coords.clear_x) == 0:
                 continue
-            t, v = map(np.array, zip(*local))
+            t = coords.clear_x
+            v = coords.clear_y
             # get only times within valid window
             boo = np.logical_and(t >= tmin, t <= tmax)
             rec = recs[condition_lab]  # this is where results are recorded
@@ -493,7 +494,7 @@ def update_2(row_coords, col_coords, row_eval_times, col_eval_times,
         col_arr[:] = np.nan  # all NaNs but one
         col_arr[ok] = val - col_mean[ok]
     else:
-        col_f = interp1d(col_coords.clear_x, col_coords.clear_, kind='linear',
+        col_f = interp1d(col_coords.clear_x, col_coords.clear_y, kind='linear',
                          assume_sorted=True, bounds_error=False)
         col_arr = col_f(col_eval_times) - col_mean
     # if all NaNs, nothing to do
@@ -535,8 +536,8 @@ def set_stationary_crosscorrelation(iter_timeseries,
     bwd = eval_times - eval_times[-1]
     fwd = eval_times - eval_times[0]
     time_intervals = np.concatenate([bwd[:-1], fwd])
-    print(eval_times)
-    print(time_intervals)
+    # print(eval_times)
+    # print(time_intervals)
 
     means = {}
     recs = {}
@@ -574,15 +575,15 @@ def set_stationary_crosscorrelation(iter_timeseries,
         # convert to dataframe first timeseries
         df = row_ts.to_dataframe()
         # interpolate second timeseries
-        tt = col_ts['time']
-        col_data = col_ts[col_obs.label]
+        tt = col_ts.timeseries.x
+        col_data = col_ts.timeseries.y
         if len(col_data) == 0 or np.isnan(col_data).all():
             continue
         col_interpol = interp1d(tt, col_data, kind='linear',
                                 assume_sorted=True,  # saves computational time
                                 bounds_error=False)  # return NaN off bounds
-        interpolated_col_data = col_interpol(df.time)
-        df[col_obs.label] = interpolated_col_data
+        interpolated_col_data = col_interpol(df[row_ts.timeseries.x_name])
+        df[col_ts.timeseries.y_name] = interpolated_col_data
         df = df[np.logical_and(df.time >= tmin, df.time < tmax)]
         # reindex for concatenating
 #        if dfs:
@@ -664,7 +665,7 @@ def update_stationary_cross(row_coords, col_coords, eval_times,
         col_arr[:] = np.nan  # all NaNs but one
         col_arr[ok] = val - col_mean[ok]
     else:
-        col_f = interp1d(col_coords.clear_x, col_coords.clear_, kind='linear',
+        col_f = interp1d(col_coords.clear_x, col_coords.clear_y, kind='linear',
                          assume_sorted=True, bounds_error=False)
         col_arr = col_f(eval_times) - col_mean
     # if all NaNs, nothing to do
