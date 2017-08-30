@@ -172,7 +172,11 @@ class Lineage(object):
         -------
         TimeSeries instance
         """
-        label = obs.label
+        label = obs.label  # complicated string
+        if obs.name is not None:
+            obs_name = obs.name  # simpler string if provided by user
+        else:
+            obs_name = label
         # check for supplementary observables to be computed
         suppl_obs = []
         for filt in cset:
@@ -230,14 +234,16 @@ class Lineage(object):
 
         arrays = []
         index_cycles = []
+        container = self.colony.container
         # at this point all _sdata are ready for action. Distinguish modes
         if obs.mode == 'dynamics':
             # build array
             count = 0
             for cell in self.cellseq:
                 if len(cell.data) > 0:
-                    coords = Coordinates(cell.data['time'], cell._sdata[label])
-                    arrays.append(coords.as_array(x_name='time', y_name=label))
+                    coords = Coordinates(cell.data['time'], cell._sdata[label],
+                                         x_name='time', y_name=obs_name)
+                    arrays.append(coords.as_array())
                     size = len(arrays[-1])
                     index_cycles.append((count, count + size - 1))
                     count += size
@@ -245,12 +251,14 @@ class Lineage(object):
                     index_cycles.append(None)
             ts = np.concatenate(arrays)
             # return a TimeSeries instance
-            timeseries = TimeSeries(label=label,
-                                    ts=ts,
+            timeseries = TimeSeries(ts=ts,
                                     ids=self.idseq[:],
                                     time_bounds=time_bounds,
                                     index_cycles=index_cycles,
-                                    select_ids=select_ids)
+                                    select_ids=select_ids,
+                                    container_label=container.label,
+                                    experiment_label=container.exp.label
+                                    )
         # otherwise it's of 'cycle' mode
         else:
             for index, cell in enumerate(self.cellseq):
@@ -261,9 +269,11 @@ class Lineage(object):
                     except NoAncestry:
                         # return empty TimeSeries
                         # TODO : should be filtered upstream?
-                        new = TimeSeries(label=label, ts=[], ids=self.idseq[:],
+                        new = TimeSeries(ts=[], ids=self.idseq[:],
                                          index_cycles=[None for _ in self.idseq],
-                                         select_ids=select_ids)
+                                         select_ids=select_ids,
+                                         container_label=container.label,
+                                         experiment_label=container.exp.label)
                         return new
                 # time value
                 elif obs.timing == 'b':
@@ -280,11 +290,13 @@ class Lineage(object):
                 arrays.append((tt, cell._sdata[label]))
                 index_cycles.append((index, index))
 
-            ts = np.array(arrays, dtype=[('time', 'f8'), (label, 'f8')])
-            timeseries = TimeSeries(label=label, ts=ts, ids=self.idseq[:],
+            ts = np.array(arrays, dtype=[('time', 'f8'), (obs_name, 'f8')])
+            timeseries = TimeSeries(ts=ts, ids=self.idseq[:],
                                     time_bounds=time_bounds,
                                     index_cycles=index_cycles,
-                                    select_ids=select_ids)
+                                    select_ids=select_ids,
+                                    container_label=container.label,
+                                    experiment_label=container.exp.label)
         return timeseries
 
     def split(self):
