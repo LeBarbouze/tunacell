@@ -152,7 +152,6 @@ class SamplePlot(object):
         printout += info + '#\n'
 
         for index, (lin, ts) in enumerate(self._samples):
-            contlab = lin.colony.container.label
             if index == 0 and print_labels:
                 local = ts.as_text(sep=sep, cell_sep=cell_sep,
                                    print_labels=print_labels)
@@ -160,18 +159,7 @@ class SamplePlot(object):
                 local = ts.as_text(sep=sep, cell_sep=cell_sep,
                                    print_labels=False)
 
-            # add container column
-            msg = ''
-            f = StringIO(local)
-            for row, line in enumerate(f.readlines()):
-                if line.rstrip() == '':
-                    msg += '\n'
-                    continue
-                if print_labels and index == 0 and row == 0:
-                    msg += line.rstrip() + sep + 'container' + '\n'
-                else:
-                    msg += line.rstrip() + sep + contlab + '\n'
-            printout += msg + timeseries_sep
+            printout += local + timeseries_sep
         return printout.lstrip().rstrip()
 
     def save(self, user_bname=None, user_directory=None, extension='.pdf',
@@ -522,10 +510,10 @@ def plot_samples(samples, obs, parser=None, conditions=[],
                 msg = 'Root {}'.format(this_root)
                 ax.text(0.01, 0.9, msg, color=color, transform=ax.transAxes)
 
-        if len(ts.timeseries) > 0:
+        if len(ts.timeseries.clear_x) > 0:
             at_least_one_timeseries[this_iax] = True
-            x = ts.timeseries['time']
-            y = ts.timeseries[ts.label]
+            x = ts.timeseries.clear_x
+            y = ts.timeseries.clear_y
             # only NaNs ? move along
             if np.isnan(x).all() or np.isnan(y).all():
                 continue

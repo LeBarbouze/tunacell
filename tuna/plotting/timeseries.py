@@ -139,8 +139,8 @@ def add_timeseries(ax, ts, condition_label='master',
     pcolor = re.compile('C(\d)')
 
     # find boundaries on unconditioned timeseries
-    x = ts.timeseries['time']
-    y = ts.timeseries[ts.label]
+    x = ts.timeseries.x
+    y = ts.timeseries.y
     left, bottom = map(np.nanmin, [x, y])
     right, top = map(np.nanmax, [x, y])
 
@@ -185,12 +185,12 @@ def add_timeseries(ax, ts, condition_label='master',
             appears = True
 
         # get data for corresponding slice (i.e. corresponding cell)
-        local = ts.timeseries[sl]
+        local = ts.timeseries.x[sl]
         if len(local) > 0:
             # plot each cell data
             # data points
-            xdata = local['time']
-            ydata = local[ts.label]
+            xdata = ts.timeseries.x[sl]
+            ydata = ts.timeseries.y[sl]
             find_nans = np.logical_or(np.isnan(xdata), np.isnan(ydata))
             xdata = xdata[np.logical_not(find_nans)]
             ydata = ydata[np.logical_not(find_nans)]

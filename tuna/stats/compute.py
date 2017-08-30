@@ -71,12 +71,13 @@ def set_dynamics(iter_timeseries, single, eval_times):
     for ts in iter_timeseries:
         # loop over registered conditions in TimeSeries instance
         for condition_lab in ts.selections.keys():
-            local = ts.use_condition(condition_label=condition_lab,
+            coords = ts.use_condition(condition_label=condition_lab,
                                      sharp_tleft=tmin, sharp_tright=tmax)
-            if len(local) == 0:
+            if len(coords.clear_x) == 0:
                 continue
-            t, v = map(np.array, zip(*local))
-            update(t, v, eval_times, records[condition_lab])
+            x = coords.clear_x
+            y = coords.clear_y
+            update(x, y, eval_times, records[condition_lab])
 
     # read individual counters and build results as 1d and 2d arrays
     for ic, condition_lab in enumerate(single._condition_labels):
@@ -410,16 +411,16 @@ def set_crosscorrelation(iter_timeseries, row_univ, col_univ, two):
     for row_ts, col_ts in iter_timeseries:
         # loop over registered conditions in TimeSeries instance
         for condition_lab in cdt_labs:
-            row_local = row_ts.use_condition(condition_label=condition_lab,
+            row_coords = row_ts.use_condition(condition_label=condition_lab,
                                              sharp_tleft=row_univ.region.tmin,
                                              sharp_tright=row_univ.region.tmax)
-            col_local = col_ts.use_condition(condition_label=condition_lab,
+            col_coords = col_ts.use_condition(condition_label=condition_lab,
                                              sharp_tleft=col_univ.region.tmin,
                                              sharp_tright=col_univ.region.tmax)
             rec = records[condition_lab]
             row_mean = means[condition_lab]['row']
             col_mean = means[condition_lab]['col']
-            update_2(row_local, col_local, row_eval_times, col_eval_times,
+            update_2(row_coords, col_coords, row_eval_times, col_eval_times,
                      row_mean, col_mean, rec)
 
     # read individual counters and build results as 2d arrays
@@ -443,15 +444,15 @@ def set_crosscorrelation(iter_timeseries, row_univ, col_univ, two):
     return
 
 
-def update_2(row_timeseries, col_timeseries, row_eval_times, col_eval_times,
+def update_2(row_coords, col_coords, row_eval_times, col_eval_times,
              row_mean, col_mean, record):
     """Update counters one and two.
 
     Parameters
     ----------
-    row_timeseries : list of couples (time, value)
+    row_timeseries : Coordinates instance
         corresponding to first ('row') observable
-    col_timeseries : list of couples (time, value)
+    col_timeseries : Coordinates instance
         corresponding to second ('column') observable
     row_eval_times : 1d ndarray
         times at which row_timeseries is evaluated
@@ -469,41 +470,30 @@ def update_2(row_timeseries, col_timeseries, row_eval_times, col_eval_times,
     -------
     Update record entries
     """
-    if len(row_timeseries) == 0 or len(col_timeseries) == 0:
-        return
-    # clean NaNs
-    x, y = map(np.array, zip(*row_timeseries))
-    ok = np.where(np.logical_not(np.isnan(y)))
-    row_ts = row_timeseries[ok]
-    x, y = map(np.array, zip(*col_timeseries))
-    ok = np.where(np.logical_not(np.isnan(y)))
-    col_ts = col_timeseries[ok]
-    if len(row_ts) == 0 or len(col_ts) == 0:
+    if len(row_coords.clear_x) == 0 or len(col_coords.clear_x) == 0:
         return
     # length 1 : take only the value if in eval_times
-    if len(row_ts) == 1:
-        t, val = row_ts[0]
+    if len(row_coords.clear_y) == 1:
+        t, val = row_coords.clear_x[0], row_coords.clear_y[0]
         ok = np.where(row_eval_times == t)
         row_arr = np.zeros(len(row_eval_times))
         row_arr[:] = np.nan  # all NaNs but one
         row_arr[ok] = val - row_mean[ok]
     else:
-        row_t, row_val = map(np.array, zip(*row_ts))
-        row_f = interp1d(row_t, row_val, kind='linear',
+        row_f = interp1d(row_coords.clear_x, row_coords.clear_y, kind='linear',
                          assume_sorted=True, bounds_error=False)
         row_arr = row_f(row_eval_times) - row_mean
     # if all NaNs, nothing to do
     if np.all(np.isnan(row_arr)):
         return
-    if len(col_ts) == 1:
-        t, val = col_ts[0]
+    if len(col_coords.clear_x) == 1:
+        t, val = col_coords.clear_x[0], col_coords.clear_y[0]
         ok = np.where(col_eval_times == t)
         col_arr = np.zeros(len(col_eval_times))
         col_arr[:] = np.nan  # all NaNs but one
         col_arr[ok] = val - col_mean[ok]
     else:
-        col_t, col_val = map(np.array, zip(*col_ts))
-        col_f = interp1d(col_t, col_val, kind='linear',
+        col_f = interp1d(col_coords.clear_x, col_coords.clear_, kind='linear',
                          assume_sorted=True, bounds_error=False)
         col_arr = col_f(col_eval_times) - col_mean
     # if all NaNs, nothing to do
@@ -600,17 +590,17 @@ def set_stationary_crosscorrelation(iter_timeseries,
         dfs.append(df)
 
         for condition_lab in cdt_labs:
-            row_local = row_ts.use_condition(condition_label=condition_lab,
+            row_coords = row_ts.use_condition(condition_label=condition_lab,
                                              sharp_tleft=tmin,
                                              sharp_tright=tmax)
-            col_local = col_ts.use_condition(condition_label=condition_lab,
+            col_coords = col_ts.use_condition(condition_label=condition_lab,
                                              sharp_tleft=tmin,
                                              sharp_tright=tmax)
             rec = recs[condition_lab]  # this is where results are recorded
             row_mean = means[condition_lab]['row']
             col_mean = means[condition_lab]['col']
             # update correlation
-            update_stationary_cross(row_local, col_local, eval_times,
+            update_stationary_cross(row_coords, col_coords, eval_times,
                                     row_mean, col_mean, rec,
                                     disjoint=disjoint)
     df = pd.concat(dfs, ignore_index=True)
@@ -643,7 +633,7 @@ def set_stationary_crosscorrelation(iter_timeseries,
     return
 
 
-def update_stationary_cross(row_timeseries, col_timeseries, eval_times,
+def update_stationary_cross(row_coords, col_coords, eval_times,
                             row_mean, col_mean, record, disjoint=True):
     """Update counts and correlation value for stationary cross-correlation
 
@@ -651,41 +641,30 @@ def update_stationary_cross(row_timeseries, col_timeseries, eval_times,
     ----------
 
     """
-    if len(row_timeseries) == 0 or len(col_timeseries) == 0:
-        return
-    # clean NaNs
-    x, y = map(np.array, zip(*row_timeseries))
-    ok = np.where(np.logical_not(np.isnan(y)))
-    row_ts = row_timeseries[ok]
-    x, y = map(np.array, zip(*col_timeseries))
-    ok = np.where(np.logical_not(np.isnan(y)))
-    col_ts = col_timeseries[ok]
-    if len(row_ts) == 0 or len(col_ts) == 0:
+    if len(row_coords.clear_x) == 0 or len(col_coords.clear_x) == 0:
         return
     # length 1 : take only the value if in eval_times
-    if len(row_ts) == 1:
-        t, val = row_ts[0]
+    if len(row_coords.clear_y) == 1:
+        t, val = row_coords.clear_x[0], row_coords.clear_y[0]
         ok = np.where(eval_times == t)
         row_arr = np.zeros(len(eval_times))
         row_arr[:] = np.nan  # all NaNs but one
         row_arr[ok] = val - row_mean[ok]
     else:
-        row_t, row_val = map(np.array, zip(*row_ts))
-        row_f = interp1d(row_t, row_val, kind='linear',
+        row_f = interp1d(row_coords.clear_x, row_coords.clear_y, kind='linear',
                          assume_sorted=True, bounds_error=False)
         row_arr = row_f(eval_times) - row_mean
     # if all NaNs, nothing to do
     if np.all(np.isnan(row_arr)):
         return
-    if len(col_ts) == 1:
-        t, val = col_ts[0]
+    if len(col_coords.clear_x) == 1:
+        t, val = col_coords.clear_x[0], col_coords.clear_y[0]
         ok = np.where(eval_times == t)
         col_arr = np.zeros(len(eval_times))
         col_arr[:] = np.nan  # all NaNs but one
         col_arr[ok] = val - col_mean[ok]
     else:
-        col_t, col_val = map(np.array, zip(*col_ts))
-        col_f = interp1d(col_t, col_val, kind='linear',
+        col_f = interp1d(col_coords.clear_x, col_coords.clear_, kind='linear',
                          assume_sorted=True, bounds_error=False)
         col_arr = col_f(eval_times) - col_mean
     # if all NaNs, nothing to do
