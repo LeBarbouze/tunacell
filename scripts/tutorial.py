@@ -56,7 +56,7 @@ print('**')
 # %% define observable from raw data
 
 from tuna import Observable
-obs = Observable(label='size', raw='exp_ou_int')
+obs = Observable(name='size', raw='exp_ou_int')
 print(obs)
 print(obs.as_string_table())
 print('**')
@@ -71,7 +71,7 @@ myplot.save(user_bname='tutorial_sample', add_obs=False, extension='.png')
 # %% Statistics of the dynamics
 
 # looking at ou observable
-ou = Observable(label='growth-rate', raw='ou')
+ou = Observable(name='growth-rate', raw='ou')
 
 from tuna.stats.api import compute_univariate_dynamics
 univariate = compute_univariate_dynamics(parser, ou)
