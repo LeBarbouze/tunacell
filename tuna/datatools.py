@@ -20,9 +20,21 @@ class LocalFitError(Exception):
 
 
 class Coordinates(object):
-    """Clear timeseries from NaNs and other functionalities"""
+    """Stores 2-d coordinates, e.g. timeseries
 
-    def __init__(self, x, y):
+    Parameters
+    ----------
+    x : 1d array
+        x-coordinates of points
+    y : 1d array
+        y-coordinates of points, must be same length as x
+    x_name : str (default 'x')
+        name of x-coordinates
+    y_name : str (default 'y')
+        name of y-coordinates
+    """
+
+    def __init__(self, x, y, x_name='x', y_name='y'):
         if np.any(np.isnan(x)):
             msg = 'NaN value(s) detected in x-array: please remove beforehand'
             raise ValueError(msg)
@@ -32,7 +44,9 @@ class Coordinates(object):
                    'y : {}'.format(y))
             raise ValueError(msg)
         self._x = np.array(x)
+        self.x_name = x_name
         self._y = np.array(y)
+        self.y_name = y_name
         self.valid = np.where(np.logical_not(np.isnan(y)))
         return
 
@@ -65,13 +79,9 @@ class Coordinates(object):
         """Returns coordinates cleared off NaNs"""
         return Coordinates(self.clear_x, self.clear_y)
 
-    def as_array(self, x_name=None, y_name=None):
-        if x_name is None:
-            x_name = 'x'
-        if y_name is None:
-            y_name = 'y'
+    def as_array(self):
         array = np.array(zip(self.clear_x, self.clear_y),
-                         dtype=[(x_name, 'f8'), (y_name, 'f8')])
+                         dtype=[(self.x_name, 'f8'), (self.y_name, 'f8')])
         return array
 
 
