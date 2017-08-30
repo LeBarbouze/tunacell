@@ -8,7 +8,7 @@ from __future__ import print_function
 import os
 import re
 import glob
-
+import inspect
 import numpy as np
 
 from tuna.observable import Observable, FunctionalObservable
@@ -345,7 +345,13 @@ def get_observable_path(condition_path, obs, write=True):
                                                       obs.as_latex_string,
                                                       obs.as_string_table()))
             elif isinstance(obs, FunctionalObservable):
-                f.write('{}'.format(basename))
+                msg = ('{}: FunctionalObservable'.format(basename) + '\n\n'
+                       'Applying function:\n{}'.format(inspect.getsource(obs.f)) + '\n\n'
+                       'to following observables:\n')
+                for var_obs in obs.observables:
+                    msg += '{}\n'.format(repr(var_obs))
+                msg.rstrip()
+                f.write(msg)
     return path
 
 
