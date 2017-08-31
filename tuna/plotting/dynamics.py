@@ -244,7 +244,7 @@ def plot_onepoint(univariate, show_cdts='all', left=None, right=None,
             ax.set_ylim(top=var_max)
 
     # print vertical line at tref
-    if univariate.obs.timing != 'g' and univariate.obs.tref is not None:
+    if univariate.obs.timing != 'g' and isinstance(univariate.obs.tref, float):
         for ax in axs:
             ax.axvline(univariate.obs.tref, color='C7', ls='--', alpha=.5)
 
