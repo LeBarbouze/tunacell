@@ -26,7 +26,7 @@ def set_dynamics(iter_timeseries, single, eval_times):
     eval_times : 1d ndarray
         times at which statistics are computed
 
-    Notes
+    Note
     -----
     This function computes:
     * times : times spanned by entire data (vector, size N determined by data)
@@ -72,7 +72,7 @@ def set_dynamics(iter_timeseries, single, eval_times):
         # loop over registered conditions in TimeSeries instance
         for condition_lab in ts.selections.keys():
             coords = ts.use_condition(condition_label=condition_lab,
-                                     sharp_tleft=tmin, sharp_tright=tmax)
+                                      sharp_tleft=tmin, sharp_tright=tmax)
             if len(coords.clear_x) == 0:
                 continue
             x = coords.clear_x
@@ -239,9 +239,6 @@ def set_stationary_autocorrelation(iter_timeseries, univariate, stationary,
     for ts in iter_timeseries:
         df = ts.to_dataframe()
         df = df[np.logical_and(df.time >= tmin, df.time <= tmax)]
-        # reindex for concatenating
-#        if dfs:
-#            df.set_index([range(dfs[-1].index[-1] + 1, dfs[-1].index[-1] + 1 + len(df))])
         dfs.append(df)
         for condition_lab in ts.selections.keys():
             coords = ts.use_condition(condition_label=condition_lab)
@@ -370,7 +367,7 @@ def set_crosscorrelation(iter_timeseries, row_univ, col_univ, two):
         univariate instance corresponding to the second observable :math:`y`
     two : TwoObservable instance
 
-    Notes
+    Note
     -----
     This function computes the cross-correlation matrix of observables (x, y):
 
@@ -413,11 +410,11 @@ def set_crosscorrelation(iter_timeseries, row_univ, col_univ, two):
         # loop over registered conditions in TimeSeries instance
         for condition_lab in cdt_labs:
             row_coords = row_ts.use_condition(condition_label=condition_lab,
-                                             sharp_tleft=row_univ.region.tmin,
-                                             sharp_tright=row_univ.region.tmax)
+                                              sharp_tleft=row_univ.region.tmin,
+                                              sharp_tright=row_univ.region.tmax)
             col_coords = col_ts.use_condition(condition_label=condition_lab,
-                                             sharp_tleft=col_univ.region.tmin,
-                                             sharp_tright=col_univ.region.tmax)
+                                              sharp_tleft=col_univ.region.tmin,
+                                              sharp_tright=col_univ.region.tmax)
             rec = records[condition_lab]
             row_mean = means[condition_lab]['row']
             col_mean = means[condition_lab]['col']
@@ -513,10 +510,26 @@ def set_stationary_crosscorrelation(iter_timeseries,
                                     tmin=None, tmax=None,
                                     adjust_mean='global',
                                     disjoint=True):
-    """MEN AT WORK HERE"""
-    # set condition list that match between both single instances
-    col_obs = col_univariate.obs
+    """Edit stationary cross-correlation values from univariates and timeseries
 
+    Parameters
+    ----------
+    iter_timeseries : iterator over couples of TimeSeries instances
+        for each couple, first element corresponds to 'row', second to 'col'
+    row_univariate : :class:`Univariate` instance
+        corresponding to row observable, first items in iter_timeseries
+    col_univariate : :class:`Univariate` instance
+        corresponding to column observable, second items in iter_timeseries
+    tmin : float (default None)
+        lower bound (inclusive) for accepting time values
+    tmax : float (default None)
+        upper bound (inclusive) for accepting time values
+    adjust_mean : str {'global', 'local'}
+        option for computing mean value, substracted to all values
+    disjoint : bool {True, False}
+        whether to consider only disjoint time segments for sampling
+    """
+    # set condition list that match between both single instances
     cdt_labs = []
     for cdt_lab in row_univariate._condition_labels:
         if cdt_lab in col_univariate._condition_labels:
@@ -585,18 +598,15 @@ def set_stationary_crosscorrelation(iter_timeseries,
         interpolated_col_data = col_interpol(df[row_ts.timeseries.x_name])
         df[col_ts.timeseries.y_name] = interpolated_col_data
         df = df[np.logical_and(df.time >= tmin, df.time < tmax)]
-        # reindex for concatenating
-#        if dfs:
-#            df.set_index([range(dfs[-1].index[-1] + 1, dfs[-1].index[-1] + 1 + len(df))])
         dfs.append(df)
 
         for condition_lab in cdt_labs:
             row_coords = row_ts.use_condition(condition_label=condition_lab,
-                                             sharp_tleft=tmin,
-                                             sharp_tright=tmax)
+                                              sharp_tleft=tmin,
+                                              sharp_tright=tmax)
             col_coords = col_ts.use_condition(condition_label=condition_lab,
-                                             sharp_tleft=tmin,
-                                             sharp_tright=tmax)
+                                              sharp_tleft=tmin,
+                                              sharp_tright=tmax)
             rec = recs[condition_lab]  # this is where results are recorded
             row_mean = means[condition_lab]['row']
             col_mean = means[condition_lab]['col']
