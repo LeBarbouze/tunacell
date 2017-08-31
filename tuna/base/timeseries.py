@@ -203,10 +203,11 @@ class TimeSeries(object):
             dic['containerID'].extend(len(_x) * [self.container_label, ])
             dic['experimentID'].extend(len(_x) * [self.experiment_label, ])
             # True/False for each
-            for key, val in self.selections.items():
+            for key, values in self.selections.items():
                 # master: all True, useless to printout
                 if key == 'master':
                     continue
-                dic[key].extend(val)
+                val = values[index]
+                dic[key].extend(len(_x) * [val, ])
         df = pd.DataFrame(dic, index=range(start_index, start_index + size))
         return df
