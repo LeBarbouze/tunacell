@@ -306,7 +306,9 @@ class Univariate(object):
         Defines which experiment, and how to parse it (with its filter set
         fset attribute)
     region : object
-        with tmin and tmax attributes
+        with tmin, tmax, name attributes; first two are used to set boundaries
+        for absolute time data (accept only acquisitions within those bounds),
+        'name' is used for storage
     period : float
 
     Attributes
