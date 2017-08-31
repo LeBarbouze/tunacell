@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from tuna import Parser, Observable, FilterSet
 from tuna.observable import FunctionalObservable
 from tuna.filters.cells import FilterCellIDparity
-from tuna.plotting.dynamics import UnivariatePlot, plot_stationary
+from tuna.plotting.dynamics import plot_onepoint, plot_twopoints, plot_stationary
 # import api functions
 from tuna.stats.api import (compute_univariate_dynamics,
                             compute_stationary_univariate,
@@ -36,10 +36,13 @@ condition = FilterSet(label='evenID', filtercell=even)
 
 # define dynamic observables
 ou = Observable(name='exact-growth-rate', raw='ou')
-ou2 = FunctionalObservable(name='double-growth-rate', f=lambda x : 2 * x, observables=[ou, ])
 gr = Observable(name='approx-growth-rate', raw='exp_ou_int',
                 differentiate=True, scale='log',
                 local_fit=True, time_window=15.)
+# dynamic, functional observable
+ou2 = FunctionalObservable(name='double-growth-rate', f=lambda x : 2 * x, observables=[ou, ])
+# time-aligned upon root cell division for size analysis
+size = Observable(name='size', raw='exp_ou_int', tref='root')
 
 # define cell-cycle observables
 average_gr = Observable(name='averate-growth-rate', raw='ou',
@@ -61,7 +64,7 @@ tmin = md.start
 tmax = md.stop
 period = md.period
 # %% univ OBJECTS
-for obs in [ou, gr, average_gr, division_size, ou2]:
+for obs in [ou, gr, average_gr, division_size, size, ou2]:
 
     # Statistics: if import fails, compute
     try:
@@ -74,18 +77,19 @@ for obs in [ou, gr, average_gr, division_size, ou2]:
         univ.export_text()
     univs.append(univ)
 
-    uplt = UnivariatePlot(univ)
+    # make and save plots
     if obs == ou2:
-        uplt.make_onepoint(show_ci=True, mean_ref=2*ref_mean)
+        fig = plot_onepoint(univ, show_ci=True, mean_ref=2*ref_mean, save=True)
     elif obs == division_size:
-        uplt.make_onepoint(show_ci=True)
+        fig = plot_onepoint(univ, show_ci=True, save=True)
+    elif obs == size:
+        fig = plot_onepoint(univ, show_ci=True, save=True)
     else:
-        uplt.make_onepoint(show_ci=True, mean_ref=ref_mean)
+        fig = plot_onepoint(univ, show_ci=True, mean_ref=ref_mean, save=True)
     if obs.timing != 'g':
-        uplt.make_twopoints(trefs=[40., 80., 120.])
+        fig2 = plot_twopoints(univ, trefs=[40., 80., 120.], save=True)
     else:
-        uplt.make_twopoints(trefs=[0, 1, 2])
-    uplt.save(extension='.png')
+        fig2 = plot_twopoints(univ, trefs=[0, 1, 2], save=True)
 
 print('univ objects: OK')
 
@@ -111,18 +115,15 @@ for index, obs in enumerate([ou, gr, average_gr, division_size]):
         stat.export_text()
     stats.append(stat)
 
-    fig = plot_stationary(stat, fitlog=True, epsilon=.1, ref_decay=ref_decayrate)
-    folderpath = univ.master._get_obs_path()
-    basename = 'stationary_' + stat.region.name
-    fname = os.path.join(folderpath, basename + '.png')
-    fig.savefig(fname)
+    fig = plot_stationary(stat, fitlog=True, epsilon=.1,
+                          ref_decay=ref_decayrate, save=True)
 
 print('Stationary univ objects: OK')
 
 
 # %% CROSS CORRELATION
 # unpack univariate objects
-u_ou, u_gr, u_avou, u_lendiv, u_ou2 = univs
+u_ou, u_gr, u_avou, u_lendiv, u_ou2, u_size = univs
 
 bivs = []
 for u1, u2 in [(u_ou, u_gr), (u_avou, u_lendiv)]:
@@ -146,9 +147,6 @@ for u1, u2 in [(u_ou, u_gr), (u_avou, u_lendiv)]:
         sbiv.export_text()
         sbivs.append(sbiv)
 
-    fig = plot_stationary(sbiv)
-    folderpath = sbiv.master._get_obs_path()
-    basename = 'stationary_bivariate_' + stat.region.name
-    fname = os.path.join(folderpath, basename + '.png')
-    fig.savefig(fname)
+    fig = plot_stationary(sbiv, save=True)
+
 print('Stationary cross-correlation: OK')
