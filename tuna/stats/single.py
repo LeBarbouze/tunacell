@@ -92,9 +92,9 @@ class UnivariateConditioned(object):
         self.two_stationary = {}
         return
 
-    def _get_path(self, write=False):
+    def _get_path(self, user_root=None, write=False):
         """Get condition path"""
-        obs_path = self.univariate._get_obs_path(write=write)
+        obs_path = self.univariate._get_obs_path(user_root=user_root, write=write)
         res = text.get_condition_path(obs_path, self.applied_filter, write=write)
         index_condition, condition_path = res
         return condition_path
@@ -150,7 +150,7 @@ class UnivariateConditioned(object):
             leave to None to canonical analysis path under the experiment
             analysis folder
         """
-        condition_path = self._get_path(write=True)
+        condition_path = self._get_path(user_root=path, write=True)
         ffmt = '%.8e'  # floating point numbers
         ifmt = '%d'  # integers
         item_path = os.path.join(condition_path, 'onepoint.tsv')
@@ -172,7 +172,7 @@ class UnivariateConditioned(object):
 
     def read_text(self, path=None):
         """Initialize object by reading text output."""
-        condition_path = self._get_path(write=False)
+        condition_path = self._get_path(user_root=path, write=False)
         # read
         item_path = os.path.join(condition_path, 'onepoint.tsv')
         if not os.path.exists(item_path):
@@ -600,6 +600,9 @@ class StationaryUnivariate(object):
             self._condition_labels.append(cdt_repr)
             self._items[cdt_repr] = SUnic(self, applied_filter=cdt, array=None)
         return
+
+    def _get_obs_path(self, user_root=None, write=False):
+        return self.univariate._get_obs_path(user_root=user_root, write=write)
 
     def __getitem__(self, key):
         return self._items[key]
