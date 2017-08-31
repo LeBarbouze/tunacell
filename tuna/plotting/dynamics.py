@@ -53,19 +53,19 @@ class UnivariatePlot(object):
     def save(self, user_path=None, force_export_text=False,
              label='plot', extension='.pdf'):
         # one point plot is saved under master
-        master = self.univariate.master
+        univ = self.univariate
         try:
-            obs_path = master._get_obs_path(user_root=user_path,
+            obs_path = univ._get_obs_path(user_root=user_path,
                                             write=False)
         except text.MissingFolderError:
             # it means data has not been written yet
             # export data and then get
-            self.univariate.export_text()
-            obs_path = master._get_obs_path(user_root=user_path,
+            univ.export_text()
+            obs_path = univ._get_obs_path(user_root=user_path,
                                             write=False)
         # export text jointly
         if force_export_text:
-            self.univariate.export_text(analysis_folder_path=user_path)
+            univ.export_text(analysis_folder_path=user_path)
         if self.fig1 is not None:
             name = ''
             if label:
@@ -118,7 +118,8 @@ def _append_cdt(univariate, this_cdt, cdt_list):
 def plot_onepoint(univariate, show_cdts='all', left=None, right=None,
                   mean_ref=None, mean_lims=(None, None),
                   show_ci=False,
-                  var_ref=None, var_lims=(None, None)):
+                  var_ref=None, var_lims=(None, None),
+                  save=False, user_path=None, ext='.png'):
     """Plot one point statistics.
 
     Parameters
@@ -141,6 +142,13 @@ def plot_onepoint(univariate, show_cdts='all', left=None, right=None,
         compare with data
     var_lims : (float, float) (default (None, None))
         required limits for sample variance axes.yaxis
+    save : bool {False, True}
+        whether to save plot
+    user_path : str (default None)
+        user defined path where to save figure; default is canonical path
+        (encouraged)
+    ext : str {'.png', '.pdf'}
+        extension to be used when saving file
     """
     if not isinstance(univariate, Univariate):
         raise TypeError('Input is not {}'.format(Univariate))
@@ -300,21 +308,41 @@ def plot_onepoint(univariate, show_cdts='all', left=None, right=None,
                 verticalalignment='bottom',
                 transform=axs[0].transAxes)
     fig.subplots_adjust(hspace=0)
+    if save:
+        univ = univariate
+        try:
+            obs_path = univ._get_obs_path(user_root=user_path, write=False)
+        except text.MissingFolderError:
+            # it means data has not been written yet
+            # export data and then get
+            univ.export_text(analysis_folder=user_path)
+            obs_path = univ._get_obs_path(user_root=user_path, write=False)
+        bname = 'plot_onepoint_' + univ.region.name + ext
+        fname = os.path.join(obs_path, bname)
+        fig.savefig(fname, bbox_to_inches='tight', pad_inches=0)
     return fig
 
 
 def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
-                   trange=(-100., 100.)):
+                   trange=(-100., 100.), save=False, ext='.png'):
     """Plot two-point functions.
 
     Parameters
     ----------
     univariate : :class:`Univariate` instance
+    condition_label : str (default None)
+        must be the repr of a given FilterSet
     trefs : flist of floats
         indicate the times that you would like to have as references
         if left empty, reference times will be computed automatically
     ntrefs : int
         if trefs is empty, number of times of reference to display
+    trange : couple of floats
+        limits of x-axis (time)
+    save : bool {False, True}
+        whether to save figure at canonical path
+    ext : str {'.png', '.pdf'}
+        extension to be used when saving figure
     """
     obs = univariate.obs
     fig, axs = plt.subplots(3, 1, figsize=(6, 9))
@@ -446,12 +474,27 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
                 verticalalignment='bottom',
                 transform=axs[0].transAxes)
     fig.subplots_adjust(hspace=.1)
+    # save fig at canonical path
+    if save:
+        # export data files if not existing yet
+        try:
+            obs_path = univariate._get_obs_path(write=False)
+        except text.MissingFolderError:
+            univariate.write_text()
+        if condition_label is None:
+            univc = univariate.master
+        else:
+            univc = univariate[condition_label]
+        cdt_path = univc._get_path()
+        bname = 'plot_twopoints_' + univariate.region.name + ext
+        fname = os.path.join(cdt_path, bname)
+        fig.savefig(fname, bbox_inches='tight', pad_inches=0)
     return fig
 
 
 def plot_stationary(stationary, show_cdts='all',
                     fitlog=False, epsilon=0.1, ref_decay=None,
-                    interval_max=None):
+                    interval_max=None, save=False, ext='.png'):
     """Plot stationary autocorrelation.
 
     Parameters
@@ -461,6 +504,15 @@ def plot_stationary(stationary, show_cdts='all',
         whether to fit initial decay with an exponential decay
     epsilon : float
         threshold to ensure 'close to zero' in the fitting procedure
+    ref_decay : float (default None)
+        whether to plot an exponential decay with corresponding rate
+        exp(-rate * t)
+    interval_max : float (default None)
+        fixes the largest interval (instead of largest interval found in data)
+    save : bool {False, True}
+        whether to save plot at canonical path
+    ext : str {'.png', '.pdf'}
+        extension used for file
 
     Returns
     -------
@@ -661,9 +713,22 @@ def plot_stationary(stationary, show_cdts='all',
         msg = 'covariance'
 
     ax1.text(0.5, 1.1, r' Stationary {} for {}'.format(msg, latex_obs),
-                size='large',
-                horizontalalignment='center',
-                verticalalignment='bottom',
-                transform=ax1.transAxes)
-
+             size='large',
+             horizontalalignment='center',
+             verticalalignment='bottom',
+             transform=ax1.transAxes)
+    if save:
+        # get univariate instance to get path where to save figure
+        if isinstance(stationary, StationaryUnivariate):
+            univ = stationary.univariate
+        elif isinstance(stationary, StationaryBivariate):
+            univ = stationary.univariates[0]  # store in row univariate
+        try:
+            obs_path = univ._get_obs_path(write=False)
+        except text.MissingFolderError:
+            univ.write_text()
+            obs_path = univ._get_obs_path(write=False)
+        bname = 'stationary_' + stationary.region.name + ext
+        fname = os.path.join(obs_path, bname)
+        fig.savefig(fname, bbox_inches='tight', pad_inches=0)
     return fig
