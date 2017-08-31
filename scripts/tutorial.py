@@ -56,7 +56,7 @@ print('**')
 # %% define observable from raw data
 
 from tuna import Observable
-obs = Observable(name='size', raw='exp_ou_int')
+obs = Observable(name='size', raw='exp_ou_int', tref='root')
 print(obs)
 print(obs.as_string_table())
 print('**')
@@ -75,6 +75,7 @@ ou = Observable(name='growth-rate', raw='ou')
 
 from tuna.stats.api import compute_univariate_dynamics
 univariate = compute_univariate_dynamics(parser, ou)
+univariate.export_text()
 
 # %% Plotting the statistics
 
