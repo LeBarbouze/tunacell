@@ -70,10 +70,6 @@ def iter_timeseries_2(parser, obs1, obs2, conditions, size=None):
     return
 
 
-class RegionsIOError(IOError):
-    pass
-
-
 class CompuParamsError(ValueError):
     pass
 
@@ -114,6 +110,14 @@ class CompuParams(object):
             else:
                 raise CompuParamsError('string {} not valid'.format(code))
         return
+
+
+class RegionsIOError(IOError):
+    pass
+
+
+class UndefinedRegion(ValueError):
+    pass
 
 
 class Regions(object):
@@ -244,6 +248,8 @@ class Regions(object):
     def get(self, label):
         """Get region parameters corresponding to label
         """
+        if label not in self._df.index:
+            raise UndefinedRegion(label)
         return self._df.loc[label]
 
 
