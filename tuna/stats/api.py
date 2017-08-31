@@ -9,7 +9,7 @@ import numpy as np
 
 from tuna.stats.utils import (iter_timeseries_,
                               iter_timeseries_2,
-                              Regions,
+                              Regions, UndefinedRegion,
                               CompuParams)
 from tuna.stats.single import (Univariate, StationaryUnivariate,
                                UnivariateIOError, StationaryUnivariateIOError)
@@ -26,7 +26,7 @@ MIN_INTERDIVISION_TIME = 5.  # World record is set by Vibrio natriegens
 
 # %% SINGLE DYNAMIC ONBSERVABLE
 
-def compute_univariate_dynamics(parser, obs, cset=[], size=None):
+def compute_univariate_dynamics(parser, obs, cset=[], size=None, times=None):
     """Computes one-point and two-point functions of statistical analysis.
 
     This functions handles conditions and time-window binning:
@@ -43,29 +43,38 @@ def compute_univariate_dynamics(parser, obs, cset=[], size=None):
     cset : list of :class:`FilterSet` instances
     size : int (default None)
         limit the iterator to size Lineage instances (used for testing)
-    binsize : float
-        size of binning windows for time values
-    decimals : int
-        number of decimals to use for binning time values
-    max_exponent : int
-        maximal time value must be less than 10 to the max_exponent value
+    times : 1d ndarray, or str (default None)
+        array of times at which process is evaluated. Default is to use the
+        'ALL' region with the period taken from experiment metadata. User can
+        opt for a specific time array, or for the label of a region as a string
+
 
     Returns
     -------
     Univariate instance
     """
-    regs = Regions(parser.experiment)
-    region = regs.get('ALL')
-    if obs.timing != 'g':
-        period = parser.experiment.period
-        tmin = region.tmin
-        tmax = region.tmax
+    if isinstance(times, np.ndarray):
+        eval_times = times
     else:
-        period = 1
-        n_max = (region.tmax - region.tmin)/MIN_INTERDIVISION_TIME
-        tmin = - n_max
-        tmax = n_max
-    eval_times = np.arange(tmin, tmax + period, period)
+        regs = Regions(parser.experiment)
+        if isinstance(times, str):
+            try:
+                region = regs.get(times)
+            except UndefinedRegion as u:
+                print(u)
+                region = regs.get('ALL')
+        else:
+            region = regs.get('ALL')
+        if obs.timing != 'g':
+            period = parser.experiment.period
+            tmin = region.tmin
+            tmax = region.tmax
+        else:
+            period = 1
+            n_max = (region.tmax - region.tmin)/MIN_INTERDIVISION_TIME
+            tmin = - n_max
+            tmax = n_max
+        eval_times = np.arange(tmin, tmax + period, period)
     # initialize Univariate and each of its item
     univ = Univariate(obs, cset, parser, region, eval_times)  # empty
     # Set iterator over TimeSeries
@@ -157,17 +166,15 @@ def compute_stationary_univariate(univ, region, options, size=None):
     univ : :class:`Univariate` instance
         the stationary autocorr is based on this object
     region : :class:`pandas.Series` instance
-        must have following attributes: 'name', 'tmin', 'tmax', 'adjust_mean'
+        must have following attributes: 'name', 'tmin', 'tmax'
         name : str
             name of chosen region
         tmin : float
             lower bound for stationarity time range
         tmax : float
             upper bound for stationarity time range
-        adjust_mean : str {'global', 'local'}
-            how to substract average values: globally, or locally;
-            use globally when local statistics are not sufficient,
-            use locally is local statistics are sufficient.
+    options : :class:`CompuParams` instance
+        set the 'adjust_mean' and 'disjoint' options
     size : int (default None)
         limit number of parsed Lineages
 
