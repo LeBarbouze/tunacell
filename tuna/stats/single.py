@@ -92,6 +92,13 @@ class UnivariateConditioned(object):
         self.two_stationary = {}
         return
 
+    def _get_path(self, write=False):
+        """Get condition path"""
+        obs_path = self.univariate._get_obs_path(write=write)
+        res = text.get_condition_path(obs_path, self.applied_filter, write=write)
+        index_condition, condition_path = res
+        return condition_path
+
     def bind(self, array, count_two, autocorr):
         self.onepoint = array  # numpy array: time, count, average, std_dev
         self.count_two = count_two
@@ -143,10 +150,7 @@ class UnivariateConditioned(object):
             leave to None to canonical analysis path under the experiment
             analysis folder
         """
-        # check path and write files
-        obs_path = self.univariate._get_obs_path(user_root=path, write=True)
-        res = text.get_condition_path(obs_path, self.applied_filter, write=True)
-        index_condition, condition_path = res
+        condition_path = self._get_path(write=True)
         ffmt = '%.8e'  # floating point numbers
         ifmt = '%d'  # integers
         item_path = os.path.join(condition_path, 'onepoint.tsv')
@@ -168,10 +172,7 @@ class UnivariateConditioned(object):
 
     def read_text(self, path=None):
         """Initialize object by reading text output."""
-        # check path and write files
-        obs_path = self._get_obs_path(user_root=path, write=False)
-        res = text.get_condition_path(obs_path, self.applied_filter, write=False)
-        index_condition, condition_path = res
+        condition_path = self._get_path(write=False)
         # read
         item_path = os.path.join(condition_path, 'onepoint.tsv')
         if not os.path.exists(item_path):
@@ -458,14 +459,14 @@ class StationaryUnivariateConditioned(object):
         """Write array to file."""
         # get observable path that should exist already
         cdt_univ = self.statunivariate.univariate[self.condition]
-        obs_path = cdt_univ._get_obs_path(user_root=path, write=False)
+        cdt_path = cdt_univ._get_path(write=False)
         # otherwise a text.MissingFolder will be raised here
         if self.array is None:
             print('Nothing to write')
             return
         ffmt = '%.8e'  # floating point numbers
         ifmt = '%d'  # integers
-        item_path = os.path.join(obs_path, self.basename + '.tsv')
+        item_path = os.path.join(cdt_path, self.basename + '.tsv')
         names = self.array.dtype.names
         header = '\t'.join(names)
         fmt = [ifmt if 'count' in n_ else ffmt for n_ in names]
@@ -477,8 +478,8 @@ class StationaryUnivariateConditioned(object):
         """Initialize object by reading text output."""
         # get observable path that should exist already
         cdt_univ = self.statunivariate.univariate[self.condition]
-        obs_path = cdt_univ._get_obs_path(user_root=path, write=False)
-        item_path = os.path.join(obs_path, self.basename + '.tsv')
+        cdt_path = cdt_univ._get_path(write=False)
+        item_path = os.path.join(cdt_path, self.basename + '.tsv')
         if not os.path.exists(item_path):
             raise text.MissingFileError(item_path)
         arr = np.genfromtxt(item_path, delimiter='\t',
