@@ -133,20 +133,6 @@ class UnivariateConditioned(object):
         else:
             return None
 
-    def _get_obs_path(self, user_root=None, write=False):
-        obs = self.univariate.obs
-        exp = self.univariate.parser.experiment
-        fset = self.univariate.parser.fset
-        analysis_path = text.get_analysis_path(exp, user_abspath=user_root,
-                                               write=write)
-        res = text.get_filter_path(analysis_path, fset, write=write)
-        index_filter, filter_path = res
-        res = text.get_condition_path(filter_path, self.applied_filter,
-                                      write=write)
-        index_condition, condition_path = res
-        obs_path = text.get_observable_path(condition_path, obs, write=write)
-        return obs_path
-
     def write_text(self, path=None):
         """Write arrays to files
 
@@ -158,10 +144,12 @@ class UnivariateConditioned(object):
             analysis folder
         """
         # check path and write files
-        obs_path = self._get_obs_path(user_root=path, write=True)
+        obs_path = self.univariate._get_obs_path(user_root=path, write=True)
+        res = text.get_condition_path(obs_path, self.applied_filter, write=True)
+        index_condition, condition_path = res
         ffmt = '%.8e'  # floating point numbers
         ifmt = '%d'  # integers
-        item_path = os.path.join(obs_path, 'onepoint.tsv')
+        item_path = os.path.join(condition_path, 'onepoint.tsv')
         names = self.onepoint.dtype.names
         header = '\t'.join(names)
         fmt = [ifmt if 'count' in n_ else ffmt for n_ in names]
@@ -170,7 +158,7 @@ class UnivariateConditioned(object):
 
         for key in ['count_two', 'autocorr']:
             array = self[key]
-            item_path = os.path.join(obs_path, key + '.tsv')
+            item_path = os.path.join(condition_path, key + '.tsv')
             if 'count' in key:
                 fmt = ifmt
             else:
@@ -182,8 +170,10 @@ class UnivariateConditioned(object):
         """Initialize object by reading text output."""
         # check path and write files
         obs_path = self._get_obs_path(user_root=path, write=False)
+        res = text.get_condition_path(obs_path, self.applied_filter, write=False)
+        index_condition, condition_path = res
         # read
-        item_path = os.path.join(obs_path, 'onepoint.tsv')
+        item_path = os.path.join(condition_path, 'onepoint.tsv')
         if not os.path.exists(item_path):
             raise text.MissingFileError(item_path)
         array = np.genfromtxt(item_path, delimiter='\t',
@@ -194,7 +184,7 @@ class UnivariateConditioned(object):
                 dtype = int
             else:
                 dtype = float
-            item_path = os.path.join(obs_path, key + '.tsv')
+            item_path = os.path.join(condition_path, key + '.tsv')
             if not os.path.exists(item_path):
                 raise text.MissingFileError(item_path)
             array = np.genfromtxt(item_path, delimiter='\t', dtype=dtype)
@@ -253,36 +243,6 @@ class UnivariateConditioned(object):
                '    shape    {}'.format(self.count_two.shape) + '\n'
                )
         return msg
-#
-#    def _compute_naive_stationary(self, tmin=None, tmax=None):
-#        """Computes stationary auto-correlation between tmin and tmax.
-#
-#        Beware that this computation is of poor accuracy, as it relies solely
-#        on the dynamical autocorrelation matrix, the values of which are
-#        proned to sampling errors. A better computational tool is provided
-#        in :mod:`stats.compute`, as :func:`set_stationary_autocorrelation`,
-#        or more accessibly through:mod:`stats.api` with
-#        :func:`under compute_observable_stationary`.
-#        """
-#        dts, cts, res = get_stat_from_dynamics(self, tmin, tmax)
-#        sindexify = deepcopy(self.indexify)
-#        sindexify.offset = 0.  # to offseting for time differences
-#
-#        array = np.zeros(len(dts), dtype=[('time_interval', 'f8'),
-#                                          ('count', 'u4'),
-#                                          ('auto-correlation', 'f8')])
-#        array['time_interval'] = dts
-#        array['count'] = cts
-#        array['auto-correlation'] = res
-#
-#        SOC = StationaryUnivariateConditioned  # short alias
-#
-#        stat = SOC(self.obs, applied_filter=self._applied_filter,
-#                   indexify=sindexify, tmin=tmin, tmax=tmax,
-#                   array=array)
-#        self.naive_stationary = stat
-#
-#        return stat
 
 
 class UnivariateIOError(IOError):
@@ -328,17 +288,26 @@ class Univariate(object):
         # create as many nodes as there are conditions in cset
         self._items = {}
         self._condition_labels = []
-        # alias
-        Unic = UnivariateConditioned
-        # Instantiate a SingleObsConditioned, without applied_filter: master
-        master = Unic(self, applied_filter=None)
+        # Instantiate the master UnivariateConditioned (no condition)
+        master = UnivariateConditioned(self, applied_filter=None)
         # store it as 'master'
         self._items['master'] = master
         self._condition_labels.append('master')
+        # create for each provided condition in cset
+        self._add_conditions(cset)
+        return
+
+    def _add_conditions(self, cset=[]):
+        """Create UnivariateConditioned instances associated to items in cset
+
+        Parameters
+        ----------
+        cset : list of :class:`FilterSet` instances
+        """
         for cdt in cset:
             cdt_repr = '{}'.format(repr(cdt))
             self._condition_labels.append(cdt_repr)
-            self._items[cdt_repr] = Unic(self, cdt)
+            self._items[cdt_repr] = UnivariateConditioned(self, cdt)
         return
 
     def __getitem__(self, key):
@@ -352,6 +321,18 @@ class Univariate(object):
     def master(self):
         """There's always a master (no condition)"""
         return self['master']
+
+    def _get_obs_path(self, user_root=None, write=False):
+        """Get observable path"""
+        obs = self.obs
+        exp = self.parser.experiment
+        fset = self.parser.fset
+        analysis_path = text.get_analysis_path(exp, user_abspath=user_root,
+                                               write=write)
+        res = text.get_filter_path(analysis_path, fset, write=write)
+        index_filter, filter_path = res
+        obs_path = text.get_observable_path(filter_path, obs, write=write)
+        return obs_path
 
     def __str__(self):
         msg = ('--------------------------' + '\n'
@@ -370,17 +351,6 @@ class Univariate(object):
         msg += str(self._items['master'].info())
         return msg
 
-#    def compute_naive_stationary(self, tmin=None, tmax=None):
-#        """Compute stationary auto-correlation for all conditions.
-#        """
-#        so = StationaryUnivariate(self.obs, cset=self.cset, parser=self.parser,
-#                                  tmin=tmin, tmax=tmax)
-#        for key in self._condition_labels:
-#            stat = self[key]._compute_naive_stationary(tmin, tmax)
-#            so[key] = stat
-#        self.naive_stationary = so
-#        return
-
     def export_text(self, analysis_folder=None):
         """Export results to text files.
 
@@ -390,18 +360,6 @@ class Univariate(object):
             Path to the analysis folder; default is 'analysis' subfolder in
             experiment folder
         """
-#        analysis_path = text.get_analysis_path(self.parser.experiment,
-#                                               user_abspath=analysis_folder,
-#                                               write=True)
-#        # write Indexify associated to obs
-#        obs = self.obs
-#        fset = self.parser.fset
-#        index_filter, filter_path = text.get_filter_path(analysis_path, fset,
-#                                                         write=True)
-#        basename = 'indexify_' + obs.label + '.txt'
-#        text_file = os.path.join(filter_path, basename)
-#        with open(text_file, 'w') as f:
-#            f.write(repr(self.indexify))
         # write each condition
         for key, val in self._items.items():
             val.write_text(analysis_folder)
@@ -419,32 +377,6 @@ class Univariate(object):
             when any of the folder is not found, or indexify does not match
 
         """
-#        analysis_path = text.get_analysis_path(self.parser.experiment,
-#                                               user_abspath=analysis_folder,
-#                                               write=False)
-#        if not os.path.exists(analysis_path):
-#            raise UnivariateIOError('No analysis folder')
-#        obs = self.obs
-#        fset = self.parser.fset
-#        try:
-#            _, filter_path = text.get_filter_path(analysis_path, fset,
-#                                                  write=False)
-#        except text.MissingFolderError as missing:
-#            raise UnivariateIOError(missing)
-#        if not os.path.exists(filter_path):
-#            raise UnivariateIOError('Missing folder {}'.format(filter_path))
-#        # reading Indexify file
-#        basename = 'indexify_' + obs.label + '.txt'
-#        text_file = os.path.join(filter_path, basename)
-#        try:
-#            with open(text_file, 'r') as f:
-#                rep = f.readline()
-#        except IOError:  # no file, repr of indexify is empty
-#            rep = ''
-#        except text.MissingFolderError as missing:
-#            raise UnivariateIOError(missing)
-#        if rep.rstrip() != repr(self.indexify):
-#            raise UnivariateIOError('Problem at Indexify')
         # read each condition
         try:
             for key, val in self._items.items():

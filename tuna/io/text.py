@@ -310,31 +310,31 @@ def get_filters(analysis_path):
     return _get_collections(analysis_path, 'filterset')
 
 
-def get_conditions(filter_path):
-    return _get_collections(filter_path, 'condition')
+def get_conditions(obs_path):
+    return _get_collections(obs_path, 'condition')
 
 
 def get_filter_path(analysis_path, fset, write=True):
     return _get_item_path(analysis_path, fset, kind='filterset', write=write)
 
 
-def get_condition_path(filter_path, condition, write=True):
+def get_condition_path(obs_path, condition, write=True):
     # specific case for master : no further filter
     if condition is None or condition == 'master':
-        path = os.path.join(filter_path, 'master')
+        path = os.path.join(obs_path, 'master')
         if write and not os.path.exists(path):
             os.makedirs(path)
         return 0, path
     else:
-        return _get_item_path(filter_path, condition, kind='condition',
+        return _get_item_path(obs_path, condition, kind='condition',
                               write=write)
 
 
-def get_observable_path(condition_path, obs, write=True):
-    if not os.path.exists(condition_path):
-        raise MissingFolderError('condition-folder')
+def get_observable_path(filter_path, obs, write=True):
+    if not os.path.exists(filter_path):
+        raise MissingFolderError('filter-folder')
     basename = obs.name
-    path = os.path.join(condition_path, basename)
+    path = os.path.join(filter_path, basename)
     if write and not os.path.exists(path):
         os.makedirs(path)
         text_file = os.path.join(path, basename + '.txt')
@@ -355,11 +355,11 @@ def get_observable_path(condition_path, obs, write=True):
     return path
 
 
-def get_biobservable_path(condition_path, obss, write=True):
-    if not os.path.exists(condition_path):
-        raise MissingFolderError('condition-folder')
+def get_biobservable_path(filter_path, obss, write=True):
+    if not os.path.exists(filter_path):
+        raise MissingFolderError('filter-folder')
     basename = '---'.join([obs.name for obs in obss])
-    path = os.path.join(condition_path, basename)
+    path = os.path.join(filter_path, basename)
     if write and not os.path.exists(path):
         os.makedirs(path)
         # no writing of text dile description since univariate analysis did it
