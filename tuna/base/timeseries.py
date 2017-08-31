@@ -207,6 +207,6 @@ class TimeSeries(object):
                 # master: all True, useless to printout
                 if key == 'master':
                     continue
-                dic[key].extend(len(_x) * [val, ])
+                dic[key].extend(val)
         df = pd.DataFrame(dic, index=range(start_index, start_index + size))
         return df
