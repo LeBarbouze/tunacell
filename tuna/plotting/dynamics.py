@@ -24,6 +24,14 @@ from tuna.io import text
 
 
 class UnivariatePlot(object):
+    """Class to make onepoint and twopoint plotting
+
+    .. note:: Deprecated in tuna 0.0.7
+
+    Parameters
+    ----------
+    univariate : :class:`Univariate` instance
+    """
 
     def __init__(self, univariate):
         self.univariate = univariate
@@ -499,7 +507,7 @@ def plot_stationary(stationary, show_cdts='all',
 
     Parameters
     ----------
-    stationary : StationaryUnivariate instance
+    stationary : StationaryUnivariate or StationaryBivariate instance
     fitlog : bool {False, True}
         whether to fit initial decay with an exponential decay
     epsilon : float
@@ -720,15 +728,15 @@ def plot_stationary(stationary, show_cdts='all',
     if save:
         # get univariate instance to get path where to save figure
         if isinstance(stationary, StationaryUnivariate):
-            univ = stationary.univariate
+            bname = 'stationary_'
         elif isinstance(stationary, StationaryBivariate):
-            univ = stationary.univariates[0]  # store in row univariate
+            bname = 'stationary_crosscorrelation_'
         try:
-            obs_path = univ._get_obs_path(write=False)
+            obs_path = stationary._get_obs_path(write=False)
         except text.MissingFolderError:
-            univ.write_text()
-            obs_path = univ._get_obs_path(write=False)
-        bname = 'stationary_' + stationary.region.name + ext
+            stationary.write_text()
+            obs_path = stationary._get_obs_path(write=False)
+        bname += stationary.region.name + ext
         fname = os.path.join(obs_path, bname)
         fig.savefig(fname, bbox_inches='tight', pad_inches=0)
     return fig
