@@ -559,7 +559,7 @@ def set_stationary_crosscorrelation(iter_timeseries,
                 agg_mean = np.nansum(co * ms)/np.nansum(co)
                 local_mean = agg_mean * np.ones(len(eval_times))
             means[cdt_lab][index] = local_mean
-            print(local_mean)
+            # print(local_mean)
 
         # initialize rec
         recs[cdt_lab] = {'counts': np.zeros(len(time_intervals), dtype=int),
