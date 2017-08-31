@@ -356,6 +356,21 @@ def get_observable_path(filter_path, obs, write=True):
 
 
 def get_biobservable_path(filter_path, obss, write=True):
+    """Get folder for bivariate analysis
+
+    Parameters
+    ----------
+    filter_path : str
+        parent folder, should be a filterset path
+    obss : couple of :class:`Observable` instances
+    write : bool {True, False}
+        whether to write new path or not
+
+    Returns
+    -------
+    path : str
+        path to the bivariate analysis folder
+    """
     if not os.path.exists(filter_path):
         raise MissingFolderError('filter-folder')
     basename = '---'.join([obs.name for obs in obss])
