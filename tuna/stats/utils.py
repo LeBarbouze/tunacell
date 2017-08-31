@@ -141,9 +141,9 @@ class Regions(object):
             self.load_from_text()
         except RegionsIOError:
             print('No regions have been saved yet. '
-                  'Look for experiment boundaries.')
+                  'Looking for experiment boundaries...')
             tmin, tmax = _find_time_boundaries(self.exp)
-            self.add(label='ALL', tmin=tmin, tmax=tmax)
+            self.add(label='ALL', tmin=tmin, tmax=tmax, verbose=True)
         return
 
     def __repr__(self):
@@ -166,7 +166,7 @@ class Regions(object):
                             index_label=self._df.index.name)
         return
 
-    def add(self, label=None, tmin=None, tmax=None):
+    def add(self, label=None, tmin=None, tmax=None, verbose=True):
         """Add a new region to existing frame.
 
         Parameters
@@ -176,7 +176,12 @@ class Regions(object):
         """
         # check that label is not used yet
         if label is not None and label in self._df.index:
-            warnings.warn('Label {} already exists.'.format(label))
+            msg = ('Label {} already exists.'.format(label) + '\n'
+                   'Change label to add this region.')
+            if verbose:
+                print(msg)
+            else:
+                warnings.warn(msg)
             return
         params = {}
         if tmin is None:
@@ -190,8 +195,10 @@ class Regions(object):
         # check that these parameters do not correspond to a stored item
         for item in self._df.itertuples():
             if (item.tmin == params['tmin'] and item.tmax == params['tmax']):
-                warnings.warn('Parameters correspond to '
-                              'region {}'.format(item.Index))
+                msg = 'Input params correspond to region {}'.format(item.Index)
+                msg += ' Use this label in .get()'
+                if verbose:
+                    print(msg)
                 return
         if label is not None:
             letter = label
@@ -212,6 +219,11 @@ class Regions(object):
                         break
                     index += 1
                 num += 1
+        if verbose:
+            msg = ('Adding region {} with parameters:'.format(letter) + '\n'
+                   'tmin: {}'.format(params['tmin']) + '\n'
+                   'tmax: {}'.format(params['tmax']))
+            print(msg)
         self._df = self._df.append(pd.Series(params, name=letter))
         # automatic saving
         self.save_to_text()
