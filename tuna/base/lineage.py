@@ -234,15 +234,32 @@ class Lineage(object):
 
         arrays = []
         index_cycles = []
-        container = self.colony.container
+        colony = self.colony
+        container = colony.container
         # at this point all _sdata are ready for action. Distinguish modes
         if obs.mode == 'dynamics':
+            # get time reference for translating times
+            if obs.tref is not None:
+                if obs.tref == 'root':
+                    root = colony.get_node(colony.root)
+                    if root.data is not None and len(root.data) > 0:
+                        tref = root.data['time'][-1]  # last time of root
+                    else:
+                        tref = 0.
+                elif isinstance(obs.tref, float) or isinstance(obs.tref, int):
+                    tref = float(obs.tref)
+                else:
+                    tref = 0.
+            else:
+                tref = 0.
             # build array
             count = 0
             for cell in self.cellseq:
                 if len(cell.data) > 0:
-                    coords = Coordinates(cell.data['time'], cell._sdata[label],
-                                         x_name='time', y_name=obs_name)
+                    coords = Coordinates(cell.data['time'] - tref,
+                                         cell._sdata[label],
+                                         x_name='time',
+                                         y_name=obs_name)
                     arrays.append(coords.as_array())
                     size = len(arrays[-1])
                     index_cycles.append((count, count + size - 1))

@@ -17,7 +17,7 @@ import re
 from copy import deepcopy
 
 
-_re_codestring = 'T([a-z])(\d*[\.,]*\d*)M([a-z\-]+)J(\d+)'
+_re_codestring = 'T([a-z])([a-z]*\d*[\.,]*\d*)M([a-z\-]+)J(\d+)'
 
 
 def _is_valid_codestring(codestring):
@@ -80,9 +80,12 @@ class Observable(object):
             * 'd' : cell cycle division time
             * 'm' : cell cycle midpoint (half time)
             * 'g' : cell cycle generation index
-    tref : float
+    tref : float or 'root' (default None)
         when timing is set to 'g', sets the 0th generation to the cell
         that bounds this reference time
+        when timing is set to 't' (time-lapse timing), allows to translate time
+        values by substracting floating point value (if given as a float), or
+        aligns to the colony root cell last time value as origin.
     """
 
     def __init__(self, name=None, from_string=None,
@@ -153,7 +156,10 @@ class Observable(object):
         msg = ''
         # timing is in between T flags
         if self.tref is not None:
-            stref = '{}'.format(self.tref)
+            if isinstance(self.tref, float):
+                stref = '{:.2f}'.format(self.tref)
+            elif isinstance(self.tref, int) or isinstance(self.tref, str):
+                stref = '{}'.format(self.tref)
         else:
             stref = ''
         msg += 'T' + self.timing + stref
@@ -205,7 +211,10 @@ class Observable(object):
             timing, stref, mode, sjoin = m.groups()
             self.timing = timing
             if stref:
-                self.tref = float(stref.replace(',', '.'))  # if decimal is ,
+                if stref == 'root':
+                    self.tref = 'root'
+                else:  # convert to float
+                    self.tref = float(stref.replace(',', '.'))  # if decimal is ,
             else:
                 self.tref = None
             self.mode = mode
@@ -256,14 +265,22 @@ class Observable(object):
         """Export as LaTeX string.
         """
         output = r'$'
-        if self.differentiate:
-            output += '\\frac{\\mathrm{d}}{\\mathrm{d}t}'
-            if self.scale == 'log':
-                output += '\\log\\left('  # parenthesis started
-        variable_name = '{}'.format(self.raw)
-        output += '\\mathrm{{ {} }}'.format(variable_name.replace('_', '\, '))
+        if self.name is not None:
+            output += '\\mathrm{{ {} }}'.format(self.name.replace('-', '\, ').replace('_', '\ '))
+        else:
+            if self.differentiate:
+                output += '\\frac{\\mathrm{d}}{\\mathrm{d}t}'
+                if self.scale == 'log':
+                    output += '\\log\\left('  # parenthesis started
+            variable_name = '{}'.format(self.raw)
+            output += '\\mathrm{{ {} }}'.format(variable_name.replace('_', '\ ').replace('-', '\, '))
         if self.timing == 't':
-            output += '(t)'
+            if self.tref is None:
+                output += '(t)'
+            elif self.tref == 'root':
+                output += '(t - t_{\\mathrm{root_div}})'
+            else:
+                output += '(t - {:.2f})'.format(self.tref)
         elif self.timing == 'b':
             output += '\\left( t_{\\mathrm{birth}} \\right)'
         elif self.timing == 'd':
@@ -273,10 +290,11 @@ class Observable(object):
                        '{2} \\right)')
         elif self.timing == 'g':
             output += '\\left( \\mathrm{generation} \\right)'
-        if self.differentiate and self.scale == 'log':
-            output += '\\right)'  # parenthesis closed
-        if self.mode != 'dynamics':
-            output += '_{{\mathrm{{ {} }} }}'.format(self.mode)
+        if self.name is None:
+            if self.differentiate and self.scale == 'log':
+                output += '\\right)'  # parenthesis closed
+            if self.mode != 'dynamics':
+                output += '_{{\mathrm{{ {} }} }}'.format(self.mode)
         if self.local_fit:
             output += '\\ [window: {}]'.format(self.time_window)
         output += '$'
