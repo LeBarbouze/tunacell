@@ -32,7 +32,7 @@ import pandas as pd
 import warnings
 from tuna.io import text
 
-from tuna.stats.utils import Regions, CompuParams
+from tuna.stats.utils import Region, Regions, CompuParams
 
 
 class UnivariateConditioned(object):
@@ -150,34 +150,41 @@ class UnivariateConditioned(object):
             leave to None to canonical analysis path under the experiment
             analysis folder
         """
+        ext = '.tsv'
+        add_name = '_' + self.univariate.region.name
         condition_path = self._get_path(user_root=path, write=True)
         ffmt = '%.8e'  # floating point numbers
         ifmt = '%d'  # integers
-        item_path = os.path.join(condition_path, 'onepoint.tsv')
+        bname = 'onepoint' + add_name + ext
+        fname = os.path.join(condition_path, bname)
         names = self.onepoint.dtype.names
         header = '\t'.join(names)
         fmt = [ifmt if 'count' in n_ else ffmt for n_ in names]
-        np.savetxt(item_path, self.onepoint, fmt=fmt,
+        np.savetxt(fname, self.onepoint, fmt=fmt,
                    delimiter='\t', comments='', header=header)
 
         for key in ['count_two', 'autocorr']:
             array = self[key]
-            item_path = os.path.join(condition_path, key + '.tsv')
+            bname = key + add_name + ext
+            fname = os.path.join(condition_path, bname)
             if 'count' in key:
                 fmt = ifmt
             else:
                 fmt = ffmt
-            np.savetxt(item_path, array, fmt=fmt, delimiter='\t')
+            np.savetxt(fname, array, fmt=fmt, delimiter='\t')
         return
 
     def read_text(self, path=None):
         """Initialize object by reading text output."""
+        ext = '.tsv'
+        add_name = '_' + self.univariate.region.name
         condition_path = self._get_path(user_root=path, write=False)
         # read
-        item_path = os.path.join(condition_path, 'onepoint.tsv')
-        if not os.path.exists(item_path):
-            raise text.MissingFileError(item_path)
-        array = np.genfromtxt(item_path, delimiter='\t',
+        bname = 'onepoint' + add_name + ext
+        fname = os.path.join(condition_path, bname)
+        if not os.path.exists(fname):
+            raise text.MissingFileError(fname)
+        array = np.genfromtxt(fname, delimiter='\t',
                               dtype=(float, int, float, float), names=True)
         self.onepoint = array
         for key in ['count_two', 'autocorr']:
@@ -185,10 +192,11 @@ class UnivariateConditioned(object):
                 dtype = int
             else:
                 dtype = float
-            item_path = os.path.join(condition_path, key + '.tsv')
-            if not os.path.exists(item_path):
-                raise text.MissingFileError(item_path)
-            array = np.genfromtxt(item_path, delimiter='\t', dtype=dtype)
+            bname = key + add_name + ext
+            fname = os.path.join(condition_path, bname)
+            if not os.path.exists(fname):
+                raise text.MissingFileError(fname)
+            array = np.genfromtxt(fname, delimiter='\t', dtype=dtype)
             self[key] = array
         return
 
@@ -250,6 +258,10 @@ class UnivariateIOError(IOError):
     pass
 
 
+class UnivariateInitError(ValueError):
+    pass
+
+
 class Univariate(object):
     """Object that stores the dynamical analysis of a given observable.
 
@@ -260,32 +272,49 @@ class Univariate(object):
 
     Parameters
     ----------
-    obs : :class:`Observable` instance
-    cset : list of :class:`FilterSet` instances (default [])
-        default: only 'master' is computed
     parser : :class:`Parser` instance
         Defines which experiment, and how to parse it (with its filter set
         fset attribute)
-    region : object
+    obs : :class:`Observable` instance
+    eval_times : 1d ndarray
+        array of times where statistics are evaluated
+    cset : list of :class:`FilterSet` instances (default [])
+        default: only 'master' is computed
+    region : :class:`Region` instance or str (default 'ALL')
         with tmin, tmax, name attributes; first two are used to set boundaries
         for absolute time data (accept only acquisitions within those bounds),
         'name' is used for storage
-    period : float
 
     Attributes
     ----------
     _items : dictionary
         keys are condition labels, values are
         class:`UnivariateConditioned` instances.
+
+    Raises
+    ------
+    UnivariateInitError
+        when a parameter is missing (prints out which parameter)
     """
 
-    def __init__(self, obs, cset=[], parser=None, region=None, eval_times=None):
+    def __init__(self, parser, obs, eval_times=None, region='ALL', cset=[]):
         self.obs = obs
         self.parser = parser
-        self.exp = parser.experiment
+        if eval_times is None:
+            self._read_eval_times()
+            if self.eval_times is None:
+                raise UnivariateInitError('missing eval_times')
+        else:
+            self.eval_times = eval_times
         self.cset = cset
-        self.region = region
-        self.eval_times = eval_times
+        if isinstance(region, Region):
+            self.region = region
+        elif isinstance(region, str):
+            regs = Regions(parser.experiment)
+            self.region = regs.get(region)
+        else:
+            regs = Regions(parser.experiment)
+            self.region = regs.get('ALL')
         # create as many nodes as there are conditions in cset
         self._items = {}
         self._condition_labels = []
@@ -309,6 +338,21 @@ class Univariate(object):
             cdt_repr = '{}'.format(repr(cdt))
             self._condition_labels.append(cdt_repr)
             self._items[cdt_repr] = UnivariateConditioned(self, cdt)
+        return
+
+    def _read_eval_times(self):
+        """Read master item to get time array
+
+        This one can be applied after reading data so as to update eval_times
+        """
+        master = self.master
+        try:
+            master.read_text()
+            self.eval_times = master.time
+        except (text.MissingFileError, text.MissingFolderError):
+            msg = 'Nothing to read there. Think of computing instead'
+            print(msg)
+            self.eval_times = None
         return
 
     def __getitem__(self, key):
@@ -384,6 +428,8 @@ class Univariate(object):
                 val.read_text(analysis_folder)
         except (text.MissingFileError, text.MissingFolderError) as missing:
             raise UnivariateIOError(missing)
+        # update eval_times
+        self._read_eval_times()
         return
 
 
