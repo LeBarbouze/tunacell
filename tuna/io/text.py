@@ -12,6 +12,35 @@ import inspect
 import numpy as np
 
 from tuna.observable import Observable, FunctionalObservable
+from tuna.parser import Parser
+
+# import a bunch of filters to be able to load them using eval
+from tuna.filters.main import (FilterAND, FilterOR, FilterNOT, FilterTRUE,
+                               FilterSet)
+from tuna.filters.cells import (FilterCellAny,
+                                FilterCellIDparity,
+                                FilterCompleteCycle,
+                                FilterCycleFrames,
+                                FilterCycleSpanIncluded,
+                                FilterData,
+                                FilterDaughters,
+                                FilterHasParent,
+                                FilterLengthIncrement,
+                                FilterObservableBound,
+                                FilterSymmetricDivision,
+                                FilterTimeInCycle)
+from tuna.filters.trees import (FilterTreeAny,
+                                FilterTreeDepth,
+                                FilterTreeTimeIntersect)
+from tuna.filters.lineages import (FilterLineageAny,
+                                   FilterLineageData,
+                                   FilterLineageLength,
+                                   FilterLineageTimeBound,
+                                   FilterLineageTimeIntersect,
+                                   FilterLineageTimeLength,
+                                   FilterLineageWithCellProperty)
+from tuna.filters.containers import (FilterContainerAny,
+                                     FilterContainerMetadataEquals)
 
 
 class TextParsingError(Exception):
@@ -380,125 +409,146 @@ def get_biobservable_path(filter_path, obss, write=True):
         # no writing of text dile description since univariate analysis did it
     return path
 
-#def find_filterset_path(analysis_path, fset):
-#    """Returns path corresponding to filterset.
-#
-#    Parameters
-#    ----------
-#    analysis_path : str
-#        analysis folder
-#    fset : FilterSet instance
-#        filterset to be search within analysis folder
-#
-#    Returns
-#    -------
-#    (path, indices) when found
-#
-#    path : str if filter set is found, None if not found
-#        absolute path to filterset folder
-#    indices : list of int
-#        list of used integers as indices for filtersets
-#    """
-#    path = None
-#    p = re.compile('filterset_(\d+)')
-#    if not os.path.exists(analysis_path):
-#        raise MissingFolderError('analysis')
-#    ls = os.listdir(analysis_path)
-#    busy_indices = []
-#    # loop through directories and inspect each filterset directory
-#    for item in ls:
-#        path_to_item = os.path.join(analysis_path, item)
-#        if os.path.isdir(path_to_item):
-#            m = p.match(item)
-#            if m:
-#                sindex, = m.groups()
-#                index = int(sindex)
-#                busy_indices.append(index)
-#                ptf = os.path.join(path_to_item, item + '.txt')
-#                with open(ptf, 'r') as f:
-#                    line = f.readline()  # first line is repr(FilterSet)
-#                    comp = line.rstrip()
-#                    if comp == repr(fset):
-#                        path = path_to_item
-#    return (path, busy_indices)
-#
-#
-#def find_observable_path(filterset_path, obs):
-#    if not os.path.exists(filterset_path):
-#        raise MissingFolderError('filterset')
-#    path = os.path.join(filterset_path, obs.label)
-#    return path
-#
-#
-#def get_analysis_single(exp, fset, obs, user_abspath=None):
-#    """Get analysis folder corresponding to fset, obs for exp.
-#
-#    Parameters
-#    ----------
-#    exp : Experiment instance
-#    fset : FilterSet instance
-#    obs : Observable instance
-#    user_abspath : str (default None)
-#        when user wants to override exp.abspath
-#
-#    Returns
-#    -------
-#    path to observable analysis folder
-#
-#    Raises
-#    ------
-#    MissingFolderError
-#        with the missing level: 'filterset', 'observable'
-#    """
-#    res = None
-#    analysis = get_analysis_path(exp, user_abspath=user_abspath)
-#    path, busy_indices = find_filterset_path(analysis, fset)
-#    if path is None:
-#        raise MissingFolderError('filterset')
-#    res = find_observable_path(path, obs)
-#    if not os.path.exists(res):
-#        raise MissingFolderError('observable')
-#    return res
-#
-#
-#def set_analysis_single(exp, fset, obs, user_abspath=None):
-#    """Set up analysis folders for analysis of the dynamics.
-#
-#    Parameters
-#    ----------
-#    exp : Experiment instance
-#    fset : FilterSet instance
-#    obs : Observable instance
-#    user_abspath : str (default None)
-#        when user wants to override exp.abspath
-#
-#    Returns
-#    -------
-#    path to observable analysis folder
-#
-#    Notes
-#    -----
-#    The function is called when saving data is called upon
-#    """
-#    res = None
-#    analysis = get_analysis_path(exp, user_abspath=user_abspath)
-#    if not os.path.exists(analysis):
-#        os.makedirs(analysis)
-#    path, busy_indices = find_filterset_path(analysis, fset)
-#    if path is None:
-#        index = _get_new_index(busy_indices, limit=100)
-#        item = 'filterset_{:02d}'.format(index)
-#        path = os.path.join(analysis, item)
-#        if not os.path.exists(path):
-#            os.makedirs(path)
-#        with open(os.path.join(path, item + '.txt'), 'w') as f:
-#            f.write(repr(fset))  # first line : repr(fset)
-#            f.write('\n\n')  # one blank line
-#            f.write(str(fset))  # human readable description (str(fset))
-#    res = find_observable_path(path, obs)
-#    if not os.path.exists(res):
-#        os.makedirs(res)
-#    return res
+
+# %% PRINTING STUFF FROM ANALYSIS TEXT FILES
+
+def _print_collections(parent_folder, kind='filterset'):
+    """Print list of filtersets/conditions
+
+    Parameters
+    ----------
+    parent_folder : str
+        parent folder in which to look for filtersets/conditions
+    kind : str {'filterset', 'condition'}
+    """
+    msg = 'Looking for {}s under {} ...'.format(kind, parent_folder)
+    collec = _get_collections(parent_folder, basename=kind)
+    # order items using index
+    as_list = sorted([(index, path_to_item, rep)
+                      for rep, (index, path_to_item) in collec.items()],
+                     key=lambda x: x[0])
+    if len(as_list) == 0:
+        msg += '\n\n Nothing here. Move along.'
+    for (index, path_to_item, rep) in as_list:
+        basename = os.path.basename(path_to_item)
+        consensus = '{}_{:02d}_(\S)*'.format(kind, index)
+        chain = re.compile(consensus)
+        m = chain.match(basename)
+        name = ''
+        if m:
+            name, = m.groups()
+        if not name:
+            name = '(none)'
+        fname = os.path.join(path_to_item, basename)
+        if not os.path.exists(fname):
+            raise MissingFileError('Missing description file under {}'.format(path_to_item))
+        rep, human = _read_first_remaining(fname)
+        msg += '\n\n{}. name: {} path: {}'.format(index, name, path_to_item)
+        msg += '\nrep: {}'.format(rep) 
+        if human:
+            msg += '\n{}'.format(human)
+    print(msg)
+    return
+
+
+def print_filtersets(exp):
+    """Print out filtersets saved in analysis folder
+
+    Parameters
+    ----------
+    exp : :class:`Experiment` instance
+    """
+    analysis_path = get_analysis_path(exp, write=False)
+    if not os.path.exists(analysis_path):
+        print('There is no analysis folder. Compute, export, and come back later')
+    _print_collections(analysis_path, kind='filterset')
+    return
+
+
+def print_conditions(exp, fset, obs):
+    """Print out conditions used for input observable
+
+    Parameters
+    ----------
+    exp : :class:`Experiment` instance
+    fset : :class:`FilterSet` instance
+    obs : :class:`Observable` instance
+    """
+    analysis_path = get_analysis_path(exp, write=False)
+    filter_path = get_filter_path(analysis_path, fset, write=False)
+    obs_path = get_observable_path(filter_path, obs, write=False)
+    _print_collections(obs_path, kind='condition')
+    return
+
+
+def print_observables(exp, fset):
+    """Print out observables that have been analyzed
+
+    Parameters
+    ----------
+    exp : :class:`Experiment` instance
+    fset : :class:`FilterSet` instance
+    """
+    analysis_path = get_analysis_path(exp, write=False)
+    filter_path = get_filter_path(analysis_path, fset, write=False)
+    msg = 'Looking for observables under {} ...'.format(filter_path)
+    items = os.listdir(filter_path)
+    candidates = [item for item in items if os.path.isdir(item)]
+    valids = []
+    for name in candidates:
+        abs_path = os.path.join(filter_path, name)
+        fname = os.path.join(abs_path, name + '.txt')
+        if os.path.exists(fname):
+            rep, human = _read_first_remaining(fname)
+            if 'Observable' in rep or 'FunctionalObservable' in rep:
+                valids.append(name)
+                msg += '\n\n{} path: {}'.format(name, abs_path)
+                msg += '\nrep: {}'.format(rep)
+                if human:
+                    msg += '\n\n{}'.format(human)
+    if len(valids) == 0:
+        msg += 'Nothing there. Move along'
+    print(msg)
+    return
+
+
+# %% LOADING STUFF FROM TEXT FILES
+
+class ImpossibleToLoad(ValueError):
+    pass
+
+
+def load_item_from_path(path):
+    """Returns an evaluated object from path"""
+    basename = os.path.basename(path)
+    fname = os.path.join(path, basename + '.txt')
+    if not os.path.exists(fname):
+        raise MissingFileError('Missing description file under {}'.format(path))
+    rep, human_string = _read_first_remaining(fname)
+    # so far, only FunctionalObservable are not loadable (TO FIX)
+    if 'FunctionalObservable' in rep:
+        raise ImpossibleToLoad('FunctionalObservable are not loadable')
+    return eval(rep)
+
+
+def _read_first_remaining(filename):
+    """Get first line of file, and remaining content as couple.
+
+    Parameters
+    ----------
+    filename : str
+        absolute path to file
+
+    Returns
+    -------
+    (first line, remaining content): str, str
+    """
+    with open(filename, 'r') as f:
+        first = f.readline()
+        msg = ''
+        for line in f.readlines():
+            msg += line
+    return (first.rstrip(), msg.lstrip().rstrip())
 
 
 def _get_new_index(busy_indices, start_index=0, limit=100):
