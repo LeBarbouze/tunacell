@@ -79,8 +79,6 @@ univariate.export_text()
 
 # %% Plotting the statistics
 
-from tuna.plotting.dynamics import UnivariatePlot
-uplt = UnivariatePlot(univariate)
-uplt.make_onepoint(show_ci=True)
-uplt.make_twopoints()
-uplt.save(label='tutorial', extension='.png')
+from tuna.plotting.dynamics import plot_onepoint, plot_twopoints
+fig = plot_onepoint(univariate, show_ci=True, save=True)
+fig2 = plot_twopoints(univariate, save=True)
