@@ -51,6 +51,7 @@ except ImportError:
 class SniffingError(Exception):
     pass
 
+
 (EXPERIMENT, ANALYSIS, FILTERSET, OBSERVABLE, CONDITION) = list(range(5))
 
 
