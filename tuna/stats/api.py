@@ -9,7 +9,7 @@ import numpy as np
 
 from tuna.stats.utils import (iter_timeseries_,
                               iter_timeseries_2,
-                              Regions, UndefinedRegion,
+                              Region, Regions, UndefinedRegion,
                               CompuParams)
 from tuna.stats.single import (Univariate, StationaryUnivariate,
                                UnivariateIOError, StationaryUnivariateIOError)
@@ -26,7 +26,8 @@ MIN_INTERDIVISION_TIME = 5.  # World record is set by Vibrio natriegens
 
 # %% SINGLE DYNAMIC ONBSERVABLE
 
-def compute_univariate_dynamics(parser, obs, cset=[], size=None, times=None):
+def compute_univariate_dynamics(parser, obs, region='ALL',
+                                cset=[], times=None, size=None):
     """Computes one-point and two-point functions of statistical analysis.
 
     This functions handles conditions and time-window binning:
@@ -40,43 +41,27 @@ def compute_univariate_dynamics(parser, obs, cset=[], size=None, times=None):
     ----------
     parser : :class:`Parser` instance
     obs : :class:`Observable` instance
+    region : :class:`Region` instance or str (default 'ALL')
+        in case of str, must be the name of a registered region
     cset : list of :class:`FilterSet` instances
-    size : int (default None)
-        limit the iterator to size Lineage instances (used for testing)
     times : 1d ndarray, or str (default None)
         array of times at which process is evaluated. Default is to use the
         'ALL' region with the period taken from experiment metadata. User can
         opt for a specific time array, or for the label of a region as a string
-
+    size : int (default None)
+        limit the iterator to size Lineage instances (used for testing)
 
     Returns
     -------
     Univariate instance
     """
+    reg = _convert_region(region, parser.experiment)
     if isinstance(times, np.ndarray):
         eval_times = times
     else:
-        regs = Regions(parser.experiment)
-        if isinstance(times, str):
-            try:
-                region = regs.get(times)
-            except UndefinedRegion as u:
-                print(u)
-                region = regs.get('ALL')
-        else:
-            region = regs.get('ALL')
-        if obs.timing != 'g':
-            period = parser.experiment.period
-            tmin = region.tmin
-            tmax = region.tmax
-        else:
-            period = 1
-            n_max = (region.tmax - region.tmin)/MIN_INTERDIVISION_TIME
-            tmin = - n_max
-            tmax = n_max
-        eval_times = np.arange(tmin, tmax + period, period)
+        eval_times = _default_eval_times(parser, obs, reg)
     # initialize Univariate and each of its item
-    univ = Univariate(obs, cset, parser, region, eval_times)  # empty
+    univ = Univariate(parser, obs, eval_times, reg, cset)  # empty
     # Set iterator over TimeSeries
     timeseries = iter_timeseries_(parser, obs, cset, size=size)
     # call the master function performing computation
@@ -84,22 +69,26 @@ def compute_univariate_dynamics(parser, obs, cset=[], size=None, times=None):
     return univ
 
 
-def initialize_univariate(parser, obs, cset=[]):
-    """Initialize an empty Univariate instance.
+def _convert_region(region, exp):
+    """Convert region when a string is used"""
+    if isinstance(region, str):
+        regs = Regions(exp)
+        return regs.get(region)
+    elif isinstance(region, Region):
+        return region
+    else:
+        raise ValueError(region)
+
+
+def _default_eval_times(parser, obs, region):
+    """Returns default evalutation times.
 
     Parameters
     ----------
     parser : :class:`Parser` instance
-    obs : :class:`Observable` instance
-    cset : sequence of :class:`FilterSet` instances
-
-    Returns
-    -------
-    :class:`Univariate` instance
-        initialized, nothing computed yet
+    obs : :class:`Observable` or :class:`FunctionalObservable` instance
+    region : :class:`Region` instance
     """
-    regs = Regions(parser.experiment)
-    region = regs.get('ALL')
     if obs.timing != 'g':
         period = parser.experiment.period
         tmin = region.tmin
@@ -110,8 +99,38 @@ def initialize_univariate(parser, obs, cset=[]):
         tmin = - n_max
         tmax = n_max
     eval_times = np.arange(tmin, tmax + period, period)
-    univ = Univariate(obs, parser=parser, cset=cset, region=region,
-                      eval_times=eval_times)
+    return eval_times
+
+
+def load_univariate(parser, obs, region='ALL', cset=[]):
+    """Initialize an empty Univariate instance.
+
+    Such a Univariate instance is bound to an experiment (through parser),
+    an observable, and a set of conditions.
+
+    Parameters
+    ----------
+    parser : :class:`Parser` instance
+    obs : :class:`Observable` instance
+    region : :class:`Region` instance or str (default 'ALL')
+        in case of str, must be the name of a registered region
+    cset : sequence of :class:`FilterSet` instances
+
+    Returns
+    -------
+    :class:`Univariate` instance
+        initialized, nothing computed yet
+
+    Raises
+    ------
+    UnivariateIOError
+        when importing fails (no data corresponds to input params)
+    """
+    reg = _convert_region(region, parser.experiment)
+    # use default eval_times to respect __init__, will be updated upon reading
+    eval_times = _default_eval_times(parser, obs, reg)
+    univ = Univariate(parser, obs, eval_times, reg, cset)
+    univ.import_from_text()
     return univ
 
 
