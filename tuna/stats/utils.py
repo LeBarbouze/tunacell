@@ -120,6 +120,29 @@ class UndefinedRegion(ValueError):
     pass
 
 
+class Region(object):
+    """Minimal object that store region parameters
+
+    Parameters
+    ----------
+    name : str
+        name of region
+    tmin : float
+        lower bound for acquisition time values
+    tmax : float
+        upper bound for acquisition time values
+    """
+
+    def __init__(self, name=None, tmin=None, tmax=None):
+        self.name = name
+        self.tmin = tmin
+        self.tmax = tmax
+
+    def __repr__(self):
+        msg = 'Region : {{name: {}, tmin: {}, tmax: {}}}'.format(self.name, self.tmin, self.tmax)
+        return msg
+
+
 class Regions(object):
     """Class that stores regions for stationary analysis.
 
@@ -139,7 +162,7 @@ class Regions(object):
             raise TypeError('first arg must be either Experiment or Parser')
         self._df = pd.DataFrame({'tmin': [], 'tmax': []},
                                 columns=['tmin', 'tmax'],
-                                index=pd.Index([], name='label')
+                                index=pd.Index([], name='name')
                                 )
         try:
             self.load_from_text()
@@ -147,7 +170,7 @@ class Regions(object):
             print('No regions have been saved yet. '
                   'Looking for experiment boundaries...')
             tmin, tmax = _find_time_boundaries(self.exp)
-            self.add(label='ALL', tmin=tmin, tmax=tmax, verbose=True)
+            self.add(name='ALL', tmin=tmin, tmax=tmax, verbose=True)
         return
 
     def __repr__(self):
@@ -158,7 +181,7 @@ class Regions(object):
         text_file = os.path.join(analysis_path, 'regions.tsv')
         if not os.path.exists(text_file):
             raise RegionsIOError
-        regs = pd.read_csv(text_file, sep='\t', index_col='label')
+        regs = pd.read_csv(text_file, sep='\t', index_col='name')
         self._df = regs[['tmin', 'tmax']]
         return
 
@@ -170,43 +193,67 @@ class Regions(object):
                             index_label=self._df.index.name)
         return
 
-    def add(self, label=None, tmin=None, tmax=None, verbose=True):
+    def add(self, region=None, name=None, tmin=None, tmax=None, verbose=True):
         """Add a new region to existing frame.
 
         Parameters
         ----------
-        params : dict
-            keys: label, tmin, tmax
+        region : :class:`Region` instance
+            when left to None, following keyword arguments are used
+        name : str
+            name of region to be added
+        tmin : float
+            lower bound for acquisition time values
+        tmax : float
+            upper bound for acquisition time values
+        verbose : bool {True, False}
+            whether to display information on screen
         """
-        # check that label is not used yet
-        if label is not None and label in self._df.index:
-            msg = ('Label {} already exists.'.format(label) + '\n'
-                   'Change label to add this region.')
-            if verbose:
-                print(msg)
-            else:
-                warnings.warn(msg)
-            return
         params = {}
-        if tmin is None:
-            params['tmin'] = -np.infty
+        if region is not None and isinstance(region, Region):
+            # check that name is not used yet
+            if region.name in self._df.index:
+                msg = ('name {} already exists.'.format(name) + '\n'
+                       'Change name to add this region.')
+                if verbose:
+                    print(msg)
+                else:
+                    warnings.warn(msg)
+                return
+            params['tmin'] = region.tmin
+            params['tmax'] = region.tmax
+            name = region.name
+        # otherwise use other keyword arguments
         else:
-            params['tmin'] = tmin
-        if tmax is None:
-            params['tmax'] = np.infty
-        else:
-            params['tmax'] = tmax
+            # check that name is not used yet
+            if name is not None and name in self._df.index:
+                msg = ('name {} already exists.'.format(name) + '\n'
+                       'Change name to add this region.')
+                if verbose:
+                    print(msg)
+                else:
+                    warnings.warn(msg)
+                return
+            if tmin is None:
+                params['tmin'] = -np.infty
+            else:
+                params['tmin'] = tmin
+            if tmax is None:
+                params['tmax'] = np.infty
+            else:
+                params['tmax'] = tmax
         # check that these parameters do not correspond to a stored item
         for item in self._df.itertuples():
             if (item.tmin == params['tmin'] and item.tmax == params['tmax']):
                 msg = 'Input params correspond to region {}'.format(item.Index)
-                msg += ' Use this label in .get()'
+                msg += ' Use this name in .get()'
                 if verbose:
                     print(msg)
                 return
-        if label is not None:
-            letter = label
-        # find a label starting with 'A', 'B', ..., 'Z', then 'A1', 'B1', ...
+        # okay we can add the region to the list of regions
+        if name is not None:
+            letter = name
+        # find a name starting with 'A', 'B', ..., 'Z', then 'A1', 'B1', ...
         else:
             got_it = False
             num = 0
@@ -233,24 +280,38 @@ class Regions(object):
         self.save_to_text()
         return
 
-    def delete(self, label):
-        """Delete label region
+    def delete(self, name):
+        """Delete name region
 
         Parameters
         ----------
-        label : str
-            label of the region to delete
+        name : str
+            name of the region to delete
         """
-        self._df = self._df.drop(label)
+        self._df = self._df.drop(name)
         self.save_to_text()
         return
 
-    def get(self, label):
-        """Get region parameters corresponding to label
+    def get(self, name):
+        """Get region parameters corresponding to name
+
+        Parameters
+        ----------
+        name : str
+            name of region
+
+        Returns
+        -------
+        :class:`Region` instance
+
+        Raises
+        ------
+        :class:`UndefinedRegion` when name is not in the list
         """
-        if label not in self._df.index:
-            raise UndefinedRegion(label)
-        return self._df.loc[label]
+        if name not in self._df.index:
+            raise UndefinedRegion(name)
+        res = self._df.loc[name]
+        return Region(name=name, tmin=res.tmin, tmax=res.tmax)
 
 
 def _find_time_boundaries(exp):
