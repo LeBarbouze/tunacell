@@ -12,7 +12,6 @@ import inspect
 import numpy as np
 
 from tuna.observable import Observable, FunctionalObservable
-from tuna.parser import Parser
 
 # import a bunch of filters to be able to load them using eval
 from tuna.filters.main import (FilterAND, FilterOR, FilterNOT, FilterTRUE,
@@ -431,7 +430,7 @@ def _print_collections(parent_folder, kind='filterset'):
         msg += '\n\n Nothing here. Move along.'
     for (index, path_to_item, rep) in as_list:
         basename = os.path.basename(path_to_item)
-        consensus = '{}_{:02d}_(\S)*'.format(kind, index)
+        consensus = '{}_{:02d}_(\S*)'.format(kind, index)
         chain = re.compile(consensus)
         m = chain.match(basename)
         name = ''
@@ -439,7 +438,7 @@ def _print_collections(parent_folder, kind='filterset'):
             name, = m.groups()
         if not name:
             name = '(none)'
-        fname = os.path.join(path_to_item, basename)
+        fname = os.path.join(path_to_item, basename + '.txt')
         if not os.path.exists(fname):
             raise MissingFileError('Missing description file under {}'.format(path_to_item))
         rep, human = _read_first_remaining(fname)
@@ -448,6 +447,7 @@ def _print_collections(parent_folder, kind='filterset'):
         if human:
             msg += '\n{}'.format(human)
     print(msg)
+    print()
     return
 
 
@@ -475,7 +475,7 @@ def print_conditions(exp, fset, obs):
     obs : :class:`Observable` instance
     """
     analysis_path = get_analysis_path(exp, write=False)
-    filter_path = get_filter_path(analysis_path, fset, write=False)
+    _, filter_path = get_filter_path(analysis_path, fset, write=False)
     obs_path = get_observable_path(filter_path, obs, write=False)
     _print_collections(obs_path, kind='condition')
     return
@@ -490,10 +490,11 @@ def print_observables(exp, fset):
     fset : :class:`FilterSet` instance
     """
     analysis_path = get_analysis_path(exp, write=False)
-    filter_path = get_filter_path(analysis_path, fset, write=False)
+    _, filter_path = get_filter_path(analysis_path, fset, write=False)
     msg = 'Looking for observables under {} ...'.format(filter_path)
     items = os.listdir(filter_path)
-    candidates = [item for item in items if os.path.isdir(item)]
+    candidates = [item for item in items
+                  if os.path.isdir(os.path.join(filter_path, item))]
     valids = []
     for name in candidates:
         abs_path = os.path.join(filter_path, name)
@@ -509,6 +510,7 @@ def print_observables(exp, fset):
     if len(valids) == 0:
         msg += 'Nothing there. Move along'
     print(msg)
+    print()
     return
 
 
@@ -529,6 +531,9 @@ def load_item_from_path(path):
     if 'FunctionalObservable' in rep:
         raise ImpossibleToLoad('FunctionalObservable are not loadable')
     return eval(rep)
+
+
+# %% other functions
 
 
 def _read_first_remaining(filename):
