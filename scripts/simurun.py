@@ -1,7 +1,19 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
-Script to run numerical simulations.
+script: simurun.py
+
+used to run numerical simulations from terminal. Command is:
+
+    python simurun.py [[-p|--path <path>]
+                       [-l|--label <exp-name>]
+                       [-s|--samples <number-of-samples>]
+                       [--start <starting-time-value>]
+                       [--stop <stoping-time-value>]
+                       [--period <time-interval-between-acquisitions>]
+                      ]
+
+All parameters have default values (see code).
 """
 from __future__ import print_function
 
