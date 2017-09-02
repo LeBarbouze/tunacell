@@ -1,21 +1,11 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
-tuna package
-============
-
-filters/cells.py module
-~~~~~~~~~~~~~~~~~~~~~~
-
-Class definitions to filter cells.
+This module defines filters for Container instances.
 """
 from __future__ import print_function
 
-import copy
-import numpy as np
-
 from tuna.filters.main import FilterGeneral
-from tuna.base.container import Container
 
 
 class FilterContainer(FilterGeneral):
@@ -46,7 +36,6 @@ class FilterContainerMetadataEquals(FilterContainer):
 
     Raises
     ------
-    TypeError : if test called upon non-Container object
     KeyError : when requested key is not present in container metadata
     """
 
@@ -58,8 +47,6 @@ class FilterContainerMetadataEquals(FilterContainer):
         return
 
     def func(self, container):
-        if not isinstance(container, Container):
-            raise TypeError('argument not a container')
         if not hasattr(container.metadata, self.key):
             raise KeyError
         svalue = getattr(container.metadata, self.key)
