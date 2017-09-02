@@ -6,6 +6,7 @@ This module sets up api functions for dynamical correlation analysis.
 from __future__ import print_function
 
 import numpy as np
+import collections
 
 from tuna.stats.utils import (iter_timeseries_,
                               iter_timeseries_2,
@@ -26,8 +27,8 @@ MIN_INTERDIVISION_TIME = 5.  # World record is set by Vibrio natriegens
 
 # %% SINGLE DYNAMIC ONBSERVABLE
 
-def compute_univariate_dynamics(parser, obs, region='ALL',
-                                cset=[], times=None, size=None):
+def compute_univariate(parser, obs, region='ALL', cset=[], times=None,
+                       size=None):
     """Computes one-point and two-point functions of statistical analysis.
 
     This functions handles conditions and time-window binning:
@@ -58,6 +59,8 @@ def compute_univariate_dynamics(parser, obs, region='ALL',
     reg = _convert_region(region, parser.experiment)
     if isinstance(times, np.ndarray):
         eval_times = times
+    elif isinstance(times, collections.Iterable):
+        eval_times = np.array(times)
     else:
         eval_times = _default_eval_times(parser, obs, reg)
     # initialize Univariate and each of its item
