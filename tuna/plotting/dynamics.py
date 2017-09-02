@@ -332,7 +332,8 @@ def plot_onepoint(univariate, show_cdts='all', left=None, right=None,
 
 
 def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
-                   trange=(-100., 100.), save=False, ext='.png'):
+                   trange=(-100., 100.), show_exp_decay=None,
+                   save=False, ext='.png'):
     """Plot two-point functions.
 
     Parameters
@@ -347,6 +348,9 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
         if trefs is empty, number of times of reference to display
     trange : couple of floats
         limits of x-axis (time)
+    show_exp_decay : float (default None)
+        when a floating point number is passed, a light exponential decay
+        curve is plotted for each tref
     save : bool {False, True}
         whether to save figure at canonical path
     ext : str {'.png', '.pdf'}
@@ -367,11 +371,21 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
     times = univariate['master'].time
     npoints = len(times)
     if not trefs:
+        print('Determining trefs...')
         di = npoints // ntrefs + 1
         indices = np.arange(0, npoints, di, dtype=int)
         trefs = times[indices]
+        print(trefs)
 
-    for c_label in ['master', condition_label]:
+    ax01_mins = []
+    ax01_maxs = []
+
+    if condition_label is None or condition_label == 'master':
+        labels = ['master', ]
+    else:
+        labels = ['master', condition_label]
+
+    for c_label in labels:
         if c_label is None:
             continue
         if c_label == 'master':
@@ -395,6 +409,10 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
 
             ax = axs[0]
             ok = np.where(counts[index, :] > 0)
+            # time limits
+            xmin, xmax = np.amin(times[ok]), np.amax(times[ok])
+            ax01_mins.append(xmin)
+            ax01_maxs.append(xmax)
             dat, = ax.plot(times[ok], counts[index, :][ok], ls=lt,
                            label=r'$t_{{\mathrm{{ref}}}}=${}'.format(lab))
             color = dat.get_color()
@@ -427,30 +445,49 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
             else:
                 ax.text(times[index - 2], 0.1, lab,
                         color=color, transform=trans)
-            xmin, xmax = ax.xaxis.get_data_interval()
+            # xmin, xmax = ax.xaxis.get_data_interval()
             ax.axhline(0, ls='--', color='k')
-            ax.set_xlabel(timelabel)
 
             ax = axs[2]
             ax.plot(times[valid[index, :]] - tref,
                     corr[index, :][valid[index, :]]/var[index], ls=lt)
             # ax.set_yscale('log')
             ax.axhline(0, ls='--', color='k')
-            trangeleft, trangeright = xmin-xmax, xmax-xmin
-            ax.set_xlim(left=trangeleft, right=trangeright)
-            ax.set_xlabel('Delta' + timelabel)
+            
+            #ax.set_xlim(left=trangeleft, right=trangeright)
+    
+    # axes limits
+    left = np.amin(ax01_mins)
+    right = np.amax(ax01_maxs)
+    for ax in axs[:2]:
+        ax.set_xlim(left=left, right=right)
+    delta_left, delta_right = left-right, right-left
+    axs[2].set_xlim(left=delta_left, right=delta_right)
+    
+    # add exponential decay
+    if show_exp_decay is not None:
+        tt = np.linspace(left, right, 100)
+        dd = np.linspace(delta_left, delta_right, 100)
+        for tref in trefs:
+            axs[1].plot(tt, np.exp(-show_exp_decay * np.abs(tt - tref)),
+                        ls='-.', color='C7', alpha=.7)
+        axs[2].plot(dd, np.exp(-show_exp_decay * np.abs(dd)),
+                    ls='-.', color='C7', alpha=.7)
 
     # legends
     axs[0].legend(loc=2)
 
     master_line = mlines.Line2D([], [], color='C7', ls='-',
-                                label='all samples')
+                                label='master (color: see top)')
     handles = [master_line, ]
-    if condition_label is not None:
+    if condition_label is not None and condition_label != 'master':
         c_line = mlines.Line2D([], [], color='C7', ls='--',
                                label=condition_label)
         handles.append(c_line)
-    axs[1].legend(handles=handles, loc=2)
+    if show_exp_decay is not None:
+        exp_line = mlines.Line2D([], [], color='C7', ls='-.', label='exp decay')
+        handles.append(exp_line)
+    axs[2].legend(handles=handles, loc=2)
 
     # ticks and labels
     # first axes locators are integers
@@ -461,7 +498,7 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
                        labelbottom='off')
     axs[1].tick_params(axis='x', direction='in')
 
-    axs[2].set_xlabel(timelabel, x=.95, horizontalalignment='right',
+    axs[2].set_xlabel('Delta' + timelabel, x=.95, horizontalalignment='right',
                       fontsize='large')
     axs[0].xaxis.set_label_position('top')
     axs[0].set_xlabel(timelabel, x=.95, horizontalalignment='right',
