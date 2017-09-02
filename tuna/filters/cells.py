@@ -1,13 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
-tuna package
-============
-
-filters/cells.py module
-~~~~~~~~~~~~~~~~~~~~~~
-
-Class definitions to filter cells.
+This module defines filters for Cell instances
 """
 from __future__ import print_function
 
