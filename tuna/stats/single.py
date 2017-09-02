@@ -253,6 +253,37 @@ class UnivariateConditioned(object):
                )
         return msg
 
+    def _onepoint_as_dataframe(self):
+        return pd.DataFrame(self.onepoint)
+
+    def _twopoint_as_dataframe(self):
+        # unroll
+        n_items = len(self.time)
+        row_times = np.concatenate([np.array(n_items * [self.time[i], ]) for i in range(n_items)])
+        col_times = np.concatenate([self.time for item in range(n_items)])
+        counts = self.count_two.flatten()
+        autocov = self.autocorr.flatten()
+        names = ['time-row', 'time-col', 'counts', 'autocovariance']
+        data = {'time-row': row_times,
+                'time-col': col_times,
+                'counts': counts,
+                'autocovariance': autocov,
+                }
+        return pd.DataFrame(data, columns=names)
+
+    def display_onepoint(self, item_max=10):
+        print(self._onepoint_as_dataframe()[:item_max])
+        return
+
+    def display_twopoint(self, item_max=10, sampling=False):
+        df = self._twopoint_as_dataframe()
+        if sampling:
+            show = df.sample(item_max).sort_index()
+        else:
+            show = df[:item_max]
+        print(show)
+        return
+
 
 class UnivariateIOError(IOError):
     pass
@@ -300,6 +331,7 @@ class Univariate(object):
     def __init__(self, parser, obs, eval_times=None, region='ALL', cset=[]):
         self.obs = obs
         self.parser = parser
+        self.cset = cset
         if eval_times is None:
             self._read_eval_times()
             if self.eval_times is None:
