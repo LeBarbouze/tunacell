@@ -1,0 +1,234 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+"""
+script: univariate-analysis.py
+
+used to demonstrate how to start analysing time-lapse dynamic data by
+computing one-point, and two-point functions for single observables
+
+To do so we will use numerically simulated data (generated with the simurun.py
+script) in the simutest folder. No filterset is applied (we consider all data
+is valid for statistics). A toy condition is defined by taking the ensemble of
+cells with an even identifier. We define a few observables to illustrate tuna's
+capabilities.
+"""
+
+from __future__ import print_function
+
+import sys
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+from tuna import Parser, Observable, FilterSet
+from tuna.observable import FunctionalObservable
+from tuna.filters.cells import FilterCellIDparity
+
+from tuna.stats.api import compute_univariate, load_univariate
+from tuna.stats.single import UnivariateIOError
+from tuna.stats.utils import Regions
+from tuna.plotting.dynamics import plot_onepoint, plot_twopoints
+
+from tuna.io import text
+
+# close all open plots
+plt.close('all')
+
+# =============================================================================
+# First steps is to define which experiment we're analyzing, with which
+# filterset and which conditions
+# =============================================================================
+
+# define the Parser instance, no filter applied
+path_to_exp = '~/tmptuna/simutest'
+parser = Parser(path_to_exp)
+# define a condition
+even = FilterCellIDparity('even')
+condition = FilterSet(label='evenID', filtercell=even)
+
+# %% PART I: discovering the analysis on a simple, well defined observable
+
+# =============================================================================
+# We start the analysis on a first, simple observable, the 'ou' output from
+# numerical simulations, that we use as a model for the cells' exact growth rate
+# =============================================================================
+
+ou = Observable(name='exact-growth-rate', raw='ou')
+
+# call the compute_univariate function
+print('Launching computation of statistics of the dynamics for {}...'.format(ou.name))
+univariate = compute_univariate(parser, ou, cset=[condition, ])
+print('Done')
+# note that we left other input parameters to default...
+
+# =============================================================================
+# Exploring the univariate object
+# The univariate object stores results for each condition. One item is called
+# 'master' as no condition has been applied (use the entire ensemble);
+# other items are called as the repr of the FilterSet used for defining the
+# condition, here repr(condition).
+# Then each item stores a few arrays that corresponds to analysis results
+# =============================================================================
+print()
+print('Inspecting univariate object items..')
+n_lines = 10
+for item_name in ['master', repr(condition)]:
+    item = univariate[item_name]
+    if item_name == 'master':
+        msg = 'Looking at master item:'
+    else:
+        msg = 'Looking at {} item:'.format(item.applied_filter.label)
+    print(msg)
+    print('One-point function table excerpt:')
+    item.display_onepoint(n_lines)
+    print()
+    print('Two-point function table excerpt:')
+    print('(all couple of time-points are present in the entire table)')
+    item.display_twopoint(n_lines, sampling=True)
+    print()
+
+# =============================================================================
+# Now we call plotting functions. For this exact process we know some values
+# from theory: we'll import simulation parameters from metadata to show
+# the theoretical mean-value of the process, as well as its theoretical
+# variance. This way, we can plot exact values together with numerical
+# estimates.
+# =============================================================================
+
+# Reference values
+md = parser.experiment.metadata.loc[parser.experiment.label]
+ref_mean = md.target
+ref_var = md.noise / (2*md.spring)
+ref_decayrate = md.spring
+tmin = md.start
+tmax = md.stop
+period = md.period
+
+# Plotting one-point functions
+fig = plot_onepoint(univariate, mean_ref=ref_mean, var_ref=ref_var, show_ci=True)
+# when run from ipython, figure should automatically be plotted
+try:
+    __IPYTHON__
+# otherwise call .plot() and wait for pressing Enter
+except NameError:
+    fig.show()
+    if sys.version_info[0] == 2:
+        ans = raw_input('Press Enter to proceed...')
+    else:
+        ans = input('Press Enter to proceed...')
+
+# =============================================================================
+# Okay the figure fig is divided in 3 scopes:
+# * top : number of samples vs time
+# * center : average value vs time (here with confidence interval, and ref value)
+# * bottom : variance vs time (here with ref value)
+# The master curve is shown, as well as each conditioned item (here only the
+# evenID condition; observe that number of samples is roughly half of master's
+# which is what we expect; we also expect no difference in average value, or
+# variance)
+# Now let's plot two point functions. There are as many 'sampled' two point
+# functions as there are evaluation times (check len(univariate.eval_times));
+# we would not see much if we were to plot all of them. We choose to plot
+# only three examples, for three time of references.
+# =============================================================================
+
+# Plotting two-point functions
+fig2 = plot_twopoints(univariate, condition_label='master', trefs=[40., 80., 150.],
+                      show_exp_decay=ref_decayrate)
+try:
+    __IPYTHON__
+# otherwise call .plot() and wait for pressing Enter
+except NameError:
+    fig2.show()
+    if sys.version_info[0] == 2:
+        ans = raw_input('Press Enter to proceed...')
+    else:
+        ans = input('Press Enter to proceed...')
+# =============================================================================
+# Again the figure fig2 is divided in 3 scopes:
+# * top : number of samples (i.e. number of independent lineages going from
+#   tref to running t; it is between 10^2 to 10^3, quite low to get solid
+#   estimates)
+# * center : autocorrelation functions, one for each tref (very noisy)
+# * bottom : same functions but translated times t-tref
+# With the exponential decay guide (we know from theory that autocorrelation
+# function decays exponentially for the OU process), it looks plausible
+# that our estimates are 'correct', only too low sampling. To gain confidence
+# we can turn to the stationary analysis (other script)
+# =============================================================================
+
+# =============================================================================
+# Saving our computations: if we judge that these results should be stored,
+# we can export them as text files. This way, results can be loaded, avoiding
+# to perform computations every time.
+# =============================================================================
+
+univariate.export_text()  # save results as text files in structured folders
+
+# =============================================================================
+# You can go check your ~/tmptuna/simutest folder. There should be an analysis
+# folder with subfolders: filterset folder > observable folder > condition folders
+# where results are stored.
+# There are also a few sets of functions defined in the tuna.io.text module
+# that allow the user to inspect the various folders in a console,
+# and to load objects (at the exception of FunctionalObservable instances)
+# =============================================================================
+
+text.print_filtersets(parser.experiment)
+text.print_observables(parser.experiment, parser.fset)
+text.print_conditions(parser.experiment, parser.fset, ou)
+
+
+# %% PART 2: run the computation/loading on other type of observables
+
+# approx-growth-rate: differentiate size (here exp_ou_int plays the role
+# of cell size, at it is the exponential of the integrated OU process)
+gr = Observable(name='approx-growth-rate', raw='exp_ou_int',
+                differentiate=True, scale='log',
+                local_fit=True, time_window=15.)
+
+# dynamic, functional observable: double the growth rate
+ou2 = FunctionalObservable(name='double-growth-rate', f=lambda x : 2 * x, observables=[ou, ])
+# time-aligned upon root cell division for size analysis
+size = Observable(name='size', raw='exp_ou_int', tref='root')
+
+# define cell-cycle observables
+average_gr = Observable(name='averate-growth-rate', raw='ou',
+                        differentiate=False, scale='linear',
+                        local_fit=False, mode='average', timing='g')
+division_size = Observable(name='division-size', raw='exp_ou_int',
+                           differentiate=False, scale='log',
+                           local_fit=False, mode='division', timing='g')
+
+## %% loop over both observables
+#univs = []
+#stats = []
+#
+
+## %% univ OBJECTS
+#for obs in [ou, gr, average_gr, division_size, size, ou2]:
+#
+#    # Statistics: if import fails, compute
+#    try:
+#        univ = initialize_univariate(parser, obs, cset=[condition, ])
+#        univ.import_from_text()
+#    except UnivariateIOError as uerr:
+#        print('Impossible to load univariate {}'.format(uerr))
+#        print('Launching computation')
+#        univ = compute_univariate_dynamics(parser, obs, cset=[condition, ])
+#        univ.export_text()
+#    univs.append(univ)
+#
+#    # make and save plots
+#    if obs == ou2:
+#        fig = plot_onepoint(univ, show_ci=True, mean_ref=2*ref_mean, save=True)
+#    elif obs == division_size:
+#        fig = plot_onepoint(univ, show_ci=True, save=True)
+#    elif obs == size:
+#        fig = plot_onepoint(univ, show_ci=True, save=True)
+#    else:
+#        fig = plot_onepoint(univ, show_ci=True, mean_ref=ref_mean, save=True)
+#    if obs.timing != 'g':
+#        fig2 = plot_twopoints(univ, trefs=[40., 80., 120.], save=True)
+#    else:
+#        fig2 = plot_twopoints(univ, trefs=[0, 1, 2], save=True)
