@@ -13,6 +13,7 @@ from __future__ import print_function
 
 import warnings
 import inspect
+import dill
 import re
 from copy import deepcopy
 
@@ -341,6 +342,7 @@ class FunctionalObservable(object):
         if not callable(f):
             raise ValueError('f must be callable')
         self.f = f
+        self.source_f = dill.dumps(f)
         argspec = inspect.getargspec(f)
         self.observables = observables
         if len(observables) != len(argspec.args):

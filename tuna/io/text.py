@@ -368,18 +368,22 @@ def get_observable_path(filter_path, obs, write=True):
         text_file = os.path.join(path, basename + '.txt')
         with open(text_file, 'w') as f:
             if isinstance(obs, Observable):
-                f.write('{}\n\n{}\n\n{}\n\n{}'.format(repr(obs),
-                                                      str(obs),
+                f.write('{}\n\n{}\n\n{}\n\ncodestring: {}'.format(repr(obs),
                                                       obs.as_latex_string,
-                                                      obs.as_string_table()))
+                                                      obs.as_string_table(),
+                                                      str(obs)))
             elif isinstance(obs, FunctionalObservable):
-                msg = ('{}: FunctionalObservable'.format(basename) + '\n\n'
-                       'Applying function:\n{}'.format(inspect.getsource(obs.f)) + '\n\n'
-                       'to following observables:\n')
+                names = ', '.join([arg.name for arg in obs.observables])
+                msg = '{}: FunctionalObservable({})'.format(basename, names)
+                msg += '\n\n'
                 for var_obs in obs.observables:
                     msg += '{}\n'.format(repr(var_obs))
                 msg.rstrip()
                 f.write(msg)
+                # save serialized function
+                source_file = os.path.join(path, basename + '_source.txt')
+                with open(source_file, 'w') as sf:
+                    sf.write(obs.source_f)
     return path
 
 
