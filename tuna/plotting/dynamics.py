@@ -237,12 +237,15 @@ def plot_onepoint(univariate, show_cdts='all', left=None, right=None,
         ax = axs[2]
         ax.axhline(var_ref, ls='--', color='C7', alpha=.7)
 
-    # xaxis limit
+    # xaxis limits
     for ax in axs:
         if left is not None:
             ax.set_xlim(left=left)
         if right is not None:
             ax.set_xlim(right=right)
+    
+    # yaxis limits
+    axs[0].set_ylim(bottom=0)  # counts
 
     mean_min, mean_max = mean_lims
     if mean_min is not None or mean_max is not None:
@@ -399,13 +402,21 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
         var = np.diagonal(corr)
 
         valid = counts != 0
+        
+        tref_latex_label = 't_{{\mathrm{{ref}}}}'
+        gref_latex_label = 'g_{{\mathrm{{ref}}}}'
 
         for tref in trefs:
             # this tref may not be in conditioned data (who knows)
             if np.amin(np.abs(times - tref)) > 1.:
                 continue
             index = np.argmin(np.abs(times - tref))
-            lab = '{:.0f} mins'.format(tref)
+            if obs.timing == 'g':
+                lab = '{:d}'.format(tref)
+                line_label = r'$' + gref_latex_label + '=' + lab +'$'
+            else:
+                lab = '{:.0f} mins'.format(tref)
+                line_label = r'$' + tref_latex_label + '=' + lab + '$'
 
             ax = axs[0]
             ok = np.where(counts[index, :] > 0)
@@ -413,48 +424,41 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
             xmin, xmax = np.amin(times[ok]), np.amax(times[ok])
             ax01_mins.append(xmin)
             ax01_maxs.append(xmax)
-            dat, = ax.plot(times[ok], counts[index, :][ok], ls=lt,
-                           label=r'$t_{{\mathrm{{ref}}}}=${}'.format(lab))
+            dat, = ax.plot(times[ok], counts[index, :][ok], ls=lt, label=line_label)
             color = dat.get_color()
             ax.plot((tref, tref), (0, counts[index, index]),
                     ls=':', color=color)
-            # add text to point to tref
-            if index < len(times) - 1:
-                ax.text(times[index + 1], 0, lab,
-                        color=color, transform=ax.transData)
-            else:
-                ax.text(times[index - 2], 0, lab,
-                        color=color, transform=ax.transData)
-            ax.set_xlabel(timelabel)
 
             ax = axs[1]
             dat, = ax.plot(times[valid[index, :]],
                            corr[index, :][valid[index, :]]/var[index],
                            ls=lt)
             color = dat.get_color()
-            # define heterogeneous transform
-            # the x coords of this transformation are data, and the
-            # y coord are axes
-            trans = transforms.blended_transform_factory(ax.transData,
-                                                         ax.transAxes)
+            
             ax.axvline(tref, ymin=0.1, ymax=0.9, ls=':', color=color)
-            # add text to point to tref
-            if index < len(times) - 1:
-                ax.text(times[index + 1], 0.1, lab,
-                        color=color, transform=trans)
-            else:
-                ax.text(times[index - 2], 0.1, lab,
-                        color=color, transform=trans)
-            # xmin, xmax = ax.xaxis.get_data_interval()
             ax.axhline(0, ls='--', color='k')
+            
+            # add text to point to tref
+            # figure out where
+            if obs.timing == 'g':
+                pos = times[index] + 0.1
+            elif index < len(times) - 1:
+                pos = times[index + 1]
+            else:
+                pos = times[index - 2]
+            for ax in axs[:2]:
+                # define heterogeneous transform
+                # the x coords of this transformation are data, and the
+                # y coord are axes
+                trans = transforms.blended_transform_factory(ax.transData,
+                                                             ax.transAxes)
+                ax.text(pos, 0.05, lab, color=color, transform=trans)
+            # xmin, xmax = ax.xaxis.get_data_interval()
 
             ax = axs[2]
             ax.plot(times[valid[index, :]] - tref,
                     corr[index, :][valid[index, :]]/var[index], ls=lt)
-            # ax.set_yscale('log')
             ax.axhline(0, ls='--', color='k')
-            
-            #ax.set_xlim(left=trangeleft, right=trangeright)
     
     # axes limits
     left = np.amin(ax01_mins)
@@ -463,6 +467,8 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
         ax.set_xlim(left=left, right=right)
     delta_left, delta_right = left-right, right-left
     axs[2].set_xlim(left=delta_left, right=delta_right)
+
+    axs[0].set_ylim(bottom=0)  # counts
     
     # add exponential decay
     if show_exp_decay is not None:
