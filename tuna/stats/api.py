@@ -18,7 +18,8 @@ from tuna.stats.two import Bivariate, StationaryBivariate
 from tuna.stats.compute import (set_dynamics,
                                 set_stationary_autocorrelation,
                                 set_crosscorrelation,
-                                set_stationary_crosscorrelation)
+                                set_stationary_crosscorrelation,
+                                NoValidTimes)
 
 
 MIN_INTERDIVISION_TIME = 5.  # World record is set by Vibrio natriegens
@@ -152,14 +153,13 @@ def _check_params(region, options):
     return
 
 
-def initialize_stationary_univariate(univ, region, options):
+def load_stationary(univ, region, options):
     """Initialize a StationaryUnivariate instance from its dynamical one.
 
     Parameters
     -----------
     univ : :class:`Univariate` instance
-    region : :class:`pandas.Series` instance
-        must have following attributes: 'name', 'tmin', 'tmax'
+    region : :class:`Region` instance
     options : :class:`CompuParams` instance
 
     Returns
@@ -169,6 +169,7 @@ def initialize_stationary_univariate(univ, region, options):
     """
     _check_params(region, options)
     stat = StationaryUnivariate(univ, region, options)
+    stat.import_from_text()
     _update_univariate_from_stationary(univ, stat)
     return stat
 
@@ -180,21 +181,14 @@ def _update_univariate_from_stationary(univ, stat):
     return
 
 
-def compute_stationary_univariate(univ, region, options, size=None):
+def compute_stationary(univ, region, options, size=None):
     """Computes stationary autocorrelation. API level.
 
     Parameters
     ----------
     univ : :class:`Univariate` instance
         the stationary autocorr is based on this object
-    region : :class:`pandas.Series` instance
-        must have following attributes: 'name', 'tmin', 'tmax'
-        name : str
-            name of chosen region
-        tmin : float
-            lower bound for stationarity time range
-        tmax : float
-            upper bound for stationarity time range
+    region : :class:`Region` instance
     options : :class:`CompuParams` instance
         set the 'adjust_mean' and 'disjoint' options
     size : int (default None)
@@ -207,11 +201,15 @@ def compute_stationary_univariate(univ, region, options, size=None):
     # Set iterator over TimeSeries
     timeseries = iter_timeseries_(univ.parser, univ.obs, univ.cset, size=size)
     # call the function performing computation and updating stationary
-    set_stationary_autocorrelation(timeseries, univ, stationary,
-                                   tmin=region.tmin, tmax=region.tmax,
-                                   adjust_mean=options.adjust_mean,
-                                   disjoint=options.disjoint)
-    _update_univariate_from_stationary(univ, stationary)
+    try:
+        set_stationary_autocorrelation(timeseries, univ, stationary,
+                                       tmin=region.tmin, tmax=region.tmax,
+                                       adjust_mean=options.adjust_mean,
+                                       disjoint=options.disjoint)
+        _update_univariate_from_stationary(univ, stationary)
+    except NoValidTimes as error:
+        print('No valid time points for {} in {}'.format(univ.obs.name, region))
+        raise error
     return stationary
 
 

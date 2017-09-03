@@ -11,6 +11,10 @@ from scipy.linalg import toeplitz, triu
 from scipy.interpolate import interp1d
 
 
+class NoValidTimes(ValueError):
+    pass
+
+
 # %% Single observable computation of the statistics of dynamics
 def set_dynamics(iter_timeseries, single, eval_times):
     """Central function that perform computations.
@@ -199,6 +203,11 @@ def set_stationary_autocorrelation(iter_timeseries, univariate, stationary,
         how to substract average values: globally, or locally;
         use globally when local statistics are not sufficient,
         use locally is local statistics are sufficient.
+    
+    Raises
+    ------
+    NoValidTimes
+        when time bounds make empty list of evaluation times
     """
     recs = {}  # one record per condition (including 'master")
 
@@ -212,6 +221,8 @@ def set_stationary_autocorrelation(iter_timeseries, univariate, stationary,
     time = univariate.master.time  # same for every condition
     window = np.logical_and(time >= tmin, time <= tmax)
     eval_times = time[window]
+    if len(eval_times) == 0:
+        raise NoValidTimes
     time_intervals = eval_times - eval_times[0]
     for condition_lab in stationary._condition_labels:
 
