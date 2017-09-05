@@ -222,7 +222,7 @@ def _update_univariate_from_bivariate(univs, two):
     return
 
 
-def initialize_bivariate(row_univariate, col_univariate):
+def load_bivariate(row_univariate, col_univariate):
     """Initialize a StationaryBivariate instance from its dynamical one.
 
     Parameters
@@ -236,6 +236,7 @@ def initialize_bivariate(row_univariate, col_univariate):
         set up with empty arrays
     """
     two = Bivariate(row_univariate, col_univariate)
+    two.import_from_text()
     univs = row_univariate, col_univariate
     _update_univariate_from_bivariate(univs, two)
     return two
@@ -302,15 +303,16 @@ def _update_univariate_from_stationary_bivariate(univs, stwo):
     return
 
 
-def initialize_stationary_bivariate(row_univariate, col_univariate,
-                                    region, options):
+def load_stationary_bivariate(row_univariate, col_univariate,
+                              region, options):
     """Initialize a StationaryBivariate instance from its dynamical one.
 
     Parameters
     -----------
-    univs : couple of :class:`Univariate` instances
-    tmin : float (default None)
-    tmax : float (default None)
+    row_univariate : :class:`Univariate` instance
+    col_univariate : :class:`Univariate` instance
+    region : :class:`Region` instance
+    options : :class:`CompuParams` instance
 
     Returns
     -------
@@ -319,7 +321,16 @@ def initialize_stationary_bivariate(row_univariate, col_univariate,
     """
     stwo = StationaryBivariate(row_univariate, col_univariate,
                                region, options)
+    stwo.import_from_text()
     univs = row_univariate, col_univariate
+    # stationary univariate need to be computed for full inspection
+    for univ in univs:
+        try:
+            suniv = load_stationary(univ, region, options)
+        except StationaryUnivariateIOError:
+            suniv = compute_stationary(univ, region, options)
+            suniv.export_text()
+        _update_univariate_from_stationary(univ, suniv)
     _update_univariate_from_stationary_bivariate(univs, stwo)
     return stwo
 
@@ -337,10 +348,9 @@ def compute_stationary_bivariate(row_univariate, col_univariate,
     # stationary univariate need to be computed for full inspection
     for univ in univs:
         try:
-            suniv = initialize_stationary_univariate(univ, region, options)
-            suniv.import_from_text()
+            suniv = load_stationary(univ, region, options)
         except StationaryUnivariateIOError:
-            suniv = compute_stationary_univariate(univ, region, options)
+            suniv = compute_stationary(univ, region, options)
             suniv.export_text()
         _update_univariate_from_stationary(univ, suniv)
     sbivar = StationaryBivariate(row_univariate, col_univariate,
