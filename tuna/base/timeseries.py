@@ -184,10 +184,10 @@ class TimeSeries(object):
             printout += cell_sep
         return printout.lstrip().rstrip()  # remove empty lines at beginning/end
 
-    def to_dataframe(self, start_index=0):
+    def to_dataframe(self, start_index=0, sharp_tleft=None, sharp_tright=None):
         dic = {}
-        dic[self.timeseries.x_name] = self.timeseries.x
-        dic[self.timeseries.y_name] = self.timeseries.y
+        dic[self.timeseries.x_name] = []  # self.timeseries.x
+        dic[self.timeseries.y_name] = []  # self.timeseries.y
         dic['cellID'] = []
         dic['containerID'] = []
         dic['experimentID'] = []
@@ -195,10 +195,20 @@ class TimeSeries(object):
             if key == 'master':
                 continue
             dic[key] = []
-        size = len(self.timeseries.x)
+        size = 0
         # add cell ID, container ID, experiment ID, and TRUE/FALSE for each cdt
         for index, sl in enumerate(self.slices):
+            # collect only if within bounds
+            if sharp_tleft is not None:
+                if self.time_bounds[index][0] < sharp_tleft:
+                    continue
+            if sharp_tright is not None:
+                if self.time_bounds[index][1] > sharp_tright:
+                    continue
             _x = self.timeseries.x[sl]
+            _y = self.timeseries.y[sl]
+            dic[self.timeseries.x_name].extend(_x)
+            dic[self.timeseries.y_name].extend(_y)
             dic['cellID'].extend(len(_x) * [self.ids[index], ])
             dic['containerID'].extend(len(_x) * [self.container_label, ])
             dic['experimentID'].extend(len(_x) * [self.experiment_label, ])
@@ -209,5 +219,6 @@ class TimeSeries(object):
                     continue
                 val = values[index]
                 dic[key].extend(len(_x) * [val, ])
+            size += len(_x)
         df = pd.DataFrame(dic, index=range(start_index, start_index + size))
         return df
