@@ -286,7 +286,8 @@ class Lineage(object):
                     except NoAncestry:
                         # return empty TimeSeries
                         # TODO : should be filtered upstream?
-                        new = TimeSeries(ts=[], ids=self.idseq[:],
+                        coords = Coordinates([], [], x_name='g', y_name=obs.name)
+                        new = TimeSeries(ts=coords, ids=self.idseq[:],
                                          index_cycles=[None for _ in self.idseq],
                                          select_ids=select_ids,
                                          container_label=container.label,
@@ -304,11 +305,15 @@ class Lineage(object):
                         tt = None
 
                 # append new value
+                if tt is None:
+                    tt = np.nan
                 arrays.append((tt, cell._sdata[label]))
                 index_cycles.append((index, index))
-
-            ts = np.array(arrays, dtype=[('time', 'f8'), (obs_name, 'f8')])
-            timeseries = TimeSeries(ts=ts, ids=self.idseq[:],
+            if len(arrays) == 0:
+                coords = Coordinates([], [], x_name=obs.timing, y_name=obs.name)
+            else:
+                coords = Coordinates(*zip(*arrays), x_name=obs.timing, y_name=obs.name)
+            timeseries = TimeSeries(ts=coords, ids=self.idseq[:],
                                     time_bounds=time_bounds,
                                     index_cycles=index_cycles,
                                     select_ids=select_ids,
