@@ -35,9 +35,9 @@ class Coordinates(object):
     """
 
     def __init__(self, x, y, x_name='x', y_name='y'):
-        if np.any(np.isnan(x)):
-            msg = 'NaN value(s) detected in x-array: please remove beforehand'
-            raise ValueError(msg)
+#        if np.any(np.isnan(x)):
+#            msg = 'NaN value(s) detected in x-array: please remove beforehand'
+#            raise ValueError(msg)
         if len(x) != len(y):
             msg = ('Arrays of different lengths! Check x and y input\n'
                    'x : {}'.format(x) + '\n'
@@ -47,7 +47,8 @@ class Coordinates(object):
         self.x_name = x_name
         self._y = np.array(y)
         self.y_name = y_name
-        self.valid = np.where(np.logical_not(np.isnan(y)))
+        self.valid = np.where(np.logical_and(np.logical_not(np.isnan(x)),
+                                             np.logical_not(np.isnan(y))))
         return
 
     @property
