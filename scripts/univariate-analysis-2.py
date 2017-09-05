@@ -90,7 +90,7 @@ continuous_obs = [ou, gr, ou2, size]
 # SOME CELL-CYCLE TYPE OBSERVABLES (one value per cell)
 
 # cell-cycle average growth rate
-average_gr = Observable(name='averate-growth-rate', raw='ou',
+average_gr = Observable(name='average-growth-rate', raw='ou',
                         differentiate=False, scale='linear',
                         local_fit=False, mode='average', timing='g')
 
@@ -99,11 +99,16 @@ division_size = Observable(name='division-size', raw='exp_ou_int',
                            differentiate=False, scale='log',
                            local_fit=False, mode='division', timing='g')
 
-cycle_obs = [average_gr, division_size]
+# increase in cell size timed at division time
+increase = Observable(name='added-size', raw='exp_ou_int',
+                      mode='net-increase-additive', timing='d')
+
+cycle_obs = [average_gr, division_size, increase]
 
 
 univariates_store = {}
 for obs in continuous_obs + cycle_obs:
+    print('{} ...'.format(obs.name))
     try:
         univ = load_univariate(parser, obs, cset=[condition, ])
     except UnivariateIOError:
@@ -125,7 +130,7 @@ for obs in continuous_obs + cycle_obs:
                   'var_ref': 4 * ref_var}
         kwargs2 = {'show_exp_decay': ref_decayrate,
                    'trefs': trefs}
-    elif obs in [size, ]:
+    elif obs in [size, increase]:
         kwargs = {}
         kwargs2 = {'trefs': trefs}
     elif obs in [average_gr, ]:
@@ -134,6 +139,7 @@ for obs in continuous_obs + cycle_obs:
     else:
         kwargs = {}
         kwargs2 = {'trefs': grefs}
+    print('Ok')
 
     fig = plot_onepoint(univ, show_ci=True, save=True, **kwargs)
     fig2 = plot_twopoints(univ, save=True, **kwargs2)
