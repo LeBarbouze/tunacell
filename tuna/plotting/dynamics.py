@@ -420,8 +420,10 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
 
             ax = axs[0]
             ok = np.where(counts[index, :] > 0)
+            if len(ok[0]) == 0:
+                continue
             # time limits
-            xmin, xmax = np.amin(times[ok]), np.amax(times[ok])
+            xmin, xmax = np.nanmin(times[ok]), np.nanmax(times[ok])
             ax01_mins.append(xmin)
             ax01_maxs.append(xmax)
             dat, = ax.plot(times[ok], counts[index, :][ok], ls=lt, label=line_label)
@@ -461,8 +463,14 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
             ax.axhline(0, ls='--', color='k')
     
     # axes limits
-    left = np.amin(ax01_mins)
-    right = np.amax(ax01_maxs)
+    if ax01_mins:
+        left = np.amin(ax01_mins)
+    else:
+        left = None
+    if ax01_maxs:
+        right = np.amax(ax01_maxs)
+    else:
+        right = None
     for ax in axs[:2]:
         ax.set_xlim(left=left, right=right)
     delta_left, delta_right = left-right, right-left
