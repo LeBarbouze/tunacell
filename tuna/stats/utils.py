@@ -292,6 +292,15 @@ class Regions(object):
         self.save_to_text()
         return
 
+    def reset(self):
+        """Delete all regions except 'ALL'"""
+        names = self._df.index[:]
+        for name in names:
+            if name != 'ALL':
+                self._df.drop(name)
+        self.save_to_text()
+        return
+
     def get(self, name):
         """Get region parameters corresponding to name
 
