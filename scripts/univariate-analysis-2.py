@@ -151,7 +151,8 @@ for obs in continuous_obs + cycle_obs:
 # =============================================================================
 
 regions = Regions(parser.experiment)
-regions.add(name='steady', tmin=50., tmax=150.)
+regions.reset()  # eliminate all regions except 'ALL'
+regions.add(name='steady', tmin=20., tmax=160.)
 steady_region = regions.get('steady')
 
 # and we need to use some computation options (more on that elsewhere)
@@ -177,7 +178,7 @@ for obs in continuous_obs + cycle_obs:
 
     # plotting features
     if obs in [ou, gr, ou2]:
-        kwargs = {'ref_decay': ref_decayrate}
+        kwargs = {'ref_decay': ref_decayrate, 'fitlog': True}
     else:
         kwargs = {}
 

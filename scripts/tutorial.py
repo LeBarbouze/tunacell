@@ -74,7 +74,7 @@ myplot.save(user_bname='tutorial_sample', add_obs=False, extension='.png')
 ou = Observable(name='growth-rate', raw='ou')
 
 from tuna.stats.api import compute_univariate_dynamics
-univariate = compute_univariate_dynamics(parser, ou)
+univariate = compute_univariate(parser, ou)
 univariate.export_text()
 
 # %% Plotting the statistics
