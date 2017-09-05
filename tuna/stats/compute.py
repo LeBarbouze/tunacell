@@ -219,7 +219,16 @@ def set_stationary_autocorrelation(iter_timeseries, univariate, stationary,
         tmax = univariate.region.tmax
 
     time = univariate.master.time  # same for every condition
-    window = np.logical_and(time >= tmin, time <= tmax)
+    # time-lapse timing: reduce dimension already (save computational time)
+    if univariate.obs.timing == 't':
+        window = np.logical_and(time >= tmin, time <= tmax)
+        kwargs = {}
+    # cell-cycle like : use tmin tmax to bound cell time values
+    else:
+        # eval_times are either generation index, either real times
+        # but 'time' filtering will be done at cell-cycle using sharp bounds
+        window = np.array(len(time) * [True, ])
+        kwargs = {'sharp_tleft': tmin, 'sharp_tright': tmax}
     eval_times = time[window]
     if len(eval_times) == 0:
         raise NoValidTimes
@@ -248,17 +257,21 @@ def set_stationary_autocorrelation(iter_timeseries, univariate, stationary,
     dfs = []
     # loop through timeseries
     for ts in iter_timeseries:
-        df = ts.to_dataframe()
-        df = df[np.logical_and(df.time >= tmin, df.time <= tmax)]
+        df = ts.to_dataframe(**kwargs)
+        if univariate.obs.timing == 't':
+            df = df[np.logical_and(df.time >= tmin, df.time <= tmax)]
         dfs.append(df)
         for condition_lab in ts.selections.keys():
-            coords = ts.use_condition(condition_label=condition_lab)
+            coords = ts.use_condition(condition_label=condition_lab, **kwargs)
             if len(coords.clear_x) == 0:
                 continue
             t = coords.clear_x
             v = coords.clear_y
             # get only times within valid window
-            boo = np.logical_and(t >= tmin, t <= tmax)
+            if univariate.obs.timing == 't':
+                boo = np.logical_and(t >= tmin, t <= tmax)
+            else:
+                boo = np.array(len(t) * [True, ])
             rec = recs[condition_lab]  # this is where results are recorded
             local_mean = local_means[condition_lab]  # local means
             # update correlation
