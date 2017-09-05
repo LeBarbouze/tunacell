@@ -629,13 +629,13 @@ def plot_stationary(stationary, show_cdts='all',
             cdt_repr = repr(condition)
             cdt_str = str(condition)
         array = stationary[cdt_repr].array
-        nonzero = np.where(array['count'] > 1)  # 1 sample does not have std
+        nonzero = np.where(array['counts'] > 1)  # 1 sample does not have std
         dts = array['time_interval'][nonzero]
         if np.nanmax(dts) > tright:
             tright = np.nanmax(dts)
         if np.nanmin(dts) < tleft:
             tleft = np.nanmin(dts)
-        counts = array['count'][nonzero]
+        counts = array['counts'][nonzero]
 
         if isinstance(stationary, StationaryUnivariate):
             corr = array['auto_correlation'][nonzero]
@@ -701,7 +701,7 @@ def plot_stationary(stationary, show_cdts='all',
 
     if ref_decay is not None:
         tt = np.linspace(tleft, tright, 50)
-        yy = np.exp(-ref_decay*tt)
+        yy = np.exp(-ref_decay*np.abs(tt))
         ref, = ax2.plot(tt, yy, '--', color='k', alpha=.5,
                         label=r'$\tau = {:.1f}$ mins'.format(1./ref_decay))
         additional_handles.append(ref)

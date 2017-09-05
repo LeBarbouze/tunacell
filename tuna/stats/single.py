@@ -483,7 +483,7 @@ class StationaryUnivariateConditioned(object):
     adjust_mean : str {'global', 'local'}
     array : 3-columns structured array (default None)
         where results will be stored, set to None by default.
-        Column names are ['time_interval', 'count', 'auto_correlation']
+        Column names are ['time_interval', 'counts', 'auto_correlation']
 
     Attributes
     ----------
@@ -509,7 +509,7 @@ class StationaryUnivariateConditioned(object):
         else:
             self.condition = 'master'
         self.array = array  # should be a 3 column array of dtype:
-        # [('time_interval', 'f8'),('count', 'i4'), ('autocorrelation', 'f8')]
+        # [('time_interval', 'f8'),('counts', 'i4'), ('autocorrelation', 'f8')]
         return
 
     @property
@@ -520,9 +520,9 @@ class StationaryUnivariateConditioned(object):
             return None
 
     @property
-    def count(self):
+    def counts(self):
         if self.array is not None:
-            return self.array['count']
+            return self.array['counts']
         else:
             return None
 
@@ -547,7 +547,7 @@ class StationaryUnivariateConditioned(object):
         item_path = os.path.join(cdt_path, self.basename + '.tsv')
         names = self.array.dtype.names
         header = '\t'.join(names)
-        fmt = [ifmt if 'count' in n_ else ffmt for n_ in names]
+        fmt = [ifmt if 'counts' in n_ else ffmt for n_ in names]
         np.savetxt(item_path, self.array, fmt=fmt,
                    delimiter='\t', comments='', header=header)
         return
@@ -572,7 +572,7 @@ class StationaryUnivariateConditioned(object):
             msg = (' NO VALUES')
             return msg
         times = self.array['time_interval']
-        counts = self.array['count']
+        counts = self.array['counts']
         autocorrs = self.array['auto_correlation']
         msg = ('  Time intervals:' + '\n'
                '   {}'.format(times) + '\n'
