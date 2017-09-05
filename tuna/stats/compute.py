@@ -623,16 +623,6 @@ def set_stationary_crosscorrelation(iter_timeseries,
         row_df = row_ts.to_dataframe(**kwargs)
         col_df = col_ts.to_dataframe(**kwargs)
         df = pd.merge(row_df, col_df, how='outer')
-#        # interpolate second timeseries
-#        tt = col_ts.timeseries.x
-#        col_data = col_ts.timeseries.y
-#        if len(col_data) == 0 or np.isnan(col_data).all():
-#            continue
-#        col_interpol = interp1d(tt, col_data, kind='linear',
-#                                assume_sorted=True,  # saves computational time
-#                                bounds_error=False)  # return NaN off bounds
-#        interpolated_col_data = col_interpol(df[row_ts.timeseries.x_name])
-#        df[col_ts.timeseries.y_name] = interpolated_col_data
         # clean time values out of bounds
         if row_univariate.obs.timing == 't':
             df = df[np.logical_and(df.time >= tmin, df.time < tmax)]
