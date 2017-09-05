@@ -8,9 +8,9 @@ This module sets up:
 """
 import os
 import string
+import csv
 import warnings
 import numpy as np
-import pandas as pd
 
 from tuna import Parser
 from tuna.base.experiment import Experiment
@@ -127,7 +127,7 @@ class Region(object):
     ----------
     name : str
         name of region
-    tmin : float
+    tmin : str, int, or float
         lower bound for acquisition time values
     tmax : float
         upper bound for acquisition time values
@@ -135,8 +135,18 @@ class Region(object):
 
     def __init__(self, name=None, tmin=None, tmax=None):
         self.name = name
-        self.tmin = tmin
-        self.tmax = tmax
+        if isinstance(tmin, str):
+            self.tmin = eval(tmin)  # will evaluate as int or float
+        else:
+            self.tmin = tmin
+        if isinstance(tmax, str):
+            self.tmax = eval(tmax)
+        else:
+            self.tmax = tmax
+        return
+    
+    def as_dict(self):
+        return {'name': self.name, 'tmin': self.tmin, 'tmax': self.tmax}
 
     def __repr__(self):
         msg = 'Region : {{name: {}, tmin: {}, tmax: {}}}'.format(self.name, self.tmin, self.tmax)
@@ -160,12 +170,9 @@ class Regions(object):
             self.exp = exp.experiment
         else:
             raise TypeError('first arg must be either Experiment or Parser')
-        self._df = pd.DataFrame({'tmin': [], 'tmax': []},
-                                columns=['tmin', 'tmax'],
-                                index=pd.Index([], name='name')
-                                )
+        self._regions = {}  # dictionary name: region
         try:
-            self.load_from_text()
+            self.load()
         except RegionsIOError:
             print('No regions have been saved yet. '
                   'Looking for experiment boundaries...')
@@ -173,24 +180,44 @@ class Regions(object):
             self.add(name='ALL', tmin=tmin, tmax=tmax, verbose=True)
         return
 
-    def __repr__(self):
-        return repr(self._df)
+    @property
+    def names(self):
+        return self._regions.keys()
 
-    def load_from_text(self):
-        analysis_path = text.get_analysis_path(self.exp, write=False)
+    def __repr__(self):
+        text_file = self._path_to_file(write=False)
+        with open(text_file, 'r') as f:
+            msg = f.read()
+        return msg
+
+    def _path_to_file(self, write=False):
+        analysis_path = text.get_analysis_path(self.exp, write=write)
         text_file = os.path.join(analysis_path, 'regions.tsv')
-        if not os.path.exists(text_file):
+        if not os.path.exists(text_file) and not write:
             raise RegionsIOError
-        regs = pd.read_csv(text_file, sep='\t', index_col='name')
-        self._df = regs[['tmin', 'tmax']]
+        return text_file
+
+    def load(self):
+        text_file = self._path_to_file(write=False)
+        with open(text_file, 'r') as f:
+            items = csv.DictReader(f, delimiter='\t')
+            for item in items:  # item is a dict with keys name, tmin, tmax
+                name = item['name']
+                self._regions[name] = item
         return
 
-    def save_to_text(self):
-        if self._df is not None:
-            analysis_path = text.get_analysis_path(self.exp, write=True)
-            text_file = os.path.join(analysis_path, 'regions.tsv')
-            self._df.to_csv(text_file, sep='\t',
-                            index_label=self._df.index.name)
+    def save(self):
+        if self._regions is not None:
+            text_file = self._path_to_file(write=True)
+            with open(text_file, 'w') as f:
+                fieldnames = ['name', 'tmin', 'tmax']
+                writer = csv.DictWriter(f, fieldnames, delimiter='\t')
+                writer.writeheader()
+                # sort rows
+                names = sorted(self._regions.keys())
+                for name in names:
+                    item = self._regions[name]
+                    writer.writerow(item)
         return
 
     def add(self, region=None, name=None, tmin=None, tmax=None, verbose=True):
@@ -209,10 +236,10 @@ class Regions(object):
         verbose : bool {True, False}
             whether to display information on screen
         """
-        params = {}
+        item = {}  # dict of 3 items name, tmin, tmax
         if region is not None and isinstance(region, Region):
             # check that name is not used yet
-            if region.name in self._df.index:
+            if region.name in self.names:
                 msg = ('name {} already exists.'.format(name) + '\n'
                        'Change name to add this region.')
                 if verbose:
@@ -220,13 +247,11 @@ class Regions(object):
                 else:
                     warnings.warn(msg)
                 return
-            params['tmin'] = region.tmin
-            params['tmax'] = region.tmax
-            name = region.name
+            item = region.as_dict()
         # otherwise use other keyword arguments
         else:
             # check that name is not used yet
-            if name is not None and name in self._df.index:
+            if name is not None and name in self.names:
                 msg = ('name {} already exists.'.format(name) + '\n'
                        'Change name to add this region.')
                 if verbose:
@@ -234,27 +259,18 @@ class Regions(object):
                 else:
                     warnings.warn(msg)
                 return
-            if tmin is None:
-                params['tmin'] = -np.infty
-            else:
-                params['tmin'] = tmin
-            if tmax is None:
-                params['tmax'] = np.infty
-            else:
-                params['tmax'] = tmax
+            item = {'name': name, 'tmin': tmin, 'tmax': tmax}
         # check that these parameters do not correspond to a stored item
-        for item in self._df.itertuples():
-            if (item.tmin == params['tmin'] and item.tmax == params['tmax']):
-                msg = 'Input params correspond to region {}'.format(item.Index)
+        for key, reg in self._regions.items():
+            if (reg['tmin'] == item['tmin'] and reg['tmax'] == item['tmax']):
+                msg = 'Input params correspond to region {}'.format(reg.name)
                 msg += ' Use this name in .get()'
                 if verbose:
                     print(msg)
                 return
         # okay we can add the region to the list of regions
-        if name is not None:
-            letter = name
         # find a name starting with 'A', 'B', ..., 'Z', then 'A1', 'B1', ...
-        else:
+        if item['name'] is None:
             got_it = False
             num = 0
             while not got_it:
@@ -265,19 +281,20 @@ class Regions(object):
                         letter = upper[index]
                     else:
                         letter = upper[index] + '{}'.format(num)
-                    if letter not in self._df.index:
+                    if letter not in self.names:
                         got_it = True
                         break
                     index += 1
                 num += 1
+            item['name'] = letter
         if verbose:
-            msg = ('Adding region {} with parameters:'.format(letter) + '\n'
-                   'tmin: {}'.format(params['tmin']) + '\n'
-                   'tmax: {}'.format(params['tmax']))
+            msg = ('Adding region {} with parameters:'.format(item['name']) + '\n'
+                   'tmin: {}'.format(item['tmin']) + '\n'
+                   'tmax: {}'.format(item['tmax']))
             print(msg)
-        self._df = self._df.append(pd.Series(params, name=letter))
+        self._regions[item['name']] = item
         # automatic saving
-        self.save_to_text()
+        self.save()
         return
 
     def delete(self, name):
@@ -288,17 +305,17 @@ class Regions(object):
         name : str
             name of the region to delete
         """
-        self._df = self._df.drop(name)
-        self.save_to_text()
+        if name in self.names:
+            del self._regions[name]
+        self.save()
         return
 
     def reset(self):
         """Delete all regions except 'ALL'"""
-        names = self._df.index[:]
+        names = self.names
         for name in names:
             if name != 'ALL':
-                self._df.drop(name)
-        self.save_to_text()
+                self.delete(name)
         return
 
     def get(self, name):
@@ -317,10 +334,10 @@ class Regions(object):
         ------
         :class:`UndefinedRegion` when name is not in the list
         """
-        if name not in self._df.index:
+        if name not in self.names:
             raise UndefinedRegion(name)
-        res = self._df.loc[name]
-        return Region(name=name, tmin=res.tmin, tmax=res.tmax)
+        item = self._regions[name]
+        return Region(**item)
 
 
 def _find_time_boundaries(exp):
