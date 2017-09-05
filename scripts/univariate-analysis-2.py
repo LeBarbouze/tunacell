@@ -17,7 +17,6 @@ from __future__ import print_function
 import sys
 
 import matplotlib.pyplot as plt
-import numpy as np
 
 from tuna import Parser, Observable, FilterSet
 from tuna.observable import FunctionalObservable
@@ -28,8 +27,6 @@ from tuna.stats.api import (compute_univariate, load_univariate,
 from tuna.stats.single import UnivariateIOError, StationaryUnivariateIOError
 from tuna.stats.utils import Regions, CompuParams
 from tuna.plotting.dynamics import plot_onepoint, plot_twopoints, plot_stationary
-
-from tuna.io import text
 
 
 # close all open plots
@@ -107,6 +104,8 @@ cycle_obs = [average_gr, division_size, increase]
 
 
 univariates_store = {}
+figs = []
+print('Computing dynamic univariate statistics...')
 for obs in continuous_obs + cycle_obs:
     print('{} ...'.format(obs.name))
     try:
@@ -142,7 +141,21 @@ for obs in continuous_obs + cycle_obs:
     print('Ok')
 
     fig = plot_onepoint(univ, show_ci=True, save=True, **kwargs)
+    figs.append(fig)
     fig2 = plot_twopoints(univ, save=True, **kwargs2)
+    figs.append(fig2)
+
+# when run from ipython, figure should automatically be plotted
+try:
+    __IPYTHON__
+# otherwise call .plot() and wait for pressing Enter
+except NameError:
+    for fig in figs:
+        fig.show()
+        if sys.version_info[0] == 2:
+            ans = raw_input('Press Enter to proceed...')
+        else:
+            ans = input('Press Enter to proceed...')
 
 # =============================================================================
 # A look at the onepoint functions allows the user to identify regions of time
@@ -169,7 +182,8 @@ options = CompuParams()  # leaving to default is safe
 # Now we proceed in the same way: try to load, if it fails, compute.
 # We call the plotting function accordingly.
 # =============================================================================
-
+print('Computing stationary univariate statistics...')
+figs = []
 for obs in continuous_obs + cycle_obs:
     # need the univariate object to compute stationary statistics
     univ = univariates_store[obs]
@@ -190,4 +204,17 @@ for obs in continuous_obs + cycle_obs:
 
     if stat is not None:
         fig = plot_stationary(stat, save=True, **kwargs)
+        figs.append(fig)
 
+# when run from ipython, figure should automatically be plotted
+try:
+    __IPYTHON__
+# otherwise call .plot() and wait for pressing Enter
+except NameError:
+    for fig in figs:
+        fig.show()
+        if sys.version_info[0] == 2:
+            ans = raw_input('Press Enter to proceed...')
+        else:
+            ans = input('Press Enter to proceed...')
+    

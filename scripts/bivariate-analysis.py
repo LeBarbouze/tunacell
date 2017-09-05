@@ -203,7 +203,7 @@ for o1, o2 in couples:
         kwargs = {'ref_decay': ref_decayrate}
     else:
         kwargs = {}
-#    fig = plot_stationary(biv, save=True, **kwargs)
+    fig = plot_stationary(biv, save=True, **kwargs)
 
 # =============================================================================
 # Note that we can get easily non-dynamic bivariate analysis

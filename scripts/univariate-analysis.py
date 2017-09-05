@@ -18,17 +18,12 @@ from __future__ import print_function
 import sys
 
 import matplotlib.pyplot as plt
-import numpy as np
+
 
 from tuna import Parser, Observable, FilterSet
-from tuna.observable import FunctionalObservable
 from tuna.filters.cells import FilterCellIDparity
-
-from tuna.stats.api import compute_univariate, load_univariate
-from tuna.stats.single import UnivariateIOError
-from tuna.stats.utils import Regions
+from tuna.stats.api import compute_univariate
 from tuna.plotting.dynamics import plot_onepoint, plot_twopoints
-
 from tuna.io import text
 
 # close all open plots
