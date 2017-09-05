@@ -568,8 +568,18 @@ def set_stationary_crosscorrelation(iter_timeseries,
     if not np.all(booarr):
         raise ValueError('Evaluation times do not match!')
     time = row_univariate.eval_times  # same for every condition
-    window = np.logical_and(time >= tmin, time <= tmax)
+    # time-lapse timing: reduce dimension already (save computational time)
+    if row_univariate.obs.timing == 't':
+        window = np.logical_and(time >= tmin, time <= tmax)
+        kwargs = {}
+    # cell-cycle like : use tmin tmax to bound cell time values
+    else:
+        # eval_times are either generation index, either real times
+        # but 'time' filtering will be done at cell-cycle using sharp bounds
+        window = np.array(len(time) * [True, ])
+        kwargs = {'sharp_tleft': tmin, 'sharp_tright': tmax}
     eval_times = time[window]
+
     bwd = eval_times - eval_times[-1]
     fwd = eval_times - eval_times[0]
     time_intervals = np.concatenate([bwd[:-1], fwd])
@@ -610,18 +620,22 @@ def set_stationary_crosscorrelation(iter_timeseries,
     # loop through timeseries
     for row_ts, col_ts in iter_timeseries:
         # convert to dataframe first timeseries
-        df = row_ts.to_dataframe()
-        # interpolate second timeseries
-        tt = col_ts.timeseries.x
-        col_data = col_ts.timeseries.y
-        if len(col_data) == 0 or np.isnan(col_data).all():
-            continue
-        col_interpol = interp1d(tt, col_data, kind='linear',
-                                assume_sorted=True,  # saves computational time
-                                bounds_error=False)  # return NaN off bounds
-        interpolated_col_data = col_interpol(df[row_ts.timeseries.x_name])
-        df[col_ts.timeseries.y_name] = interpolated_col_data
-        df = df[np.logical_and(df.time >= tmin, df.time < tmax)]
+        row_df = row_ts.to_dataframe(**kwargs)
+        col_df = col_ts.to_dataframe(**kwargs)
+        df = pd.merge(row_df, col_df, how='outer')
+#        # interpolate second timeseries
+#        tt = col_ts.timeseries.x
+#        col_data = col_ts.timeseries.y
+#        if len(col_data) == 0 or np.isnan(col_data).all():
+#            continue
+#        col_interpol = interp1d(tt, col_data, kind='linear',
+#                                assume_sorted=True,  # saves computational time
+#                                bounds_error=False)  # return NaN off bounds
+#        interpolated_col_data = col_interpol(df[row_ts.timeseries.x_name])
+#        df[col_ts.timeseries.y_name] = interpolated_col_data
+        # clean time values out of bounds
+        if row_univariate.obs.timing == 't':
+            df = df[np.logical_and(df.time >= tmin, df.time < tmax)]
         dfs.append(df)
 
         for condition_lab in cdt_labs:
@@ -647,7 +661,7 @@ def set_stationary_crosscorrelation(iter_timeseries,
         rec = recs[condition_lab]
 
         array = np.zeros(len(time_intervals), dtype=[('time_interval', 'f8'),
-                                                     ('count', 'u8'),
+                                                     ('counts', 'u8'),
                                                      ('cross_correlation', 'f8'),
                                                      ('std_dev', 'f8')])
         array['time_interval'] = time_intervals
@@ -656,7 +670,7 @@ def set_stationary_crosscorrelation(iter_timeseries,
         second = rec['second']
         ok = np.where(counts > 0)
         where_nan = np.where(counts == 0)
-        array['count'] = counts
+        array['counts'] = counts
         array['cross_correlation'][ok] = first[ok]/counts[ok]
         array['cross_correlation'][where_nan] = np.nan
         array['std_dev'][ok] = np.sqrt(second[ok]/counts[ok] - (first[ok]/counts[ok])**2)

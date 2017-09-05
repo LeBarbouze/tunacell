@@ -38,6 +38,24 @@ class BivariateConditioned(object):
         self.std_dev = None  # 2-d array, standard dev of covariances estimates
         return
 
+    def as_dataframe(self):
+        # unroll
+        row_times = self.times[0]
+        col_times = self.times[1]
+        unroll_row_times = np.concatenate([np.array(len(col_times) * [rt, ]) for rt in row_times])
+        unroll_col_times = np.concatenate([col_times for rt in row_times])
+        counts = self.counts.flatten()
+        cov = self.cross.flatten()
+        std = self.std_dev.flatten()
+        names = ['time-row', 'time-col', 'counts', 'covariance', 'std-cov']
+        data = {'time-row': unroll_row_times,
+                'time-col': unroll_col_times,
+                'counts': counts,
+                'covariance': cov,
+                'std-cov' : std
+                }
+        return pd.DataFrame(data, columns=names)
+
     def _get_path(self, user_root=None, write=False):
         """Get condition path"""
         obs_path = self.bivariate._get_obs_path(user_root=user_root, write=write)
@@ -260,6 +278,9 @@ class StationaryBivariateConditioned(object):
             self.condition = 'master'
         self.array = array  # should be a 3 columns array
         return
+
+    def as_dataframe(self):
+        return pd.DataFrame(self.array)
 
     def _get_path(self, user_root=None, write=False):
         """Get condition path"""
