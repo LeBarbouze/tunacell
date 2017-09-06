@@ -1,12 +1,9 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
-This module provides elements for parsing data.
-It is supposed to be a high-level API module, that uses mostly low-level API
-classes and functions.
-
-Classes
--------
+This module provides elements for parsing data manually, i.e. getting
+a handful list of samples and extract specific structures (colony, lineage,
+cell) from such samples.
 
 * :class:`Parser`: handles how to parse an experiment with a given filterset
 
@@ -90,7 +87,7 @@ class Parser(object):
         ----------
         fset : :class:`FilterSet` instance
         """
-        self.fset = fset
+        self.experiment.fset = fset
         return
 
     # ADDING SAMPLES
@@ -415,6 +412,10 @@ class Parser(object):
     def iter_containers(self, mode='all', size=None, shuffle=False):
         """Iterate through valid containers.
 
+        .. note:: Deprecated in tunacell 0.0.7
+                  mode 'all' is similar to run iter_containers from Experiment
+                  instance. This mode will be removed in the future.
+
         If mode 'all' is chosen, then the iterator browses all files,
         up to the size limit. If mode 'samples' is chosen, then only sample ids
         already stored in Parser instance are browsed. Only valid Container
@@ -457,6 +458,10 @@ class Parser(object):
 
     def iter_colonies(self, mode='all', size=None, shuffle=False):
         """Iterate through valid colonies.
+
+        .. note:: Deprecated in tunacell 0.0.7
+                  mode 'all' is similar to run iter_containers from Experiment
+                  instance. This mode will be removed in the future.
 
         Parameters
         ----------
@@ -507,6 +512,10 @@ class Parser(object):
     def iter_lineages(self, mode='all', size=None, shuffle=False):
         """Iterate through valid lineages.
 
+        .. note:: Deprecated in tunacell 0.0.7
+                  mode 'all' is similar to run iter_containers from Experiment
+                  instance. This mode will be removed in the future.
+
         Parameters
         ----------
         mode : str {'all', 'samples'} (default 'all')
@@ -552,6 +561,10 @@ class Parser(object):
 
     def iter_cells(self, mode='all', size=None, shuffle=False):
         """Iterate through valid cells.
+
+        .. note:: Deprecated in tunacell 0.0.7
+                  mode 'all' is similar to run iter_containers from Experiment
+                  instance. This mode will be removed in the future.
 
         Parameters
         ----------
