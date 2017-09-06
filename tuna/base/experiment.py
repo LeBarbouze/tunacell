@@ -286,7 +286,7 @@ class Experiment(object):
             msg = 'Filename corresponds to a container'
             msg += ' but somehow container initialization failed'
             raise ParsingExperimentError(msg)
-    
+
     def iter_colonies(self, size=None, shuffle=False):
         """Iterate through valid colonies.
 
