@@ -18,8 +18,8 @@ import sys
 
 import matplotlib.pyplot as plt
 
-from tuna import Parser, Observable, FilterSet
-from tuna.observable import FunctionalObservable
+from tuna import Experiment, Observable, FilterSet
+from tuna.base.observable import FunctionalObservable
 from tuna.filters.cells import FilterCellIDparity
 
 from tuna.stats.api import (compute_univariate, load_univariate,
@@ -38,9 +38,9 @@ plt.close('all')
 # in univariate-anbalysis.py (please run that script before starting this one)
 # =============================================================================
 
-# define the Parser instance, no filter applied
+# define the exp instance, no filter applied
 path_to_exp = '~/tmptuna/simutest'
-parser = Parser(path_to_exp)
+exp = Experiment(path_to_exp)
 # define a condition
 even = FilterCellIDparity('even')
 condition = FilterSet(label='evenID', filtercell=even)
@@ -48,7 +48,7 @@ condition = FilterSet(label='evenID', filtercell=even)
 ou = Observable(name='exact-growth-rate', raw='ou')
 
 # Reference values
-md = parser.experiment.metadata.loc[parser.experiment.label]
+md = exp.metadata.loc[exp.label]
 ref_mean = md.target
 ref_var = md.noise / (2*md.spring)
 ref_decayrate = md.spring
@@ -57,7 +57,7 @@ tmax = md.stop
 period = md.period
 
 # loading univariate analysis for the ou observable
-univariate = load_univariate(parser, ou, cset=[condition, ])
+univariate = load_univariate(exp, ou, cset=[condition, ])
 
 # =============================================================================
 # The last command would raise an exception of type UnivariateIOError if
@@ -109,9 +109,9 @@ print('Computing dynamic univariate statistics...')
 for obs in continuous_obs + cycle_obs:
     print('{} ...'.format(obs.name))
     try:
-        univ = load_univariate(parser, obs, cset=[condition, ])
+        univ = load_univariate(exp, obs, cset=[condition, ])
     except UnivariateIOError:
-        univ = compute_univariate(parser, obs, cset=[condition, ])
+        univ = compute_univariate(exp, obs, cset=[condition, ])
         univ.export_text()  # save as text files
     # store univariate object in a dic indexed by observable
     univariates_store[obs] = univ
@@ -169,7 +169,7 @@ except NameError:
 # before), sampling will only be performed on time series bounded by these values
 # =============================================================================
 
-regions = Regions(parser.experiment)
+regions = Regions(exp)
 regions.reset()  # eliminate all regions except 'ALL'
 regions.add(name='steady', tmin=20., tmax=160.)
 steady_region = regions.get('steady')
@@ -185,6 +185,7 @@ options = CompuParams()  # leaving to default is safe
 print('Computing stationary univariate statistics...')
 figs = []
 for obs in continuous_obs + cycle_obs:
+    print('{} ...'.format(obs.name))
     # need the univariate object to compute stationary statistics
     univ = univariates_store[obs]
     try:
@@ -195,7 +196,7 @@ for obs in continuous_obs + cycle_obs:
             stat.export_text()  # save as text files
         except NoValidTimes:
             stat = None
-
+    print('Ok')
     # plotting features
     if obs in [ou, gr, ou2]:
         kwargs = {'ref_decay': ref_decayrate, 'fitlog': True}

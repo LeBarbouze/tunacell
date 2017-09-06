@@ -20,7 +20,7 @@ import sys
 import matplotlib.pyplot as plt
 
 
-from tuna import Parser, Observable, FilterSet
+from tuna import Experiment, Observable, FilterSet
 from tuna.filters.cells import FilterCellIDparity
 from tuna.stats.api import compute_univariate
 from tuna.plotting.dynamics import plot_onepoint, plot_twopoints
@@ -34,9 +34,9 @@ plt.close('all')
 # filterset and which conditions
 # =============================================================================
 
-# define the Parser instance, no filter applied
+# define the Experiment instance without filtering
 path_to_exp = '~/tmptuna/simutest'
-parser = Parser(path_to_exp)
+exp = Experiment(path_to_exp)
 # define a condition
 even = FilterCellIDparity('even')
 condition = FilterSet(label='evenID', filtercell=even)
@@ -52,7 +52,7 @@ ou = Observable(name='exact-growth-rate', raw='ou')
 
 # call the compute_univariate function
 print('Launching computation of statistics of the dynamics for {}...'.format(ou.name))
-univariate = compute_univariate(parser, ou, cset=[condition, ])
+univariate = compute_univariate(exp, ou, cset=[condition, ])
 print('Done')
 # note that we left other input parameters to default...
 
@@ -79,7 +79,7 @@ for item_name in ['master', repr(condition)]:
     print()
     print('Two-point function table excerpt:')
     print('(all couple of time-points are present in the entire table)')
-    item.display_twopoint(n_lines, sampling=True)
+    item.display_twopoint(n_lines)
     print()
 
 # =============================================================================
@@ -91,7 +91,7 @@ for item_name in ['master', repr(condition)]:
 # =============================================================================
 
 # Reference values
-md = parser.experiment.metadata.loc[parser.experiment.label]
+md = exp.metadata.loc[exp.label]
 ref_mean = md.target
 ref_var = md.noise / (2*md.spring)
 ref_decayrate = md.spring
@@ -169,6 +169,6 @@ univariate.export_text()  # save results as text files in structured folders
 # and to load objects (at the exception of FunctionalObservable instances)
 # =============================================================================
 
-text.print_filtersets(parser.experiment)
-text.print_observables(parser.experiment, parser.fset)
-text.print_conditions(parser.experiment, parser.fset, ou)
+text.print_filtersets(exp)
+text.print_observables(exp, exp.fset)
+text.print_conditions(exp, exp.fset, ou)

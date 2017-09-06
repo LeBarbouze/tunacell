@@ -17,8 +17,8 @@ import sys
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from tuna import Parser, Observable, FilterSet
-from tuna.observable import FunctionalObservable
+from tuna import Experiment, Observable, FilterSet
+from tuna.base.observable import FunctionalObservable
 from tuna.filters.cells import FilterCellIDparity
 
 from tuna.stats.api import (compute_univariate, load_univariate,
@@ -44,13 +44,13 @@ plt.close('all')
 
 # define the Parser instance, no filter applied
 path_to_exp = '~/tmptuna/simutest'
-parser = Parser(path_to_exp)
+exp = Experiment(path_to_exp)
 # define a condition
 even = FilterCellIDparity('even')
 condition = FilterSet(label='evenID', filtercell=even)
 
 # Reference values
-md = parser.experiment.metadata.loc[parser.experiment.label]
+md = exp.metadata.loc[exp.label]
 ref_mean = md.target
 ref_var = md.noise / (2*md.spring)
 ref_decayrate = md.spring
@@ -103,9 +103,9 @@ univariates_store = {}
 for obs in continuous_obs + cycle_obs:
     print('{} ...'.format(obs.name))
     try:
-        univ = load_univariate(parser, obs, cset=[condition, ])
+        univ = load_univariate(exp, obs, cset=[condition, ])
     except UnivariateIOError:
-        univ = compute_univariate(parser, obs, cset=[condition, ])
+        univ = compute_univariate(exp, obs, cset=[condition, ])
         univ.export_text()  # save as text files
     # store univariate object in a dic indexed by observable
     univariates_store[obs] = univ
@@ -134,7 +134,7 @@ for obs in continuous_obs + cycle_obs:
         kwargs2 = {'trefs': grefs}
     print('Ok')
 
-regions = Regions(parser.experiment)
+regions = Regions(exp)
 regions.reset()  # eliminate all regions except 'ALL'
 regions.add(name='steady', tmin=20., tmax=160.)
 steady_region = regions.get('steady')
@@ -179,6 +179,7 @@ for o1, o2 in couples:
 # =============================================================================
 print('Cross-correlation at stationarity\n'
       '---------------------------------')
+figs = []
 for o1, o2 in couples:
     print('Couple {} - {} ...'.format(o1.name, o2.name))
     u1 = univariates_store[o1]
@@ -204,15 +205,29 @@ for o1, o2 in couples:
     else:
         kwargs = {}
     fig = plot_stationary(biv, save=True, **kwargs)
+    figs.append(fig)
+
+# when run from ipython, figure should automatically be plotted
+try:
+    __IPYTHON__
+# otherwise call .plot() and wait for pressing Enter
+except NameError:
+    for fig in figs:
+        fig.show()
+        if sys.version_info[0] == 2:
+            ans = raw_input('Press Enter to proceed...')
+        else:
+            ans = input('Press Enter to proceed...')
 
 # =============================================================================
 # Note that we can get easily non-dynamic bivariate analysis
 # '(mixing cell-cycle observables with different reporting times)
 # =============================================================================
+plt.figure()
 couple = [division_size, increase]
 print('Bivariate sampling of {} and {} ...'.format(couple[0].name, couple[1].name))
 all_dfs = []
-for li in parser.iter_lineages(size=100):  # testing
+for li in exp.iter_lineages(size=100):  # testing
     dfs = []
     for obs in couple:
         ts = li.get_timeseries(obs, cset=[condition, ])
@@ -226,3 +241,14 @@ print('{}'.format(excerpt))
 plt.scatter(df[couple[0].name], df[couple[1].name])
 plt.xlabel(couple[0].name)
 plt.ylabel(couple[1].name)
+
+# when run from ipython, figure should automatically be plotted
+try:
+    __IPYTHON__
+# otherwise call .plot() and wait for pressing Enter
+except NameError:
+    plt.show()
+    if sys.version_info[0] == 2:
+        ans = raw_input('Press Enter to proceed...')
+    else:
+        ans = input('Press Enter to proceed...')
