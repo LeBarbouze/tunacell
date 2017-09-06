@@ -185,7 +185,7 @@ class Experiment(object):
         msg += repr(self.metadata.loc[self.label])
         return msg
 
-    def iter_container(self, read=True, build=True, prefilt=None,
+    def iter_containers(self, read=True, build=True, prefilt=None,
                        apply_container_filter=True,
                        extend_observables=False, report_NaNs=True,
                        size=None, shuffle=False):
@@ -417,6 +417,6 @@ class Experiment(object):
             warnings.warn(msg)
             shutil.rmtree(data_path)
             os.makedirs(data_path)
-        for container in self.iter_container():
+        for container in self.iter_containers():
             container.write_raw_text(data_path)
         return
