@@ -100,7 +100,7 @@ class UnivariateConditioned(object):
         return condition_path
 
     def bind(self, array, count_two, autocorr):
-        self.onepoint = array  # numpy array: time, count, average, std_dev
+        self.onepoint = array  # numpy array: time, counts, average, std_dev
         self.count_two = count_two
         self.autocorr = autocorr
         return

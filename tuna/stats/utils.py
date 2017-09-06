@@ -348,7 +348,7 @@ def _find_time_boundaries(exp):
     exp : :class:`tuna.base.experiment.Experiment` instance
     """
     tleft, tright = np.infty, -np.infty
-    for container in exp.iter_container(read=True, build=False):
+    for container in exp.iter_containers(read=True, build=False):
         tmin = np.nanmin(container.data['time'])
         tmax = np.nanmax(container.data['time'])
         if tmin < tleft:
