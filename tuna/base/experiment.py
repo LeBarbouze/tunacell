@@ -4,11 +4,8 @@
 This module implements the first core class: Experiment,
 and functions to parse containers, retrieve and build data.
 
-Data organization
------------------
-
-Data is stored by experiment. Each experiment consists of multiple containers where
-data has been stored. Lowest level containers are containers. A container may
+Each experiment consists of multiple containers where
+data has been stored under container folders. A container may
 correspond to a single field of view, to a subset thereof (e.g. a single
 channel).
 
@@ -25,14 +22,12 @@ This module stores classes and functions that allow to:
 from __future__ import print_function
 
 import os
-import numpy as np
-import tables
-import datetime
 import random
 import warnings
 import shutil
 
 from tuna.base.container import Container
+from tuna.filters.main import FilterSet
 from tuna.io import text, metadata
 
 
@@ -69,6 +64,8 @@ class Experiment(object):
         experiment label
     filetype : str {'text', 'simu'}
         one of the available file type ('simu' is not a filetype per se...)
+    fset : :class:`FilterSet` instance
+        filterset to be applied when parsing data
     datatype : Numpy.dtype instance
         provides the datatype of raw data stored in each Cell instance .data
         This attribute is defined only for text filetype, when a descriptor
@@ -90,7 +87,7 @@ class Experiment(object):
         PARSER API CLASS.
     """
 
-    def __init__(self, path='.', filetype=None):
+    def __init__(self, path='.', filetype=None, filter_set=None):
         self.abspath = None
         self.label = None
         self.datatype = None  # Will be updated for text filetype
@@ -111,21 +108,46 @@ class Experiment(object):
             self.filetype = filetype
         # different initialization depending on filetype
         if self.filetype == 'text':
-            # get list of container files
-            fns = text.container_filename_parser(self.abspath)
-            # extract only container labels
-            self.containers = list(zip(*map(os.path.splitext, fns))[0])
-            # get metadata
-            fn = text._check_up('metadata.csv', self.abspath, level=2)
-            df = metadata.load_from_csv(fn, sep=',')
-            meta = metadata.fill_rows(df, self.label, self.containers)
-            self.metadata = meta
-            self.period = metadata.get_period(meta, self.label)
-            descriptor_file = text._check_up('descriptor.csv', self.abspath, 2)
-            datatype = text.datatype_parser(descriptor_file)
-            self.datatype = datatype
+            self.load_from_text()
         else:
             raise FiletypeError('Filetype not recognized')
+        if isinstance(filter_set, FilterSet):
+            self._fset = filter_set
+        else:
+            self._fset = FilterSet()  # default filter: all TRUE
+        return
+
+    @property
+    def fset(self):
+        """Get current FilterSet"""
+        return self._fset
+
+    @fset.setter
+    def fset(self, value):
+        """Set current FilterSet"""
+        if isinstance(value, FilterSet):
+            self._fset = value
+        elif value is None:
+            self._fset = FilterSet()  # default filterset: all TRUE
+        else:
+            warnings.warn('{} is not a FilterSet'.format(value))
+        return
+
+    def load_from_text(self):
+        """Load parameters from text filetype"""
+        # get list of container files
+        fns = text.container_filename_parser(self.abspath)
+        # extract only container labels
+        self.containers = list(zip(*map(os.path.splitext, fns))[0])
+        # get metadata
+        fn = text._check_up('metadata.csv', self.abspath, level=2)
+        df = metadata.load_from_csv(fn, sep=',')
+        meta = metadata.fill_rows(df, self.label, self.containers)
+        self.metadata = meta
+        self.period = metadata.get_period(meta, self.label)
+        descriptor_file = text._check_up('descriptor.csv', self.abspath, 2)
+        datatype = text.datatype_parser(descriptor_file)
+        self.datatype = datatype
         return
 
     @property
@@ -164,6 +186,7 @@ class Experiment(object):
         return msg
 
     def iter_container(self, read=True, build=True, prefilt=None,
+                       apply_container_filter=True,
                        extend_observables=False, report_NaNs=True,
                        size=None, shuffle=False):
         """Iterator over containers.
@@ -177,6 +200,8 @@ class Experiment(object):
         build : bool (default True), called only if `read` is True
             whether to build colonies
         prefilt : FilterCell instance (default None)
+        apply_container_filter : bool (default True)
+            whether to apply container filter defined in filter_set self.fset
         extend_observables : bool (default False)
             whether to construct secondary observables from raw data
         report_NaNs : bool (default True)
@@ -189,6 +214,10 @@ class Experiment(object):
         -------
         iterator iver Container instances of current Experiment instance.
         """
+        if prefilt is None:
+            init_cell_filter = self.fset.cell_filter
+        else:
+            init_cell_filter = prefilt
         containers = self.containers[:]
         if shuffle:
             random.shuffle(containers)
@@ -199,10 +228,12 @@ class Experiment(object):
                 break
             container = Container(label, exp=self)
             if read:
-                container.read_data(build=build, prefilt=prefilt,
+                container.read_data(build=build, prefilt=init_cell_filter,
                                     extend_observables=extend_observables,
                                     report_NaNs=report_NaNs)
-            yield container
+            # apply filtering on containers
+            if apply_container_filter and self.fset.container_filter(container):
+                yield container
         return
 
     def get_container(self, label,
@@ -255,6 +286,105 @@ class Experiment(object):
             msg = 'Filename corresponds to a container'
             msg += ' but somehow container initialization failed'
             raise ParsingExperimentError(msg)
+    
+    def iter_colonies(self, size=None, shuffle=False):
+        """Iterate through valid colonies.
+
+        Parameters
+        ----------
+        size : int (default None)
+            limit the number of colonies to size. Works only in mode='all'
+        shuffle : bool (default False)
+            whether to shuffle the ordering of colonies when mode='all'
+
+        Yields
+        ------
+        colony : :class:`Colony` instance
+            filtering removed outlier cells, containers, and colonies
+        """
+        colfilt = self.fset.colony_filter
+        if size is not None:
+            count = 0  # count colonies
+            for container in self.iter_containers(shuffle=shuffle):
+                for colony in container.iter_colonies(filt=colfilt,
+                                                      shuffle=shuffle):
+                    yield colony
+                    count += 1
+                    if count >= size:
+                        break
+                if count >= size:
+                    break
+        else:
+            for container in self.iter_containers(shuffle=shuffle):
+                for colony in container.iter_colonies(filt=colfilt,
+                                                      shuffle=shuffle):
+                    yield colony
+        return
+
+    def iter_lineages(self, size=None, shuffle=False):
+        """Iterate through valid lineages.
+
+        Parameters
+        ----------
+        size : int (default None)
+            limit the number of lineages to size. Works only in mode='all'
+        shuffle : bool (default False)
+            whether to shuffle the ordering of lineages when mode='all'
+
+        Yields
+        ------
+        lineage : :class:`Lineage` instance
+            filtering removed outlier cells, containers, colonies, and lineages
+        """
+        lin_filt = self.fset.lineage_filter
+        if size is not None:
+            count = 0
+            for colony in self.iter_colonies(shuffle=shuffle):
+                for lineage in colony.iter_lineages(filt=lin_filt,
+                                                    shuffle=shuffle):
+                    yield lineage
+                    count += 1
+                    if count >= size:
+                        break
+                if count >= size:
+                    break
+        else:
+            for colony in self.iter_colonies(shuffle=shuffle):
+                for lineage in colony.iter_lineages(filt=lin_filt,
+                                                    shuffle=shuffle):
+                    yield lineage
+        return
+
+    def iter_cells(self, size=None, shuffle=False):
+        """Iterate through valid cells.
+
+        Parameters
+        ----------
+        size : int (default None)
+            limit the number of lineages to size. Works only in mode='all'
+        shuffle : bool (default False)
+            whether to shuffle the ordering of lineages when mode='all'
+
+        Yields
+        ------
+        cell : :class:`Cell` instance
+            filtering removed outlier cells, containers, colonies, and lineages
+        """
+        if size is not None:
+            count = 0
+            for lin in self.iter_lineages(shuffle=shuffle):
+                for cell in lin.iter_cells(shuffle=shuffle):
+                    yield cell
+                    count += 1
+                    if count >= size:
+                        break
+                if count >= size:
+                    break
+        else:
+            for lin in self.iter_lineages(shuffle=shuffle):
+                for cell in lin.iter_cells(shuffle=shuffle):
+                    yield cell
+        return
 
     def raw_text_export(self, path='.'):
         """Export raw data as text containers in correct directory structure.
