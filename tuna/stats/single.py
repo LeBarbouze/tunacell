@@ -115,7 +115,7 @@ class UnivariateConditioned(object):
     @property
     def count_one(self):
         if self.onepoint is not None:
-            return self.onepoint['count']
+            return self.onepoint['counts']
         else:
             return None
 
@@ -737,7 +737,7 @@ class StationaryUnivariate(object):
         try:
             for key, val in self._items.items():
                 val.read_text(analysis_folder)
-            exp = self.univariate.exp.experiment
+            exp = self.univariate.exp
             fset = self.univariate.exp.fset
             analysis_path = text.get_analysis_path(exp, user_abspath=analysis_folder,
                                                    write=False)

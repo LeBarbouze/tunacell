@@ -107,12 +107,12 @@ def set_dynamics(iter_timeseries, single, eval_times):
         autocov = outer - mouter
 
         array = np.zeros(len(eval_times), dtype=[('time', 'f8'),
-                                                 ('count', 'u8'),
+                                                 ('counts', 'u8'),
                                                  ('average', 'f8'),
                                                  ('std_dev', 'f8')])
 
         array['time'] = eval_times
-        array['count'] = count_one
+        array['counts'] = count_one
         array['average'] = mean
         array['std_dev'] = np.sqrt(np.diag(autocov))
 
@@ -287,7 +287,7 @@ def set_stationary_autocorrelation(iter_timeseries, univariate, stationary,
 
         array = np.zeros(len(time_intervals),
                          dtype=[('time_interval', 'f8'),
-                                ('count', 'u8'),
+                                ('counts', 'u8'),
                                 ('auto_correlation', 'f8'),
                                 ('std_dev', 'f8')])
         array['time_interval'] = time_intervals
@@ -296,7 +296,7 @@ def set_stationary_autocorrelation(iter_timeseries, univariate, stationary,
         second = rec['second']
         ok = np.where(counts > 0)
         where_nan = np.where(counts == 0)
-        array['count'] = counts
+        array['counts'] = counts
         array['auto_correlation'][ok] = first[ok]/counts[ok]
         array['auto_correlation'][where_nan] = np.nan
         array['std_dev'][ok] = np.sqrt(second[ok]/counts[ok] - (first[ok]/counts[ok])**2)
