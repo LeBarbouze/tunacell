@@ -10,8 +10,7 @@ import numpy as np
 
 from tuna.filters.main import FilterGeneral, bounded, included, FilterAND
 from tuna.base.datatools import multiplicative_increments
-
-from tuna.observable import Observable
+from tuna.base.observable import Observable
 
 
 class FilterCell(FilterGeneral):

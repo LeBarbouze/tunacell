@@ -9,9 +9,7 @@ import numpy as np
 import random
 import collections
 from tuna.base.datatools import Coordinates
-
-from tuna.observable import Observable, FunctionalObservable
-
+from tuna.base.observable import Observable, FunctionalObservable
 from tuna.base.timeseries import TimeSeries
 
 

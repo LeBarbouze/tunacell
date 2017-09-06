@@ -10,7 +10,7 @@ import warnings
 
 import treelib as tlib
 
-from tuna.observable import Observable, FunctionalObservable
+from tuna.base.observable import Observable, FunctionalObservable
 from tuna.base.datatools import (Coordinates, compute_rates,
                                  extrapolate_endpoints,
                                  derivative, logderivative, ExtrapolationError)

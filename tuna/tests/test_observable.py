@@ -15,7 +15,7 @@ import numpy as np
 import string
 from itertools import product
 
-from tuna.observable import Observable, ObservableStringError
+from tuna.base.observable import Observable, ObservableStringError
 
 
 t_params = (('label', ['mysoup', 'donald']),

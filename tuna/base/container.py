@@ -18,7 +18,7 @@ from tuna.io import text
 from tuna.base.cell import Cell
 from tuna.base.datatools import compute_secondary_observables
 from tuna.base.colony import Colony
-from tuna.observable import Observable
+from tuna.base.observable import Observable
 
 
 class ParsingContainerError(Exception):

@@ -8,10 +8,9 @@ from __future__ import print_function
 import os
 import re
 import glob
-import inspect
 import numpy as np
 
-from tuna.observable import Observable, FunctionalObservable
+from tuna.base.observable import Observable, FunctionalObservable
 
 # import a bunch of filters to be able to load them using eval
 from tuna.filters.main import (FilterAND, FilterOR, FilterNOT, FilterTRUE,
