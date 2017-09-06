@@ -19,9 +19,7 @@ Such container must meet two requirements:
 This module stores classes and functions that allow to:
     * explore data structure (and metadata if provided)
     * keep track of every container where to look for data
-    * extract data in a Container instance
-        - from text containers
-        - [TODO] from HDF5 storage
+    * extract data in a Container instance from text containers
     * build cells filiation, store time-lapse microscopy data, build trees
 """
 from __future__ import print_function
@@ -66,10 +64,10 @@ class Experiment(object):
     Attributes
     ----------
     abspath : str
-        absolute path on disk of main directory for text containers, or hdf5 file
+        absolute path on disk of main directory for text containers
     label : str
         experiment label
-    filetype : str {'text', 'h5', 'simu'}
+    filetype : str {'text', 'simu'}
         one of the available file type ('simu' is not a filetype per se...)
     datatype : Numpy.dtype instance
         provides the datatype of raw data stored in each Cell instance .data
@@ -78,8 +76,7 @@ class Experiment(object):
     metadata: Metadata instance
         experiment metadata
     containers : list of str
-        sequence of container filenames for text containers, of container labels for
-        h5 containers
+        sequence of container filenames for text containers
     period: float
         time interval between two successive aquisitions (this should be
         defined in the experiment metadata)
@@ -109,8 +106,6 @@ class Experiment(object):
         if filetype is None:
             if extension == '':
                 self.filetype = 'text'
-            elif extension in ['h5', 'hdf5']:
-                self.filetype = 'h5'
         # if it's not recognized, go default
         else:
             self.filetype = filetype
@@ -129,23 +124,6 @@ class Experiment(object):
             descriptor_file = text._check_up('descriptor.csv', self.abspath, 2)
             datatype = text.datatype_parser(descriptor_file)
             self.datatype = datatype
-        # TODO : review this part when updating HDF5 filetype reading
-        elif self.filetype == 'h5':
-            pass
-            # list tables under the .containers attr for compatibility with text
-#            h5file = tables.open_file(self.abspath, mode='r')
-#            containers = []
-#            for table in h5file.walk_nodes(h5file.root.lineages,
-#                                           classname='Table'):
-#                containers.append(table._v_name)
-#            self.containers = containers
-#            # load experiment metadata
-#            content = []
-#            for label in h5file.root._v_attrs._f_list('user'):
-#                content.append((label,
-#                                h5file.root._v_attrs.__getitem__(label)))
-#            self.metadata = Metadata(content=content)
-#            h5file.close()
         else:
             raise FiletypeError('Filetype not recognized')
         return
@@ -216,10 +194,6 @@ class Experiment(object):
             random.shuffle(containers)
         if size is None:
             size = len(self.containers)
-        if self.filetype == 'h5':
-            h5file = tables.open_file(self.abspath)
-        else:
-            h5file = None
         for index, label in enumerate(containers, start=1):
             if index > size:
                 break
@@ -229,8 +203,6 @@ class Experiment(object):
                                     extend_observables=extend_observables,
                                     report_NaNs=report_NaNs)
             yield container
-        if h5file is not None:
-            h5file.close()
         return
 
     def get_container(self, label,
@@ -273,19 +245,6 @@ class Experiment(object):
                 msg = 'Filename error: {}'.format(label)
                 msg += ' does not correspond to any container file.'
                 raise ParsingExperimentError(msg)
-        elif self.filetype == 'h5':
-            found = False
-            for item in self.containers:
-                lab = item.replace('data_', '')
-                if label == lab:
-                    found = True
-                    break
-            if found:
-                container = Container(item, exp=self)
-            else:
-                msg = 'Filename error: {}'.format(label)
-                msg += ' does not correspond to any container file.'
-                raise ParsingExperimentError(msg)
         if container is not None:
             if read:
                 container.read_data(build=build, prefilt=prefilt,
@@ -296,108 +255,6 @@ class Experiment(object):
             msg = 'Filename corresponds to a container'
             msg += ' but somehow container initialization failed'
             raise ParsingExperimentError(msg)
-
-    # TODO: update
-    def h5_export(self, directory='~', filename=None, overide=False,
-                  prefilt=None, testing=True, extend_observables=False,
-                  out=False):
-        """Export data as a HDF5 archive.
-
-        Parameters
-        ----------
-        directory -- str, where to store the h5 file
-        filename -- str, name of file (without '.h5' extension)
-        overide -- bool (default False), overide existing file
-        prefilt -- prefiltering function (default None)
-        testing -- bool (default True), when True, export only 10 containers
-        out -- bool (default False), output or not tables.File object
-
-        Returns
-        -------
-        if out is True, returns the corresponding tables.File object, that one
-        has to close at some point.
-        """
-        path = os.path.abspath(os.path.expanduser(directory))
-        if filename is None:
-            bn = os.path.basename(self.abspath)
-        else:
-            fn, fnext = os.path.splitext(filename)
-            bn = os.path.basename(fn)
-        fn = os.path.join(path, bn + '.h5')  # h5 filename
-        # check whether h5 export already exists
-        if os.path.exists(fn) and not overide:
-            print('h5 file already exists. Set overide to True to update.')
-            return
-        # associated log filename
-        logfn = os.path.join(path, bn + '.log')
-        log = ''
-        # associated warnings file
-        warnsfn = os.path.join(path, bn + '.warnings')
-        warns = ''
-        log += 'Log file for h5_export from Experiment instance\n'
-        log += repr(self)
-        now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        log += '\nExported: {}\n'.format(now)
-        log += '\nErrors/warnings are reported in {}\n'.format(warnsfn)
-        log += '\nFILTER USED:\n'
-        log += repr(prefilt)
-        log += '\n'
-        # go on
-        h5file = tables.open_file(fn, mode='w', title='Experiment file')
-        try:
-            # add metadata as attributes
-            for k, v in self.metadata.content:
-                h5file.root._v_attrs.__setattr__(k, v)
-            # create the lineages folder where container tables are stored
-            lineages = h5file.create_group(h5file.root, 'lineages',
-                                           'Microscopy data flat containers')
-            # loop over containers
-            if testing:
-                size = 10  # only 10 containers for testing
-                log += '\nTesting mode: only {} containers.\n'.format(size)
-            else:
-                size = None  # all containers
-            log += '\nCOUNTS:\n'
-            log += '\n{}\t{}\t{}'.format('Label', 'Cells', 'Trees')
-            count_cells, count_trees = 0, 0
-            for cont in self.iter_container(size=size, prefilt=prefilt,
-                                            extend_observables=extend_observables,
-                                            report_NaNs=True):
-                if cont.log is not None:
-                    warns += cont.log
-                arrs = []
-                for cell in cont.cells:
-                    arrs.append(cell.data)
-                arr = np.concatenate(arrs)
-                lab = 'Cells from container {}'.format(cont.label)
-                tab = h5file.create_table(h5file.root.lineages,
-                                          'data_{}'.format(cont.label),
-                                          arr.dtype,
-                                          lab)
-                tab.append(arr)
-                tab.flush()
-                # logging
-                log += '\n{}\t{}\t{}'.format(cont.label, len(cont.cells),
-                                             len(cont.trees))
-                count_cells += len(cont.cells)
-                count_trees += len(cont.trees)
-            log += '\n\nTotal\t{}\t{}'.format(count_cells, count_trees)
-            # write log file
-            with open(logfn, 'w') as f:
-                f.write(log)
-            # if warnings showed up
-            if warns:
-                with open(warnsfn, 'w') as f:
-                    f.write(warns)
-            # close file if no output is needed
-            if not out:
-                h5file.close()
-                return
-            else:
-                return h5file
-        except Exception as e:
-            h5file.close()
-            raise e
 
     def raw_text_export(self, path='.'):
         """Export raw data as text containers in correct directory structure.

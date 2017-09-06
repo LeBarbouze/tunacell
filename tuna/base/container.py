@@ -7,14 +7,13 @@ from __future__ import print_function
 
 import os
 import re
-import tables
 import random
 import numpy as np
 import collections
 
 import logging
 
-from tuna.io import text, h5
+from tuna.io import text
 
 from tuna.base.cell import Cell
 from tuna.datatools import compute_secondary_observables
@@ -41,10 +40,8 @@ class Container(object):
     path :str
         relative/absolute path to find the text file on disk
         [used only when exp is not provided] (default None)
-    filetype : str {'text', 'h5', 'simulation'}
+    filetype : str {'text', 'simu'}
         [used only when exp is not provided] (default 'text')
-    h5file : table.File instance
-        (must be given if filetype=='h5')
     period : float
         time interval between two successive frames
 
@@ -54,7 +51,7 @@ class Container(object):
         experiment to which container belongs
     abspath : str
         path to container file on disk
-    filetype :str {'text', 'h5'}
+    filetype :str {'text'}
         type of file
     label : str
         label of container
@@ -134,31 +131,6 @@ class Container(object):
             # Inherits datatype from Experiment datatype
             self.datatype = exp.datatype
 
-        # H5 FILETYPE
-        # TODO : re-code when possible
-        elif self.filetype == 'h5':
-            pass
-#            self.abspath = label
-#            # if h5file is None, open it from exp
-#            if h5file is None:
-#                if exp is not None:
-#                    h5file = tables.open_file(exp.abspath, mode='r')
-#                else:
-#                    msg = ''
-#                    msg += 'When opening Container with h5 type, '
-#                    msg += 'need either a valid Experiment parameter, '
-#                    msg += 'or a h5file parameter.'
-#                    raise ParsingContainerError(msg)
-#            # filename is now the h5 table
-#            table = h5file.get_node(h5file.root.lineages, label)
-#            # label: table name
-#            self.label = table.name.replace('data_', '')
-#            content = []
-#            for label in table.attrs._f_list('user'):
-#                content.append((label, table.attrs.__getitem__(label)))
-#            self.metadata = Metadata(content=content)
-        # SIMULATIONS FILETYPE
-        # TODO: implement
         elif self.filetype == 'simu':
             pass
 
@@ -185,17 +157,7 @@ class Container(object):
             # Read cells from file
             arr = text.get_array(self.abspath, self.datatype, delimiter='\t')
 
-        # H5 FILETYPE
-        elif self.filetype == 'h5':
-            pass
-#            h5file = tables.open_file(self.exp.abspath, mode='r')
-#            table = h5file.get_node(h5file.root.lineages, self.abspath)
-#            read = h5.build_cells(table, container=self,
-#                                  report_NaNs=report_NaNs)
-#            self.cells, self.observables, self.errs = read
-        # SIMULATIONS FILETYPE
-        # TODO: implement
-        elif self.filetype == 'simulation':
+        elif self.filetype == 'simu':
             pass
         
         self.data = arr
