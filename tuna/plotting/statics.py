@@ -13,7 +13,7 @@ from scipy.stats import spearmanr
 from matplotlib.patches import Polygon
 
 from tuna.plotting.defs import params, colors
-from tuna.datatools import gaussian_smooth
+from tuna.base.datatools import gaussian_smooth
 
 
 def scatter(dat, xkey=None, ykey=None, delta=1000, xlim=[], ylim=[],

@@ -11,7 +11,7 @@ import os
 import datetime
 from StringIO import StringIO
 
-from .. import datatools
+from tuna.base import datatools
 from .. import filters
 
 
@@ -22,9 +22,9 @@ def output_by_lineages(exp,
                        testing=True):
     """Output data within lineages, with Marco's requested format.
 
-    Argument
-    --------
-    exp -- Experiment instance
+    Parameters
+    -----------
+    exp : Experiment instance
 
     Parameters
     ----------
