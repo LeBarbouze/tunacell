@@ -9,3 +9,4 @@ __init__.py file
 from tuna.base.experiment import Experiment
 from tuna.base.observable import Observable
 from tuna.filters.main import FilterSet
+from tuna.base.parser import Parser
