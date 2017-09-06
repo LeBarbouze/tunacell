@@ -16,7 +16,7 @@ import logging
 from tuna.io import text
 
 from tuna.base.cell import Cell
-from tuna.datatools import compute_secondary_observables
+from tuna.base.datatools import compute_secondary_observables
 from tuna.base.colony import Colony
 from tuna.observable import Observable
 

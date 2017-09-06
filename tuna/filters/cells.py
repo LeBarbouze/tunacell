@@ -9,7 +9,7 @@ import copy
 import numpy as np
 
 from tuna.filters.main import FilterGeneral, bounded, included, FilterAND
-from tuna.datatools import multiplicative_increments
+from tuna.base.datatools import multiplicative_increments
 
 from tuna.observable import Observable
 

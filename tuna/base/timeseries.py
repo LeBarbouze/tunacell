@@ -7,7 +7,7 @@ import collections
 import numpy as np
 import pandas as pd
 
-from tuna.datatools import Coordinates
+from tuna.base.datatools import Coordinates
 
 
 # define an object to handle heterogeneous types of time series

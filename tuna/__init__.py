@@ -6,6 +6,6 @@ __init__.py file
 """
 
 # API level classes
-from tuna.observable import Observable
-from tuna.parser import Parser
+from tuna.base.experiment import Experiment
+from tuna.base.observable import Observable
 from tuna.filters.main import FilterSet

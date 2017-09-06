@@ -7,14 +7,13 @@ from __future__ import print_function
 
 import numpy as np
 import warnings
-from copy import deepcopy
 
 import treelib as tlib
 
 from tuna.observable import Observable, FunctionalObservable
-from tuna.datatools import (Coordinates, compute_rates,
-                            extrapolate_endpoints,
-                            derivative, logderivative, ExtrapolationError)
+from tuna.base.datatools import (Coordinates, compute_rates,
+                                 extrapolate_endpoints,
+                                 derivative, logderivative, ExtrapolationError)
 
 
 class CellError(Exception):
