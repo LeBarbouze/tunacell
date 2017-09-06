@@ -10,26 +10,71 @@ is a Python package that provides tools to analyze data from time-lapse
 movies of dividing micro-organisms.
 
 `tuna`'s main functions are to: parse data, visualize small sample realizations,
-and perform statistical analysis of the dynamics. 
+and perform statistical analysis of the dynamics. Although not restricted to, it
+is specially useful for the analysis of time-series spanning multiple cell
+cycles, where data must be extracted from lineages, and not just single cells
+separately. It deals with dynamic data (i.e. defined for each acquisition time)
+and with cell-cycle level data. Important features are the computation of
+autocovariance, and cross-covariance as functions of time.
 
+# Main features
+
+* Analysis of time-series defined over many cell-cycles
+* Computation of average values, variance, number of samples over time (easy)
+* Computation of autocovariance for a single observable, and cross-covariance
+  for a couple of observables over time (less easy)
+* Filtering-out of cells
+* Conditional analysis
+* Data visualization of small samples
+* Export of computed data as text files in a comprehensive folder structure
 
 # Install
 
-So far, the package is not available on the Python Package Index, but it shall
-be in the future. The simplest is to clone the repo on
-your computer (at your favourite location), go there and make a local
-(editable) install using pip:
+Clone the repo and make a local (editable) install using pip:
 
     pip install -e .
 
-# Use
+# Documentation
 
-Once installed, you may start with the welcome tutorial. After that, plug your
-data in, use the tool to discover new things about the dynamical properties
-of your cells!
+Documentation can be found [here][tunadocs], with an [introduction][tunadocs-intro],
+a [quick demo tutorial][tunadocs-tutorial], a user manual that guides you
+through tunacell utilization.
+
+[tunadocs]: http://www.joachimrambeau.com/_tunadocs/index.html "Tunacell documentation"
+[tunadocs-intro] : http://www.joachimrambeau.com/_tunadocs/intro.html "Introduction to tunacell"
+
+# Using, and learning to use tunacell
+
+There are two main options to dive into tunacell.
+
+First option is to go through the user manual of the documentation, stepping
+through each point. Although it might give you an in-depth, logical introduction
+to tuna, it might be tedious as a first approach.
+
+The second option is to open, read, and run the script files stored under the
+``scripts`` folder in the repo. First start with the ``simurun.py`` script
+from the command line to generate data:
+
+    python simurun.py
+
+Then have a look at ``tutorial.py`` for a first glance at tunacell scope.
+Dive in with the ``univariate-analysis.py``, ``univariate-analysis-2.py``,
+and ``bivariate-analysis.py`` to become an expert.
+
+If you got how it works, plug your data in and use tunacell API to write your
+scripts and discover new things about the dynamical properties of your cells!
+
 
 # About this version
 
-This version 0.0.6 is now ready for public testing.
-Please feel free to report any bug.
+This version 0.0.7 is now ready for public testing. Bugs may come up quickly,
+please report them with an Issue, or better, fork, make the patch, and PR :)
+
+# Added features
+
+Amongst a global reorganization, noticeable added feature is FunctionalObservable
+that allows the user to define a new observable as a function of other
+observables. For instance, it can be helpful when one wants to rescale a
+dynamic, time-lapse observable (say, growth rate) by a cell-cycle observable
+(say, brith growth rate).
 
