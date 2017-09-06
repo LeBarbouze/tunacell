@@ -8,7 +8,7 @@ UnivariateConditioned(obs, applied_filter=None)
     Object that stores data for a given condition (a condition is defined by
     the 'applied_filter' Filter instance given as parameter).
 
-Univariate(obs, cset=[], parser=None, indexify=None)
+Univariate(obs, cset=[], exp=None, indexify=None)
     Object that stores data for a given set of conditions as a dictionary of
     UnivariateConditioned instances, whose keys are each filter string
     representation.
@@ -18,7 +18,7 @@ StationaryUnivariateConditioned(obs, applied_filter=None)
     (a condition is defined by the 'applied_filter' Filter instance given as
     parameter).
 
-StationaryUnivariate(obs, cset=[], parser=None)
+StationaryUnivariate(obs, cset=[], exp=None)
     Object that stores data under stationary hypothesis for a given set of
     conditions, as a dictionary of StationaryUnivariateConditioned instances,
     whose keys are each filter string representation.
@@ -303,7 +303,7 @@ class Univariate(object):
 
     Parameters
     ----------
-    parser : :class:`Parser` instance
+    exp : :class:`Experiment` instance
         Defines which experiment, and how to parse it (with its filter set
         fset attribute)
     obs : :class:`Observable` instance
@@ -328,9 +328,9 @@ class Univariate(object):
         when a parameter is missing (prints out which parameter)
     """
 
-    def __init__(self, parser, obs, eval_times=None, region='ALL', cset=[]):
+    def __init__(self, exp, obs, eval_times=None, region='ALL', cset=[]):
         self.obs = obs
-        self.parser = parser
+        self.exp = exp
         self.cset = cset
         if eval_times is None:
             self._read_eval_times()
@@ -342,10 +342,10 @@ class Univariate(object):
         if isinstance(region, Region):
             self.region = region
         elif isinstance(region, str):
-            regs = Regions(parser.experiment)
+            regs = Regions(exp)
             self.region = regs.get(region)
         else:
-            regs = Regions(parser.experiment)
+            regs = Regions(exp)
             self.region = regs.get('ALL')
         # create as many nodes as there are conditions in cset
         self._items = {}
@@ -402,8 +402,8 @@ class Univariate(object):
     def _get_obs_path(self, user_root=None, write=False):
         """Get observable path"""
         obs = self.obs
-        exp = self.parser.experiment
-        fset = self.parser.fset
+        exp = self.exp
+        fset = self.exp.fset
         analysis_path = text.get_analysis_path(exp, user_abspath=user_root,
                                                write=write)
         res = text.get_filter_path(analysis_path, fset, write=write)
@@ -445,7 +445,7 @@ class Univariate(object):
     def import_from_text(self, analysis_folder=None):
         """Set instance from text files.
 
-        This reader needs that Observable, Parser, Conditions are defined
+        This reader needs that Observable, Experiment, Conditions are defined
         and must match text folders.
 
         Raises
@@ -656,7 +656,7 @@ class StationaryUnivariate(object):
         else:
             self.options = CompuParams()
         self.obs = univariate.obs
-        self.parser = univariate.parser
+        self.exp = univariate.exp
         self.cset = univariate.cset
         self.label = self.region.name
         self.tmin = self.region.tmin
@@ -722,8 +722,8 @@ class StationaryUnivariate(object):
                 val.write_text(analysis_folder)
         # export dataframe as csv file
         if self.dataframe is not None:
-            exp = self.univariate.parser.experiment
-            fset = self.univariate.parser.fset
+            exp = self.univariate.exp
+            fset = self.univariate.exp.fset
             analysis_path = text.get_analysis_path(exp, user_abspath=analysis_folder,
                                                    write=True)
             res = text.get_filter_path(analysis_path, fset, write=True)
@@ -737,8 +737,8 @@ class StationaryUnivariate(object):
         try:
             for key, val in self._items.items():
                 val.read_text(analysis_folder)
-            exp = self.univariate.parser.experiment
-            fset = self.univariate.parser.fset
+            exp = self.univariate.exp.experiment
+            fset = self.univariate.exp.fset
             analysis_path = text.get_analysis_path(exp, user_abspath=analysis_folder,
                                                    write=False)
             res = text.get_filter_path(analysis_path, fset, write=False)

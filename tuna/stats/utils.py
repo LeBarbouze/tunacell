@@ -12,7 +12,7 @@ import csv
 import warnings
 import numpy as np
 
-from tuna import Parser
+from tuna.base.parser import Parser
 from tuna.base.experiment import Experiment
 from tuna.io import text
 
@@ -37,7 +37,7 @@ def iter_timeseries_(exp, observable, conditions, size=None):
     ------
     :class:`TimeSeries` instance
     """
-    for lineage in exp.iter_lineages(mode='all', size=size):
+    for lineage in exp.iter_lineages(size=size):
         ts = lineage.get_timeseries(observable, conditions)
         yield ts
     return
@@ -63,7 +63,7 @@ def iter_timeseries_2(exp, obs1, obs2, conditions, size=None):
     ------
     Couple of :class:`TimeSeries` instances
     """
-    for lineage in exp.iter_lineages(mode='all', size=size):
+    for lineage in exp.iter_lineages(size=size):
         ts1 = lineage.get_timeseries(obs1, conditions)
         ts2 = lineage.get_timeseries(obs2, conditions)
         yield (ts1, ts2)

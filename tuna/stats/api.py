@@ -28,7 +28,7 @@ MIN_INTERDIVISION_TIME = 5.  # World record is set by Vibrio natriegens
 
 # %% SINGLE DYNAMIC ONBSERVABLE
 
-def compute_univariate(parser, obs, region='ALL', cset=[], times=None,
+def compute_univariate(exp, obs, region='ALL', cset=[], times=None,
                        size=None):
     """Computes one-point and two-point functions of statistical analysis.
 
@@ -41,7 +41,7 @@ def compute_univariate(parser, obs, region='ALL', cset=[], times=None,
 
     Parameters
     ----------
-    parser : :class:`Parser` instance
+    exp : :class:`Experiment` instance
     obs : :class:`Observable` instance
     region : :class:`Region` instance or str (default 'ALL')
         in case of str, must be the name of a registered region
@@ -57,17 +57,17 @@ def compute_univariate(parser, obs, region='ALL', cset=[], times=None,
     -------
     Univariate instance
     """
-    reg = _convert_region(region, parser.experiment)
+    reg = _convert_region(region, exp)
     if isinstance(times, np.ndarray):
         eval_times = times
     elif isinstance(times, collections.Iterable):
         eval_times = np.array(times)
     else:
-        eval_times = _default_eval_times(parser, obs, reg)
+        eval_times = _default_eval_times(exp, obs, reg)
     # initialize Univariate and each of its item
-    univ = Univariate(parser, obs, eval_times, reg, cset)  # empty
+    univ = Univariate(exp, obs, eval_times, reg, cset)  # empty
     # Set iterator over TimeSeries
-    timeseries = iter_timeseries_(parser, obs, cset, size=size)
+    timeseries = iter_timeseries_(exp, obs, cset, size=size)
     # call the master function performing computation
     set_dynamics(timeseries, univ, eval_times)
     return univ
@@ -84,17 +84,17 @@ def _convert_region(region, exp):
         raise ValueError(region)
 
 
-def _default_eval_times(parser, obs, region):
+def _default_eval_times(exp, obs, region):
     """Returns default evalutation times.
 
     Parameters
     ----------
-    parser : :class:`Parser` instance
+    exp : :class:`Experiment` instance
     obs : :class:`Observable` or :class:`FunctionalObservable` instance
     region : :class:`Region` instance
     """
     if obs.timing != 'g':
-        period = parser.experiment.period
+        period = exp.period
         tmin = region.tmin
         tmax = region.tmax
     else:
@@ -106,15 +106,15 @@ def _default_eval_times(parser, obs, region):
     return eval_times
 
 
-def load_univariate(parser, obs, region='ALL', cset=[]):
+def load_univariate(exp, obs, region='ALL', cset=[]):
     """Initialize an empty Univariate instance.
 
-    Such a Univariate instance is bound to an experiment (through parser),
+    Such a Univariate instance is bound to an experiment (through exp),
     an observable, and a set of conditions.
 
     Parameters
     ----------
-    parser : :class:`Parser` instance
+    exp : :class:`Experiment` instance
     obs : :class:`Observable` instance
     region : :class:`Region` instance or str (default 'ALL')
         in case of str, must be the name of a registered region
@@ -130,10 +130,10 @@ def load_univariate(parser, obs, region='ALL', cset=[]):
     UnivariateIOError
         when importing fails (no data corresponds to input params)
     """
-    reg = _convert_region(region, parser.experiment)
+    reg = _convert_region(region, exp)
     # use default eval_times to respect __init__, will be updated upon reading
-    eval_times = _default_eval_times(parser, obs, reg)
-    univ = Univariate(parser, obs, eval_times, reg, cset)
+    eval_times = _default_eval_times(exp, obs, reg)
+    univ = Univariate(exp, obs, eval_times, reg, cset)
     univ.import_from_text()
     return univ
 
@@ -199,7 +199,7 @@ def compute_stationary(univ, region, options, size=None):
     # initialize StationaryUnivariate
     stationary = StationaryUnivariate(univ, region, options)
     # Set iterator over TimeSeries
-    timeseries = iter_timeseries_(univ.parser, univ.obs, univ.cset, size=size)
+    timeseries = iter_timeseries_(univ.exp, univ.obs, univ.cset, size=size)
     # call the function performing computation and updating stationary
     try:
         set_stationary_autocorrelation(timeseries, univ, stationary,
@@ -285,9 +285,9 @@ def compute_bivariate(row_univariate, col_univariate, size=None):
                 raise TypeError(msg)
     # initialize Univariate and each of its item
     two = Bivariate(row_univariate, col_univariate)  # empty
-    parser = two.parser
+    exp = two.exp
     cset = two.cset
-    timeseries = iter_timeseries_2(parser, obs1, obs2, cset, size=size)
+    timeseries = iter_timeseries_2(exp, obs1, obs2, cset, size=size)
     # call the master function performing computation
     set_crosscorrelation(timeseries, row_univariate, col_univariate, two)
     # update conditioned univ cross-correlation
@@ -355,9 +355,9 @@ def compute_stationary_bivariate(row_univariate, col_univariate,
         _update_univariate_from_stationary(univ, suniv)
     sbivar = StationaryBivariate(row_univariate, col_univariate,
                                  region, options)
-    parser = sbivar.parser
+    exp = sbivar.exp
     cset = sbivar.cset
-    timeseries = iter_timeseries_2(parser, obs1, obs2, cset, size=size)
+    timeseries = iter_timeseries_2(exp, obs1, obs2, cset, size=size)
     set_stationary_crosscorrelation(timeseries, row_univariate, col_univariate,
                                     sbivar,
                                     tmin=region.tmin, tmax=region.tmax,

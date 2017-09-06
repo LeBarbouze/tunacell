@@ -186,14 +186,14 @@ class Bivariate(object):
 
     """
     def __init__(self, row_univariate, col_univariate):
-        # check whether parser instances match
+        # check whether exp instances match
         s1, s2 = row_univariate, col_univariate
-        if s1.parser.experiment.abspath != s2.parser.experiment.abspath:
+        if s1.exp.abspath != s2.exp.abspath:
             raise BivariateError('Experiments do not match')
-        if repr(s1.parser.fset) != repr(s2.parser.fset):
+        if repr(s1.exp.fset) != repr(s2.exp.fset):
             raise BivariateError('Filter sets do not match')
         self.univariates = (row_univariate, col_univariate)
-        self.parser = s1.parser
+        self.exp = s1.exp
         # build common conditions
         cset = []
         for cdt in s1.cset:
@@ -214,8 +214,8 @@ class Bivariate(object):
     def _get_obs_path(self, user_root=None, write=False):
         """Get observable path"""
         obss = [univ.obs for univ in self.univariates]
-        exp = self.parser.experiment
-        fset = self.parser.fset
+        exp = self.exp
+        fset = self.exp.fset
         analysis_path = text.get_analysis_path(exp, user_abspath=user_root,
                                                write=write)
         res = text.get_filter_path(analysis_path, fset, write=write)
@@ -360,9 +360,9 @@ class StationaryBivariate(object):
         self.options = options
         s1, s2 = row_univariate, col_univariate
         # obss = [univariate.obs for univariate in univariates]
-        if s1.parser.experiment.abspath != s2.parser.experiment.abspath:
+        if s1.exp.abspath != s2.exp.abspath:
             raise BivariateError('Experiments do not match')
-        if repr(s1.parser.fset) != repr(s2.parser.fset):
+        if repr(s1.exp.fset) != repr(s2.exp.fset):
             raise BivariateError('Filter sets do not match')
 
         self.univariates = (row_univariate, col_univariate)
@@ -371,7 +371,7 @@ class StationaryBivariate(object):
         self.tmax = self.region.tmax
         self.adjust_mean = self.options.adjust_mean
         self.disjoint = self.options.disjoint
-        self.parser = s1.parser
+        self.exp = s1.exp
         # build common conditions
         cset = []
         for cdt in s1.cset:
@@ -393,8 +393,8 @@ class StationaryBivariate(object):
     def _get_obs_path(self, user_root=None, write=False):
         """Get observable path"""
         obss = [univ.obs for univ in self.univariates]
-        exp = self.parser.experiment
-        fset = self.parser.fset
+        exp = self.exp
+        fset = self.exp.fset
         analysis_path = text.get_analysis_path(exp, user_abspath=user_root,
                                                write=write)
         res = text.get_filter_path(analysis_path, fset, write=write)
@@ -415,8 +415,8 @@ class StationaryBivariate(object):
                 val.write_text(analysis_folder)
         # export dataframe as csv file
         if self.dataframe is not None:
-            exp = self.parser.experiment
-            fset = self.parser.fset
+            exp = self.exp
+            fset = self.exp.fset
             analysis_path = text.get_analysis_path(exp,
                                                    user_abspath=analysis_folder,
                                                    write=True)
@@ -432,8 +432,8 @@ class StationaryBivariate(object):
         try:
             for key, val in self._items.items():
                 val.read_text(analysis_folder)
-            exp = self.parser.experiment
-            fset = self.parser.fset
+            exp = self.exp
+            fset = self.exp.fset
             analysis_path = text.get_analysis_path(exp, user_abspath=analysis_folder,
                                                    write=False)
             res = text.get_filter_path(analysis_path, fset, write=False)
