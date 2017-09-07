@@ -28,10 +28,23 @@ from tuna.stats.api import (compute_univariate, load_univariate,
 from tuna.stats.single import UnivariateIOError, StationaryUnivariateIOError
 from tuna.stats.two import BivariateIOError, StationaryBivariateIOError
 from tuna.stats.utils import Regions, CompuParams
-from tuna.plotting.dynamics import plot_onepoint, plot_twopoints, plot_stationary
+from tuna.plotting.dynamics import plot_stationary
 
-from tuna.io import text
 
+def press_enter(figs):
+    """Convenient function to print figures and press Enter"""
+    # when run from ipython, figure should automatically be plotted
+    try:
+        __IPYTHON__
+    # otherwise call .plot() and wait for pressing Enter
+    except NameError:
+        for fig in figs:
+            fig.show()
+            if sys.version_info[0] == 2:
+                ans = raw_input('Press Enter to proceed...')
+            else:
+                ans = input('Press Enter to proceed...')
+    return
 
 # close all open plots
 plt.close('all')
@@ -54,10 +67,6 @@ md = exp.metadata.loc[exp.label]
 ref_mean = md.target
 ref_var = md.noise / (2*md.spring)
 ref_decayrate = md.spring
-tmin = md.start
-tmax = md.stop
-period = md.period
-
 
 # TIME-LAPSE OBSERVABLES (time-series per cell)
 
@@ -135,9 +144,8 @@ for obs in continuous_obs + cycle_obs:
     print('Ok')
 
 regions = Regions(exp)
-regions.reset()  # eliminate all regions except 'ALL'
-regions.add(name='steady', tmin=20., tmax=160.)
-steady_region = regions.get('steady')
+# regions.reset()  # eliminate all regions except 'ALL'
+steady_region = regions.get('ALL')
 
 # and we need to use some computation options (more on that elsewhere)
 # define computation options
@@ -208,16 +216,7 @@ for o1, o2 in couples:
     figs.append(fig)
 
 # when run from ipython, figure should automatically be plotted
-try:
-    __IPYTHON__
-# otherwise call .plot() and wait for pressing Enter
-except NameError:
-    for fig in figs:
-        fig.show()
-        if sys.version_info[0] == 2:
-            ans = raw_input('Press Enter to proceed...')
-        else:
-            ans = input('Press Enter to proceed...')
+press_enter(figs)
 
 # =============================================================================
 # Note that we can get easily non-dynamic bivariate analysis

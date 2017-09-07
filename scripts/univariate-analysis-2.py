@@ -29,6 +29,21 @@ from tuna.stats.utils import Regions, CompuParams
 from tuna.plotting.dynamics import plot_onepoint, plot_twopoints, plot_stationary
 
 
+def press_enter(figs):
+    """Convenient function to print figures and press Enter"""
+    # when run from ipython, figure should automatically be plotted
+    try:
+        __IPYTHON__
+    # otherwise call .plot() and wait for pressing Enter
+    except NameError:
+        for fig in figs:
+            fig.show()
+            if sys.version_info[0] == 2:
+                ans = raw_input('Press Enter to proceed...')
+            else:
+                ans = input('Press Enter to proceed...')
+    return
+    
 # close all open plots
 plt.close('all')
 
@@ -52,9 +67,6 @@ md = exp.metadata.loc[exp.label]
 ref_mean = md.target
 ref_var = md.noise / (2*md.spring)
 ref_decayrate = md.spring
-tmin = md.start
-tmax = md.stop
-period = md.period
 
 # loading univariate analysis for the ou observable
 univariate = load_univariate(exp, ou, cset=[condition, ])
@@ -145,34 +157,21 @@ for obs in continuous_obs + cycle_obs:
     fig2 = plot_twopoints(univ, save=True, **kwargs2)
     figs.append(fig2)
 
-# when run from ipython, figure should automatically be plotted
-try:
-    __IPYTHON__
-# otherwise call .plot() and wait for pressing Enter
-except NameError:
-    for fig in figs:
-        fig.show()
-        if sys.version_info[0] == 2:
-            ans = raw_input('Press Enter to proceed...')
-        else:
-            ans = input('Press Enter to proceed...')
+press_enter(figs)
+
 
 # =============================================================================
 # A look at the onepoint functions allows the user to identify regions of time
 # where the process looks stationary. There is a function to define such
 # regions, and in fact, we already use one in the previous computations,
 # defined by default: the region 'ALL' that comprises all time values.
-# Below we will define another region just for the purpose of giving an example
-# as we know that the process is stationary on the whole time course.
-# Let's say we find the process stationary on the time range [50., 150.].
-# By using this region (instead of the 'ALL' region that we used implicitely
-# before), sampling will only be performed on time series bounded by these values
+# Here we mention the used region explicitely, and we stick to the 'ALL'
+# region since we find the process stationary on the entire time course
 # =============================================================================
 
 regions = Regions(exp)
 regions.reset()  # eliminate all regions except 'ALL'
-regions.add(name='steady', tmin=20., tmax=160.)
-steady_region = regions.get('steady')
+steady_region = regions.get('ALL')
 
 # and we need to use some computation options (more on that elsewhere)
 # define computation options
@@ -199,7 +198,8 @@ for obs in continuous_obs + cycle_obs:
     print('Ok')
     # plotting features
     if obs in [ou, gr, ou2]:
-        kwargs = {'ref_decay': ref_decayrate, 'fitlog': True}
+        kwargs = {'ref_decay': ref_decayrate, 'fitlog': True,
+                  'fitting_time_max': 45.}  # must be larger than expected decay time
     else:
         kwargs = {}
 
@@ -207,15 +207,23 @@ for obs in continuous_obs + cycle_obs:
         fig = plot_stationary(stat, save=True, **kwargs)
         figs.append(fig)
 
-# when run from ipython, figure should automatically be plotted
+press_enter(figs)
+
+
+# =============================================================================
+# For the sake of demonstration, we define here another, smaller region
+# =============================================================================
+
+regions.add(name='beginning', tmin=0., tmax=100.)
+reg = regions.get('beginning')
+
+# we just start the computation for exact-growth-rate
+univ = univariates_store[ou]
 try:
-    __IPYTHON__
-# otherwise call .plot() and wait for pressing Enter
-except NameError:
-    for fig in figs:
-        fig.show()
-        if sys.version_info[0] == 2:
-            ans = raw_input('Press Enter to proceed...')
-        else:
-            ans = input('Press Enter to proceed...')
-    
+    stat = load_stationary(univ, reg, options)
+except StationaryUnivariateIOError:
+    stat = compute_stationary(univ, reg, options)
+    stat.export_text()
+
+fig = plot_stationary(stat, save=True, ref_decay=ref_decayrate, fitlog=True)
+press_enter([fig, ])

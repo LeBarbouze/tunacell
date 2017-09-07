@@ -95,9 +95,6 @@ md = exp.metadata.loc[exp.label]
 ref_mean = md.target
 ref_var = md.noise / (2*md.spring)
 ref_decayrate = md.spring
-tmin = md.start
-tmax = md.stop
-period = md.period
 
 # Plotting one-point functions
 fig = plot_onepoint(univariate, mean_ref=ref_mean, var_ref=ref_var, show_ci=True)
