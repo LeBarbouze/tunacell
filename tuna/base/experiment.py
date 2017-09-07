@@ -172,7 +172,7 @@ class Experiment(object):
 
     def __repr__(self):
         msg = 'Experiment root: {}'.format(self.abspath)
-        msg += '\nContainer containers:\n'
+        msg += '\nContainers:\n'
         count = 0
         for fn in self.containers:
             count += 1
