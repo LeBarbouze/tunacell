@@ -1,9 +1,10 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
-Created on Wed May 10 13:52:55 2017
+script: tutorial.py
 
-@author: joachim
+This script is a recap of commands used in the 10 minute tutorial of tunacell
+documentation.
 """
 from __future__ import print_function
 
@@ -33,13 +34,8 @@ print('**')
 
 # %% To collect small samples, we use the Parser object
 parser = Parser(path_to_exp)
-# this is equivalent to Parser('simutest') if you cd in appropriate folder
 
-print(parser)
-print('**')
-
-# %% Add a random sample
-
+# Add a random sample
 parser.add_sample(1)
 print(parser)
 print('**')
@@ -62,7 +58,7 @@ print('**')
 # %% define observable from raw data
 
 from tuna import Observable
-obs = Observable(name='size', raw='exp_ou_int', tref='root')
+obs = Observable(name='size', raw='exp_ou_int')
 print(obs)
 print(obs.as_string_table())
 print('**')

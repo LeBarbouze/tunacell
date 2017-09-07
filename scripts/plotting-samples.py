@@ -1,22 +1,25 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
-plotting-samples.py
+script: plotting-samples.py
+
+This script shows how to plot samples.
 """
 
 from __future__ import print_function
 
-import numpy as np
+
 import matplotlib.pyplot as plt
 
-from tuna import Parser, Observable, FilterSet
+from tuna import Experiment, Parser, Observable, FilterSet
 from tuna.filters.cells import FilterCellIDparity
 from tuna.plotting.samples import SamplePlot
 
 plt.close('all')
 # define the Parser instance, no filter applied
 path_to_exp = '~/tmptuna/simushort'
-parser = Parser(path_to_exp)
+exp = Experiment(path_to_exp)
+parser = Parser(exp)
 # add 10 random samples
 parser.add_sample(10)
 # define a condition
@@ -24,8 +27,8 @@ even = FilterCellIDparity('even')
 condition = FilterSet(filtercell=even)
 
 # define observable
-length = Observable(raw='exp_ou_int')
-ou = Observable(raw='ou')
+length = Observable(name='length', raw='exp_ou_int')
+ou = Observable(name='growth-rate', raw='ou')
 
 # get one colony
 colony = parser.get_colony(0)
