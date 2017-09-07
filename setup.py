@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-descr = """Analysis of time-lapse data of growing, and dividing cells
+descr = """Analysis of Timeseries from dividing UNicellular microorganisms
 
 Analysis of time-lapse data from microscopy of growing micro-organisms,
 including tree reconstruction, time-series visualization, computation of
@@ -10,8 +10,8 @@ statistics of dynamic, and cell-cycle variables.
 from setuptools import setup, find_packages
 
 setup(name='tunacell',
-      version='0.0.6',
-      description='Time-lapse of unicellular organisms analyzer',
+      version='0.0.7',
+      description='Analysis of Timeseries from dividing UNicellular microorganisms',
       long_description=descr,
       url='',
       author='Joachim Rambeau',
@@ -32,10 +32,11 @@ setup(name='tunacell',
       #packages=['tuna'],
       packages=find_packages(),
       install_requires=['numpy',
+                        'scipy',
                         'pandas',
                         'treelib',
                         'matplotlib>=2',  # new color code...
-                        'tables',
-                        'future'],
+                        'future',
+                        'dill'],
 #      scripts=['bin/commande.py'],
       zip_safe=False)
