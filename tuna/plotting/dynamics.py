@@ -328,7 +328,7 @@ def plot_onepoint(univariate, show_cdts='all', left=None, right=None,
             # export data and then get
             univ.export_text(analysis_folder=user_path)
             obs_path = univ._get_obs_path(user_root=user_path, write=False)
-        bname = 'plot_onepoint_' + univ.region.name + ext
+        bname = 'plot_onepoint_' + univ.obs.name + '_' + univ.region.name + ext
         fname = os.path.join(obs_path, bname)
         fig.savefig(fname, bbox_to_inches='tight', pad_inches=0)
     return fig
@@ -545,14 +545,15 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
         else:
             univc = univariate[condition_label]
         cdt_path = univc._get_path()
-        bname = 'plot_twopoints_' + univariate.region.name + ext
+        bname = 'plot_twopoints_' + univariate.obs.name + '_' + univariate.region.name + ext
         fname = os.path.join(cdt_path, bname)
         fig.savefig(fname, bbox_inches='tight', pad_inches=0)
     return fig
 
 
 def plot_stationary(stationary, show_cdts='all',
-                    fitlog=False, epsilon=0.1, ref_decay=None,
+                    fitlog=False, epsilon=0.1, fitting_time_max=None,
+                    ref_decay=None,
                     interval_max=None, save=False, ext='.png'):
     """Plot stationary autocorrelation.
 
@@ -561,8 +562,13 @@ def plot_stationary(stationary, show_cdts='all',
     stationary : StationaryUnivariate or StationaryBivariate instance
     fitlog : bool {False, True}
         whether to fit initial decay with an exponential decay
-    epsilon : float
-        threshold to ensure 'close to zero' in the fitting procedure
+    epsilon : float (default 0.1)
+        threshold to ensure 'close to zero' in the fitting procedure, tries
+        to perform the fit on autocorrelation values larger than epsilon.
+        Default value makes the fit over one decade.
+    fitting_time_max : float (default None)
+        maximum time range to make fit when provided. Fit will be performed
+        over the smaller region defined by both epsilon and fitting_time_max
     ref_decay : float (default None)
         whether to plot an exponential decay with corresponding rate
         exp(-rate * t)
@@ -679,6 +685,11 @@ def plot_stationary(stationary, show_cdts='all',
                 if val < epsilon:
                     break
             argmax = arg
+            if fitting_time_max is not None:
+                argmax = np.nanargmin(np.abs(dts - fitting_time_max))
+            # choose minimum between arg and argmax
+            if argmax > arg:
+                argmax = arg
             if argmax < 2:
                 warnings.warn('Not enough points to perform fitlog')
             else:
@@ -778,15 +789,14 @@ def plot_stationary(stationary, show_cdts='all',
              transform=ax1.transAxes)
     if save:
         # get univariate instance to get path where to save figure
-        if isinstance(stationary, StationaryUnivariate):
-            bname = 'stationary_'
-        elif isinstance(stationary, StationaryBivariate):
-            bname = 'stationary_crosscorrelation_'
+        bname = 'plot_stationary_'
         try:
             obs_path = stationary._get_obs_path(write=False)
         except text.MissingFolderError:
             stationary.write_text()
             obs_path = stationary._get_obs_path(write=False)
+        obsname = os.path.basename(obs_path)
+        bname += obsname + '_'
         bname += stationary.region.name + ext
         fname = os.path.join(obs_path, bname)
         fig.savefig(fname, bbox_inches='tight', pad_inches=0)
