@@ -398,16 +398,9 @@ class Parser(object):
                                           sample_id['cellID']])
         return msg
 
-    def info(self):
-        msg = ('{}'.format(self._experiment.info()) + '\n'
-               '{}'.format(self.fset))
-        return msg
-
     def __repr__(self):
-        msg = self.info()
-        msg += '\n\n'
-        msg += self.info_samples()
-        return msg
+        return self.info_samples()
+
 
     def iter_containers(self, mode='all', size=None, shuffle=False):
         """Iterate through valid containers.
@@ -437,12 +430,12 @@ class Parser(object):
         """
         exp = self.experiment
         if mode == 'all':
-            for container in exp.iter_container(read=True, build=True,
-                                                prefilt=self.fset.cell_filter,
-                                                extend_observables=True,
-                                                report_NaNs=True,
-                                                size=size,
-                                                shuffle=shuffle):
+            for container in exp.iter_containers(read=True, build=True,
+                                                 prefilt=self.fset.cell_filter,
+                                                 extend_observables=True,
+                                                 report_NaNs=True,
+                                                 size=size,
+                                                 shuffle=shuffle):
                 if self.fset.container_filter(container):
                     yield container
         elif mode == 'samples':
