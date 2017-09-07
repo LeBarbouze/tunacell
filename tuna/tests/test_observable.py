@@ -18,7 +18,7 @@ from itertools import product
 from tuna.base.observable import Observable, ObservableStringError
 
 
-t_params = (('label', ['mysoup', 'donald']),
+t_params = (('name', ['mysoup', 'donald']),
             ('raw', ['soup', 'duck']),
             ('scale', ['linear', 'log']),
             ('mode', ['dynamics',

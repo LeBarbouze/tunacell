@@ -59,7 +59,7 @@ def test_experiment_datatype(fake_exp):
 
 
 def test_experiment_iter(fake_exp):
-    meths = ['iter_container']
+    meths = ['iter_containers']
     for meth in meths:
         method = getattr(fake_exp, meth)
         assert callable(method)
