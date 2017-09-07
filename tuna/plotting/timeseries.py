@@ -10,8 +10,7 @@ import re
 
 import matplotlib.transforms as transforms
 
-from tuna.stats.single import Univariate
-
+from tuna.stats.api import load_univariate, UnivariateIOError
 
 def add_data_statistics(axes, parser, obs, conditions,
                         condition_label='master'):
@@ -33,8 +32,10 @@ def add_data_statistics(axes, parser, obs, conditions,
     line_mean : matplotlib.Lines2D
     fill_std matplotlib.collections.PolyCollection
     """
-    single = Univariate(obs, parser=parser, cset=conditions)
-    single.import_from_text()
+    try:
+        single = load_univariate(parser.experiment, obs, cset=conditions)
+    except UnivariateIOError:
+        return None, None
     item = single[condition_label]
     tt = item.time
     mm = item.average

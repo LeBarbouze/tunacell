@@ -429,7 +429,8 @@ def plot_samples(samples, obs, parser=None, conditions=[],
                 res = add_data_statistics(axes, parser, obs, conditions,
                                           condition_label=condition_label)
                 for item in res:
-                    data_stat_handles.append(item)
+                    if item is not None:
+                        data_stat_handles.append(item)
             except IOError:
                 msg = ('Statistics have not been computed yet.')
                 warnings.warn(msg)
