@@ -30,9 +30,34 @@ autocovariance, and cross-covariance as functions of time.
 
 # Install
 
-Clone the repo and make a local (editable) install using pip:
+tunacell has been developed with Python 2 and can be installed locally using pip.
+Clone (or download) the repo and make a local (editable) install using pip:
 
     pip install -e .
+
+## New to Python
+
+Python is a computer programming language and to use it, you need a Python
+interpreter. To check whether you have the Python interpreter installed
+on your system, run the following command in a terminal:
+
+    python -V
+
+If the answer shows something like ``Python 2.7.x``, you're good to go.
+Otherwise you should install it, either directly downloading
+[python-downloads][the source files],
+or using a friendlier package that will guide you,
+such as [anaconda][anaconda].
+
+After that you should be ready, and pip should be automatically installed. Again
+try:
+
+    pip -V
+
+If it is not installed, you may check [install-pip][this to install pip].
+
+[install-pip]: https://pip.pypa.io/en/stable/installing/ "Install pip"
+[anaconda]: https://docs.continuum.io/ "Anaconda"
 
 # Documentation
 
@@ -64,17 +89,25 @@ and ``bivariate-analysis.py`` to become an expert.
 If you got how it works, plug your data in and use tunacell API to write your
 scripts and discover new things about the dynamical properties of your cells!
 
+# Development
 
-# About this version
+## About this version
 
-This version 0.0.7 is now ready for public testing. Bugs may come up quickly,
+This version 0.0.7 is now ready for public, alpha testing. 
+Bugs may come up quickly,
 please report them with an Issue, or better, fork, make the patch, and PR :)
 
-# Added features
+## Added features
 
 Amongst a global reorganization, noticeable added feature is FunctionalObservable
 that allows the user to define a new observable as a function of other
 observables. For instance, it can be helpful when one wants to rescale a
 dynamic, time-lapse observable (say, growth rate) by a cell-cycle observable
 (say, brith growth rate).
+
+## Future work
+
+[] Make tunacell Python 3 compatible
+[] Add features for static statistical analysis (distributions, scatter-plots, ...)
+[] Add GUI
 
