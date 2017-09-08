@@ -15,16 +15,16 @@ capabilities.
 
 from __future__ import print_function
 
-import sys
-
 import matplotlib.pyplot as plt
-
 
 from tuna import Experiment, Observable, FilterSet
 from tuna.filters.cells import FilterCellIDparity
 from tuna.stats.api import compute_univariate
 from tuna.plotting.dynamics import plot_onepoint, plot_twopoints
 from tuna.io import text
+
+from tutorial import press_enter, args
+
 
 # close all open plots
 plt.close('all')
@@ -34,8 +34,16 @@ plt.close('all')
 # filterset and which conditions
 # =============================================================================
 
+## Arguments
+#argparser = argparse.ArgumentParser()
+#argparser.add_argument('-e', '--exp', type=str,
+#                       help='Path to experiment root folder',
+#                       default='~/tmptuna/simutest')
+#
+#args = argparser.parse_args()
+
 # define the Experiment instance without filtering
-path_to_exp = '~/tmptuna/simutest'
+path_to_exp = args.experiment
 exp = Experiment(path_to_exp)
 # define a condition
 even = FilterCellIDparity('even')
@@ -98,16 +106,7 @@ ref_decayrate = md.spring
 
 # Plotting one-point functions
 fig = plot_onepoint(univariate, mean_ref=ref_mean, var_ref=ref_var, show_ci=True)
-# when run from ipython, figure should automatically be plotted
-try:
-    __IPYTHON__
-# otherwise call .plot() and wait for pressing Enter
-except NameError:
-    fig.show()
-    if sys.version_info[0] == 2:
-        ans = raw_input('Press Enter to proceed...')
-    else:
-        ans = input('Press Enter to proceed...')
+press_enter(fig)
 
 # =============================================================================
 # Okay the figure fig is divided in 3 scopes:
@@ -127,15 +126,7 @@ except NameError:
 # Plotting two-point functions
 fig2 = plot_twopoints(univariate, condition_label='master', trefs=[40., 80., 150.],
                       show_exp_decay=ref_decayrate)
-try:
-    __IPYTHON__
-# otherwise call .plot() and wait for pressing Enter
-except NameError:
-    fig2.show()
-    if sys.version_info[0] == 2:
-        ans = raw_input('Press Enter to proceed...')
-    else:
-        ans = input('Press Enter to proceed...')
+press_enter(fig2)
 # =============================================================================
 # Again the figure fig2 is divided in 3 scopes:
 # * top : number of samples (i.e. number of independent lineages going from

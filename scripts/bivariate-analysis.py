@@ -30,21 +30,7 @@ from tuna.stats.two import BivariateIOError, StationaryBivariateIOError
 from tuna.stats.utils import Regions, CompuParams
 from tuna.plotting.dynamics import plot_stationary
 
-
-def press_enter(figs):
-    """Convenient function to print figures and press Enter"""
-    # when run from ipython, figure should automatically be plotted
-    try:
-        __IPYTHON__
-    # otherwise call .plot() and wait for pressing Enter
-    except NameError:
-        for fig in figs:
-            fig.show()
-            if sys.version_info[0] == 2:
-                ans = raw_input('Press Enter to proceed...')
-            else:
-                ans = input('Press Enter to proceed...')
-    return
+from tutorial import press_enter, args
 
 # close all open plots
 plt.close('all')
@@ -56,7 +42,7 @@ plt.close('all')
 # =============================================================================
 
 # define the Parser instance, no filter applied
-path_to_exp = '~/tmptuna/simutest'
+path_to_exp = args.experiment
 exp = Experiment(path_to_exp)
 # define a condition
 even = FilterCellIDparity('even')
@@ -216,13 +202,13 @@ for o1, o2 in couples:
     figs.append(fig)
 
 # when run from ipython, figure should automatically be plotted
-press_enter(figs)
+press_enter(*figs)
 
 # =============================================================================
 # Note that we can get easily non-dynamic bivariate analysis
 # '(mixing cell-cycle observables with different reporting times)
 # =============================================================================
-plt.figure()
+fig = plt.figure()
 couple = [division_size, increase]
 print('Bivariate sampling of {} and {} ...'.format(couple[0].name, couple[1].name))
 all_dfs = []
@@ -240,14 +226,6 @@ print('{}'.format(excerpt))
 plt.scatter(df[couple[0].name], df[couple[1].name])
 plt.xlabel(couple[0].name)
 plt.ylabel(couple[1].name)
+plt.title('Scatter plot of added size vs division size')
 
-# when run from ipython, figure should automatically be plotted
-try:
-    __IPYTHON__
-# otherwise call .plot() and wait for pressing Enter
-except NameError:
-    plt.show()
-    if sys.version_info[0] == 2:
-        ans = raw_input('Press Enter to proceed...')
-    else:
-        ans = input('Press Enter to proceed...')
+press_enter(fig)

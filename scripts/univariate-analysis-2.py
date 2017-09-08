@@ -14,8 +14,6 @@ in practice increases the effective sample size.
 
 from __future__ import print_function
 
-import sys
-
 import matplotlib.pyplot as plt
 
 from tuna import Experiment, Observable, FilterSet
@@ -28,21 +26,8 @@ from tuna.stats.single import UnivariateIOError, StationaryUnivariateIOError
 from tuna.stats.utils import Regions, CompuParams
 from tuna.plotting.dynamics import plot_onepoint, plot_twopoints, plot_stationary
 
+from tutorial import press_enter, args
 
-def press_enter(figs):
-    """Convenient function to print figures and press Enter"""
-    # when run from ipython, figure should automatically be plotted
-    try:
-        __IPYTHON__
-    # otherwise call .plot() and wait for pressing Enter
-    except NameError:
-        for fig in figs:
-            fig.show()
-            if sys.version_info[0] == 2:
-                ans = raw_input('Press Enter to proceed...')
-            else:
-                ans = input('Press Enter to proceed...')
-    return
     
 # close all open plots
 plt.close('all')
@@ -54,7 +39,7 @@ plt.close('all')
 # =============================================================================
 
 # define the exp instance, no filter applied
-path_to_exp = '~/tmptuna/simutest'
+path_to_exp = args.experiment
 exp = Experiment(path_to_exp)
 # define a condition
 even = FilterCellIDparity('even')
