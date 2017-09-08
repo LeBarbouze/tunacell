@@ -137,8 +137,9 @@ class Experiment(object):
         """Load parameters from text filetype"""
         # get list of container files
         fns = text.container_filename_parser(self.abspath)
+        bns = [os.path.splitext(bn)[0] for bn in fns]
         # extract only container labels
-        self.containers = list(zip(*map(os.path.splitext, fns))[0])
+        self.containers = bns
         # get metadata
         fn = text._check_up('metadata.csv', self.abspath, level=2)
         df = metadata.load_from_csv(fn, sep=',')

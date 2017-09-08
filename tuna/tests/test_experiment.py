@@ -55,7 +55,7 @@ def test_experiment_metadata(fake_exp):
 
 def test_experiment_datatype(fake_exp):
     assert len(fake_exp.datatype) == 4
-    assert 'cellID' in zip(*fake_exp.datatype)[0]
+    assert 'cellID' in list(zip(*fake_exp.datatype))[0]
 
 
 def test_experiment_iter(fake_exp):
