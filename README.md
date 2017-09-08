@@ -45,7 +45,7 @@ on your system, run the following command in a terminal:
 
 If the answer shows something like ``Python 2.7.x``, you're good to go.
 Otherwise you should install it, either directly downloading
-[python-downloads][the source files],
+[the source files][python-downloads],
 or using a friendlier package that will guide you,
 such as [anaconda][anaconda].
 
@@ -54,7 +54,7 @@ try:
 
     pip -V
 
-If it is not installed, you may check [install-pip][this to install pip].
+If it is not installed, you may check [this to install pip][install-pip].
 
 [install-pip]: https://pip.pypa.io/en/stable/installing/ "Install pip"
 [anaconda]: https://docs.continuum.io/ "Anaconda"
@@ -88,7 +88,7 @@ Once you've run, read, and understood the bits of code in these files, consider
 yourself as a tunacell expert.
 
 If you got how it works, plug your data in
-(look at [tunadocs-data-structure][how to format input files])
+(look at [how to format input files][tunadocs-data-structure])
 and use tunacell API to write your
 scripts and discover new things about the dynamical properties of your cells!
 
@@ -117,6 +117,7 @@ please report them with an Issue, or better, fork, make the patch, and PR :)
 [] Add GUI
 
 [tunadocs]: http://www.joachimrambeau.com/pages/_tunadocs/index.html "Tunacell documentation"
-[tunadocs-intro] : http://www.joachimrambeau.com/pages/_tunadocs/intro.html "Introduction to tunacell"
+[tunadocs-intro]: http://www.joachimrambeau.com/pages/_tunadocs/intro.html "Introduction to tunacell"
+[tunadocs-tutorial]: http://www.joachimrambeau.com/pages/_tunadocs/tutorial.html "10 minute tutorial"
 [tunadocs-data-structure]: www.joachimrambeau.com/pages/_tunadocs/docs/_build/html/users/data-structure.html "Tunacell input format"
 
