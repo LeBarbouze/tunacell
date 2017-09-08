@@ -65,9 +65,6 @@ Documentation can be found [here][tunadocs], with an [introduction][tunadocs-int
 a [quick demo tutorial][tunadocs-tutorial], a user manual that guides you
 through tunacell utilization.
 
-[tunadocs]: http://www.joachimrambeau.com/_tunadocs/index.html "Tunacell documentation"
-[tunadocs-intro] : http://www.joachimrambeau.com/_tunadocs/intro.html "Introduction to tunacell"
-
 # Using, and learning to use tunacell
 
 There are two main options to dive into tunacell.
@@ -76,38 +73,50 @@ First option is to go through the user manual of the documentation, stepping
 through each point. Although it might give you an in-depth, logical introduction
 to tuna, it might be tedious as a first approach.
 
-The second option is to open, read, and run the script files stored under the
-``scripts`` folder in the repo. First start with the ``simurun.py`` script
-from the command line to generate data:
+The second, pragmatic option is to run **sequentially** the scripts in the ``scripts``
+folder. In a terminal:
 
-    python simurun.py
+    cd <your-location-for-tunacell-repo>/scripts
+    python simurun.py  # creates by default the simutest experiment
+    python tutorial.py
+    python plotting-samples.py
+    python univariate-analysis.py
+    python univariate-analysis-2.py
+    python bivariate-analysis.py
 
-Then have a look at ``tutorial.py`` for a first glance at tunacell scope.
-Dive in with the ``univariate-analysis.py``, ``univariate-analysis-2.py``,
-and ``bivariate-analysis.py`` to become an expert.
+Once you've run, read, and understood the bits of code in these files, consider
+yourself as a tunacell expert.
 
-If you got how it works, plug your data in and use tunacell API to write your
+If you got how it works, plug your data in
+(look at [tunadocs-data-structure][how to format input files])
+and use tunacell API to write your
 scripts and discover new things about the dynamical properties of your cells!
 
 # Development
 
 ## About this version
 
-This version 0.0.7 is now ready for public, alpha testing. 
+Current version is now ready for public in alpha testing. 
 Bugs may come up quickly,
 please report them with an Issue, or better, fork, make the patch, and PR :)
 
 ## Added features
 
-Amongst a global reorganization, noticeable added feature is FunctionalObservable
-that allows the user to define a new observable as a function of other
-observables. For instance, it can be helpful when one wants to rescale a
-dynamic, time-lapse observable (say, growth rate) by a cell-cycle observable
-(say, brith growth rate).
+* Made the dynamic analysis API a bit clearer (hopefully)
+* Added few scripts to introduce tunacell API
+* FunctionalObservable class has been added in tuna/base/observable.py: 
+  it allows the user to define a new observable as a function of other
+  observables. For instance, it can be helpful when one wants to rescale a
+  dynamic, time-lapse observable (say, growth rate) by a cell-cycle observable
+  (say, brith growth rate).
 
 ## Future work
 
 [] Make tunacell Python 3 compatible
 [] Add features for static statistical analysis (distributions, scatter-plots, ...)
 [] Add GUI
+
+[tunadocs]: http://www.joachimrambeau.com/pages/_tunadocs/index.html "Tunacell documentation"
+[tunadocs-intro] : http://www.joachimrambeau.com/pages/_tunadocs/intro.html "Introduction to tunacell"
+[tunadocs-data-structure]: www.joachimrambeau.com/pages/_tunadocs/docs/_build/html/users/data-structure.html "Tunacell input format"
 
