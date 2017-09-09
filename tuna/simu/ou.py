@@ -14,7 +14,6 @@ import uuid
 
 from tuna.base.experiment import Experiment
 from tuna.base.container import Container
-#from tuna.base.metadata import Metadata
 from tuna.base.colony import Colony
 
 from tuna.simu.main import Ecoli, SimuParams, DivisionParams
@@ -40,7 +39,8 @@ class OUSimulation(Experiment):
     """
 
     def __init__(self, label=None,
-                 simuParams=None, divisionParams=None, ouParams=None):
+                 simuParams=None, divisionParams=None, ouParams=None,
+                 filter_set=None):
         today = datetime.datetime.today()
         self.date = today
         if simuParams is None:
@@ -71,7 +71,8 @@ class OUSimulation(Experiment):
         self.ouParams = ouParams
         
         self._set_metadata()
-        
+        # set filterset
+        self.fset = filter_set
         return
 
     def _set_metadata(self):
@@ -111,7 +112,7 @@ class OUSimulation(Experiment):
                )
         return msg
 
-    def iter_container(self, size=None,
+    def iter_containers(self, size=None,
                        read=True, build=True,  # useless options
                        prefilt=None,  # only used for compatibility
                        extend_observables=True,  # idem
