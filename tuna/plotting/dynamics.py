@@ -191,7 +191,7 @@ def plot_onepoint(univariate, show_cdts='all', left=None, right=None,
         _append_cdt(univariate, show_cdts, conditions)
 
     for index, cdt in enumerate(conditions):
-        letter = string.lowercase[index]
+        letter = string.ascii_lowercase[index]
         if cdt == 'master':
             c_repr = 'master'
             c_label = 'all samples'
@@ -626,7 +626,7 @@ def plot_stationary(stationary, show_cdts='all',
     xleft = np.infty
     xright = - np.infty
     for index, condition in enumerate(conditions):
-        letter = string.lowercase[index]
+        letter = string.ascii_lowercase[index]
 
         if condition == 'master':
             cdt_repr = 'master'
