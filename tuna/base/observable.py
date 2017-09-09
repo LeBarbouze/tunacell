@@ -269,33 +269,49 @@ class Observable(object):
         if self.name is not None:
             output += '\\mathrm{{ {} }}'.format(self.name.replace('-', '\, ').replace('_', '\ '))
         else:
+            # give all details using raw and operations on it
             if self.differentiate:
                 output += '\\frac{\\mathrm{d}}{\\mathrm{d}t}'
                 if self.scale == 'log':
-                    output += '\\log\\left('  # parenthesis started
+                    output += '\\log\\left['  # parenthesis started
             variable_name = '{}'.format(self.raw)
             output += '\\mathrm{{ {} }}'.format(variable_name.replace('_', '\ ').replace('-', '\, '))
-        if self.timing == 't':
-            if self.tref is None:
-                output += '(t)'
-            elif self.tref == 'root':
-                output += '(t - t_{\\mathrm{root_div}})'
-            else:
-                output += '(t - {:.2f})'.format(self.tref)
-        elif self.timing == 'b':
-            output += '\\left( t_{\\mathrm{birth}} \\right)'
-        elif self.timing == 'd':
-            output += '\\left( t_{\\mathrm{div}} \\right)'
-        elif self.timing == 'm':
-            output += ('\\left( \\frac{t_{\\mathrm{birth}} + t_{\\mathrm{div}}}'
-                       '{2} \\right)')
-        elif self.timing == 'g':
-            output += '\\left( \\mathrm{generation} \\right)'
-        if self.name is None:
             if self.differentiate and self.scale == 'log':
-                output += '\\right)'  # parenthesis closed
+                output += '\\right]'  # parenthesis closed
             if self.mode != 'dynamics':
                 output += '_{{\mathrm{{ {} }} }}'.format(self.mode)
+
+        # timing character
+        time_char = ''
+        if self.timing == 't':
+            time_char += 't'
+        elif self.timing == 'b':
+            time_char += 't_{\\mathrm{birth}}'
+        elif self.timing == 'd':
+            time_char += 't_{\\mathrm{div}}'
+        elif self.timing == 'm':
+            time_char += ('\\frac{t_{\\mathrm{birth}} + t_{\\mathrm{div}}}'
+                          '{2}')
+        elif self.timing == 'g':
+            time_char += 'n_{\\mathrm{gen}}'
+        # substract troot
+        to_substract = ''
+        if self.tref is None:
+            to_substract += ''
+        elif self.tref == 'root':
+            if self.timing != 'g':
+                to_substract += '- t^{\\mathrm{root}}_{\mathrm{div}}'
+            else:
+                to_substract += '- n^{\\mathrm{root}}_{\mathrm{gen}}'
+        else:
+            if self.timing != 'g':
+                to_substract += '- {:.2f}'.format(self.tref)
+            else:
+                to_substract += '- n_{{\mathrm{{gen}} }}({:.2f})'.format(self.tref)
+        within_parenthesis = time_char + to_substract
+        
+        output += '\\left( {} \\right)'.format(within_parenthesis)
+
         if self.local_fit:
             output += '\\ [window: {}]'.format(self.time_window)
         output += '$'
@@ -399,11 +415,11 @@ class FunctionalObservable(object):
     
     @property
     def as_latex_string(self):
-        msg = 'f('
+        args = r''
         for item in self.observables:
-            msg += item.as_latex_string + ', '
-        msg.rstrip(' ,')
-        msg += ')'
+            args += item.as_latex_string + ', '
+        args = args.replace('$', '').rstrip(',')
+        msg = r'$f( {} )$'.format(args)
         return msg
 
 
