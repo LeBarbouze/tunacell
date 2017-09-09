@@ -382,7 +382,7 @@ def get_observable_path(filter_path, obs, write=True):
                 # save serialized function
                 source_file = os.path.join(path, basename + '_source.txt')
                 with open(source_file, 'w') as sf:
-                    sf.write(obs.source_f)
+                    sf.write('{}'.format(obs.source_f))
     return path
 
 
