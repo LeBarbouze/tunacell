@@ -81,7 +81,7 @@ class Coordinates(object):
         return Coordinates(self.clear_x, self.clear_y)
 
     def as_array(self):
-        array = np.array(zip(self.clear_x, self.clear_y),
+        array = np.array(list(zip(self.clear_x, self.clear_y)),
                          dtype=[(self.x_name, 'f8'), (self.y_name, 'f8')])
         return array
 
