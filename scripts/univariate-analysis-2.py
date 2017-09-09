@@ -99,6 +99,7 @@ increase = Observable(name='added-size', raw='exp_ou_int',
 
 cycle_obs = [average_gr, division_size, increase]
 
+# %% Start computations
 
 univariates_store = {}
 figs = []
@@ -140,9 +141,11 @@ for obs in continuous_obs + cycle_obs:
     fig = plot_onepoint(univ, show_ci=True, save=True, **kwargs)
     figs.append(fig)
     fig2 = plot_twopoints(univ, save=True, **kwargs2)
-    figs.append(fig2)
+    # figs.append(fig2)  # commented: too much figures
 
-press_enter(figs)
+press_enter(*figs)
+# close all open plots
+plt.close('all')
 
 
 # =============================================================================
@@ -192,7 +195,7 @@ for obs in continuous_obs + cycle_obs:
         fig = plot_stationary(stat, save=True, **kwargs)
         figs.append(fig)
 
-press_enter(figs)
+press_enter(*figs)
 
 
 # =============================================================================
@@ -211,4 +214,4 @@ except StationaryUnivariateIOError:
     stat.export_text()
 
 fig = plot_stationary(stat, save=True, ref_decay=ref_decayrate, fitlog=True)
-press_enter([fig, ])
+press_enter(fig)

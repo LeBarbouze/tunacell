@@ -1,4 +1,3 @@
-#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
 script: tutorial.py
@@ -7,8 +6,7 @@ This script is a recap of commands used in the 10 minute tutorial of tunacell
 documentation.
 """
 from __future__ import print_function
-
-import sys
+from builtins import input  # future package 
 import argparse
 
 
@@ -21,10 +19,7 @@ def press_enter(*figs):
     except NameError:
         for fig in figs:
             fig.show()
-        if sys.version_info[0] == 2:
-            ans = raw_input('Press Enter to proceed...')
-        else:
-            ans = input('Press Enter to proceed...')
+        ans = input('Press Enter to proceed...')
     return
 
 # Arguments

@@ -16,6 +16,7 @@ used to run numerical simulations from terminal. Command is:
 All parameters have default values (see code).
 """
 from __future__ import print_function
+from builtins import input  # future package
 
 import argparse
 import os
@@ -97,11 +98,11 @@ current_name = args.label
 exp_path = os.path.join(path, args.label)
 while os.path.exists(exp_path) and ans != 'a':
     print('Experiment {} already exists.'.format(current_name))
-    ans = raw_input('Override [o], Change experiment name [c], Abort [a]: ')
+    ans = input('Override [o], Change experiment name [c], Abort [a]: ')
     if ans == 'c':
         new_name = current_name
         while new_name == current_name:
-            new_name = raw_input('NEW NAME: ')
+            new_name = input('NEW NAME: ')
         exp.label = new_name
         exp_path = os.path.join(path, new_name)
     # when overriding, need to erase everything first
