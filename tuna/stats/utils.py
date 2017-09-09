@@ -182,7 +182,7 @@ class Regions(object):
 
     @property
     def names(self):
-        return self._regions.keys()
+        return list(self._regions)  # return list of keys
 
     def __repr__(self):
         text_file = self._path_to_file(write=False)
@@ -312,7 +312,7 @@ class Regions(object):
 
     def reset(self):
         """Delete all regions except 'ALL'"""
-        names = self.names
+        names = self.names[:]
         for name in names:
             if name != 'ALL':
                 self.delete(name)
