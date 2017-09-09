@@ -79,6 +79,7 @@ colplt.save(user_bname='colony0-even-super3', add_obs=False,
             with_data_text=False, extension='.png')
 
 # %% We change samples using iterators
+plt.close('all')
 print()
 msg = ('Plotting timeseries obtained by iterating through samples\n'
        '---------------------------------------------------------')
@@ -99,7 +100,7 @@ press_enter(splt3.fig)
 splt3.save(user_bname='colonies-ou-even', add_obs=False, with_data_text=False,
            extension='.png')
 
-print('* First 5 colonies, superimposing 2 colonies per subplot')
+print('* First 5 colonies, superimposing 2 lineages per subplot')
 splt4 = SamplePlot(ou, parser.iter_colonies(size=5), parser=parser,
                    conditions=[condition, ])
 splt4.make_plot(report_condition=repr(condition), change_colony_color=True,
@@ -141,7 +142,7 @@ splt6.save(user_bname='lineages10-with-ref', add_obs=False,
            with_data_text=False, extension='.png')
 
 
-print('* Adding statistic estimates')
+print('* Adding statistic estimates (when they have been computed)')
 splt6.make_plot(report_condition=repr(condition), change_lineage_color=True,
                 superimpose='all', alpha=.5, show_markers=False,
                 data_statistics=True)
