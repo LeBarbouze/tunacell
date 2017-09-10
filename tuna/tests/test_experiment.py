@@ -1,11 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
-tuna package
-============
-
-test suite
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Testing Experiment features.
 """
 from __future__ import print_function
 

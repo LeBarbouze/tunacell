@@ -1,18 +1,11 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
-tuna package
-============
-
-test suite
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Testing Observable features.
 """
 from __future__ import print_function
 
 import pytest
-import os
-import numpy as np
-import string
 from itertools import product
 
 from tuna.base.observable import Observable, ObservableStringError
