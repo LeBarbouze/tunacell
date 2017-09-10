@@ -22,6 +22,8 @@ except ImportError:
     from io import StringIO  # python3
 
 
+from tuna.base.observable import Observable
+
 def bounded(arg, lower_bound=None, upper_bound=None):
     """Function that test whether argument is bounded.
 
@@ -441,11 +443,7 @@ class FilterSet(object):
         self.lineage_filter = filterlineage
         self.colony_filter = filtertree
         self.container_filter = filtercontainer
-        
-        for filtertype in [filtercell, filterlineage, filtertree, filtercontainer]:
-            for obs in filtertype._obs:
-                if obs not in self._obs:
-                    self._obs.append(obs)
+        self._collect_hidden_obs()
 
         self._named_list = [('label', self.label),
                             ('filtercell', self.cell_filter),
@@ -453,6 +451,18 @@ class FilterSet(object):
                             ('filtertree', self.colony_filter),
                             ('filtercontainer', self.container_filter)]
         return
+
+    def _collect_hidden_obs(self):
+        """Returns the list of hidden observables (needed for computations)"""
+        self._obs = []
+        for filt in [self.cell_filter, self.lineage_filter, self.colony_filter, self.container_filter]:
+            self._obs.extend(_unroll_obs(filt._obs))
+        return
+
+    @property
+    def obs(self):
+        """Provides the list of hidden observables"""
+        return self._obs
 
     def __repr__(self):
         name = type(self).__name__
@@ -478,3 +488,15 @@ class FilterSet(object):
                 label += line
             label += '\n'
         return label.rstrip()
+
+
+def _unroll_obs(obs, flatten=[]):
+    """Returns flattened list of Observable instances"""
+    if isinstance(obs, Observable):
+        flatten.append(obs)
+    elif isinstance(obs, collections.Iterable):
+        for item in obs:
+            _unroll_obs(item, flatten)
+    return flatten
+        
+    
