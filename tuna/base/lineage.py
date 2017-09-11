@@ -178,14 +178,15 @@ class Lineage(object):
         # check for supplementary observables to be computed
         suppl_obs = []
         for filt in cset:
-            # simple filter: ceck for hidden _obs attributes
-            if hasattr(filt, '_obs'):
-                if isinstance(filt._obs, Observable):
-                    suppl_obs.append(filt._obs)
-                elif isinstance(filt._obs, collections.Iterable):
-                    for item in filt._obs:
-                        if isinstance(item, Observable):
-                            suppl_obs.append(item)
+            suppl_obs.extend(filt.obs)
+#            # simple filter: ceck for hidden _obs attributes
+#            if hasattr(filt, '_obs'):
+#                if isinstance(filt._obs, Observable):
+#                    suppl_obs.append(filt._obs)
+#                elif isinstance(filt._obs, collections.Iterable):
+#                    for item in filt._obs:
+#                        if isinstance(item, Observable):
+#                            suppl_obs.append(item)
         # check for supplentary observables when obs is FunctionalObservable
         if isinstance(obs, FunctionalObservable):
             suppl_obs.extend(obs.observables)
@@ -196,15 +197,16 @@ class Lineage(object):
         for cell in self.cellseq:
             for sobs in suppl_obs:
                 cell.build(sobs.as_timelapse())
-        # now that all timelapse observables have been computed,
-        # compute those that are of cell-cycle mode
+        # now that all timelapse observables have been computed, there cannot
+        # be overlap between different cell in data evaluation
+        time_bounds = []
         for cell in self.cellseq:
+            # compute those that are of cell-cycle mode
             for sobs in suppl_obs:
                 if sobs.mode != 'dynamics':
                     cell.compute_cyclized(sobs)
 
-        time_bounds = []
-        for cell in self.cellseq:
+            # collect make time bounds
             if cell.birth_time is not None:
                 tleft = cell.birth_time
             elif len(cell.data) > 0:
@@ -219,10 +221,9 @@ class Lineage(object):
                 tright = - np.infty
             time_bounds.append((tleft, tright))
 
-        # perform functional operation
-        if isinstance(obs, FunctionalObservable):
+            # perform functional operation
+            if isinstance(obs, FunctionalObservable):
             # define new sdata with functional form
-            for cell in self.cellseq:
                 arrays = [cell._sdata[item.label] for item in obs.observables]
                 result_array = obs.f(*arrays)
                 cell._sdata[obs.label] = result_array
@@ -258,22 +259,14 @@ class Lineage(object):
                                          cell._sdata[label],
                                          x_name='time',
                                          y_name=obs_name)
-                    arrays.append(coords.as_array())
+                    arrays.append(coords.as_array())  # remove NaNs
                     size = len(arrays[-1])
                     index_cycles.append((count, count + size - 1))
                     count += size
                 else:
                     index_cycles.append(None)
             ts = np.concatenate(arrays)
-            # return a TimeSeries instance
-            timeseries = TimeSeries(ts=ts,
-                                    ids=self.idseq[:],
-                                    time_bounds=time_bounds,
-                                    index_cycles=index_cycles,
-                                    select_ids=select_ids,
-                                    container_label=container.label,
-                                    experiment_label=container.exp.label
-                                    )
+            coords = Coordinates.from_array(ts)
         # otherwise it's of 'cycle' mode
         else:
             for index, cell in enumerate(self.cellseq):
@@ -310,13 +303,13 @@ class Lineage(object):
             if len(arrays) == 0:
                 coords = Coordinates([], [], x_name=obs.timing, y_name=obs.name)
             else:
-                coords = Coordinates(*zip(*arrays), x_name=obs.timing, y_name=obs.name)
-            timeseries = TimeSeries(ts=coords, ids=self.idseq[:],
-                                    time_bounds=time_bounds,
-                                    index_cycles=index_cycles,
-                                    select_ids=select_ids,
-                                    container_label=container.label,
-                                    experiment_label=container.exp.label)
+                coords = Coordinates(*list(zip(*arrays)), x_name=obs.timing, y_name=obs.name)
+        timeseries = TimeSeries(ts=coords, ids=self.idseq[:],
+                                time_bounds=time_bounds,
+                                index_cycles=index_cycles,
+                                select_ids=select_ids,
+                                container_label=container.label,
+                                experiment_label=container.exp.label)
         return timeseries
 
     def split(self):
