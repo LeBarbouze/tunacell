@@ -145,6 +145,7 @@ class FilterLineageWithCellProperty(FilterLineage):
 
     def __init__(self, cell_filter=FilterData(), extend_ancestry=True):
         self.cell_filter = cell_filter
+        self._obs.extend(cell_filter._obs)  # add hidden observables
         self.extend_ancestry = extend_ancestry
         label = 'A cell in lineage '
         if extend_ancestry:
