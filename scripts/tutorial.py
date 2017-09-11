@@ -62,7 +62,7 @@ if __name__ == '__main__':
     # %% get colony corresponding to sample index 0
     
     colony = parser.get_colony(0)
-    colony.show()
+    print(colony)  # Python 3 compatibility --- treelib
     print('**')
     
     # %% define observable from raw data
