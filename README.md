@@ -9,23 +9,18 @@
 is a Python package that provides tools to analyze data from time-lapse
 movies of dividing micro-organisms.
 
-`tuna`'s main functions are to: parse data, visualize small sample realizations,
-and perform statistical analysis of the dynamics. Although not restricted to, it
-is specially useful for the analysis of time-series spanning multiple cell
-cycles, where data must be extracted from lineages, and not just single cells
-separately. It deals with dynamic data (i.e. defined for each acquisition time)
-and with cell-cycle level data. Important features are the computation of
-autocovariance, and cross-covariance as functions of time.
-
 # Main features
 
 * Analysis of time-series defined over many cell-cycles
 * Computation of average values, variance, number of samples over time (easy)
 * Computation of autocovariance for a single observable, and cross-covariance
   for a couple of observables over time (less easy)
-* Filtering-out of cells
-* Conditional analysis
-* Data visualization of small samples
+* Plotting functions of the computed statistics
+* Filtering-out cells
+* Conditional analysis (computation of statistics among subgroups of cells,
+  lineages, colonies, or containers (*aka* fields of view)
+* Data visualization of small samples (looking at both the dynamic, and
+  the tree structure)
 * Export of computed data as text files in a comprehensive folder structure
 
 # Install
@@ -35,6 +30,27 @@ Clone (or download) the repo and make a local (editable) install using pip:
 
     pip install -e .
 
+Python 3 compatibility is not fully guaranteed, but has been tested against
+the scripts listed below.
+
+## Dependencies
+
+tunacell depends on few libraries that are automatically installed if you are
+using pip.
+
+[Numpy][], [Scipy][], [matplotlib][] are classic libraries,
+as well as [pandas][] that is used
+to provide the user with DataFrame objects for some statistical analyses.
+
+The tree-like structure arising from dividing cells
+has been implemented using the [treelib][] library.
+
+[Scipy]: http://www.scipy.org/ "The Scipy package"
+[Numpy]: https://docs.scipy.org/doc/numpy-dev/user/index.html "Numpy"
+[pandas]: http://pandas.pydata.org/ "pandas"
+[matplotlib]: http://matplotlib.org/ "matplotlib"
+[treelib]: https://github.com/caesar0301/treelib  "Treelib library"
+
 ## New to Python
 
 Python is a computer programming language and to use it, you need a Python
@@ -43,7 +59,8 @@ on your system, run the following command in a terminal:
 
     python -V
 
-If the answer shows something like ``Python 2.7.x``, you're good to go.
+If the answer shows something like ``Python 2.7.x``, or
+``Python 3.6.y``, you're good to go.
 Otherwise you should install it, either directly downloading
 [the source files][python-downloads],
 or using a friendlier package that will guide you,
@@ -113,7 +130,8 @@ please report them with an Issue, or better, fork, make the patch, and PR :)
 
 ## Future work
 
-- [ ] Make tunacell Python 3 compatible
+- [x] Make tunacell Python 3 compatible
+- [ ] Add test cases (coverage is really poor right now)
 - [ ] Add features for static statistical analysis (distributions, scatter-plots, ...)
 - [ ] Add GUI
 
