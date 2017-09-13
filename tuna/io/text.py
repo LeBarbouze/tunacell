@@ -574,9 +574,9 @@ def _get_new_index(busy_indices, start_index=0, limit=100):
     Examples
     --------
 
-        >>> get_new_indew([0, 1, 2, 3], limit=100)
+        >>> _get_new_index([0, 1, 2, 3], limit=100)
         4
-        >>> get_new_indew([0, 2, 3, 4], limit=100)
+        >>> _get_new_index([0, 2, 3, 4], limit=100)
         1
 
     """
