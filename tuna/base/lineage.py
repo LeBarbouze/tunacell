@@ -7,9 +7,8 @@ from __future__ import print_function
 
 import numpy as np
 import random
-import collections
+
 from tuna.base.datatools import Coordinates
-from tuna.base.observable import Observable, FunctionalObservable
 from tuna.base.timeseries import TimeSeries
 
 
@@ -158,53 +157,50 @@ class Lineage(object):
             select_ids[repr(fset)] = arrbool
         return select_ids
 
-    def get_timeseries(self, obs, cset=[]):
+    def get_timeseries(self, obs, raw_obs=[], func_obs=[], cset=[]):
         """Contructs timeseries.
 
         Parameters
         ----------
-        obs : :class:`Observable` instance
+        obs : :class:`Observable` or :class:`FunctionalObservable` instance
+            must be an item of raw_obs or an item of func_obs
+        raw_obs : list of :class:`Observable` instances
+            needed to be computed for filtering or in the case of FunctionalObservable
+        func_obs : list of :class:`FunctionalObservable` instances
+            needed to be computed for filtering
         cset: sequence of :class:`FilterSet` instances (default [])
 
         Returns
         -------
-        TimeSeries instance
+        :class:`TimeSeries` instance
+            corresponding to obs argument
         """
         label = obs.label  # complicated string
         if obs.name is not None:
             obs_name = obs.name  # simpler string if provided by user
         else:
             obs_name = label
-        # check for supplementary observables to be computed
-        suppl_obs = []
-        for filt in cset:
-            suppl_obs.extend(filt.obs)
-#            # simple filter: ceck for hidden _obs attributes
-#            if hasattr(filt, '_obs'):
-#                if isinstance(filt._obs, Observable):
-#                    suppl_obs.append(filt._obs)
-#                elif isinstance(filt._obs, collections.Iterable):
-#                    for item in filt._obs:
-#                        if isinstance(item, Observable):
-#                            suppl_obs.append(item)
-        # check for supplentary observables when obs is FunctionalObservable
-        if isinstance(obs, FunctionalObservable):
-            suppl_obs.extend(obs.observables)
-        elif isinstance(obs, Observable):
-            suppl_obs.append(obs)
 
-        # compute timelapsed obs for all cells in lineage
+        # compute timelapsed raw obs for all cells in lineage
         for cell in self.cellseq:
-            for sobs in suppl_obs:
+            for sobs in raw_obs:
                 cell.build(sobs.as_timelapse())
         # now that all timelapse observables have been computed, there cannot
-        # be overlap between different cell in data evaluation
+        # be overlap between different cell in data evaluation,
+        #and we protect against future build
         time_bounds = []
         for cell in self.cellseq:
             # compute those that are of cell-cycle mode
-            for sobs in suppl_obs:
+            for sobs in raw_obs:
                 if sobs.mode != 'dynamics':
                     cell.compute_cyclized(sobs)
+                # protect against future build for raw observable
+                cell.protect_against_build(sobs)
+            for fobs in func_obs:
+                cell.build(fobs)
+                # if a FunctionalObservable is listed twice by mistake, prevent
+                # new computation...
+                cell.protect_against_build(fobs)
 
             # collect make time bounds
             if cell.birth_time is not None:
@@ -220,13 +216,6 @@ class Lineage(object):
             else:
                 tright = - np.infty
             time_bounds.append((tleft, tright))
-
-            # perform functional operation
-            if isinstance(obs, FunctionalObservable):
-            # define new sdata with functional form
-                arrays = [cell._sdata[item.label] for item in obs.observables]
-                result_array = obs.f(*arrays)
-                cell._sdata[obs.label] = result_array
 
         # boolean tests
         select_ids = self.get_boolean_tests(cset)
