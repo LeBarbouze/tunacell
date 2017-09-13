@@ -3,6 +3,7 @@
 """
 This module is deprecated...
 """
+from __future__ import print_function
 
 import numpy as np
 
@@ -22,11 +23,11 @@ def scatter(dat, xkey=None, ykey=None, delta=1000, xlim=[], ylim=[],
             jupyter=False,
             savefig=None):
     if xkey is None or ykey is None:
-        print "No keys"
+        print("No keys")
         return
     elif (xkey not in dat.dtype.fields.keys() or
           ykey not in dat.dtype.fields.keys()):
-        print "Unvalid keys"
+        print("Unvalid keys")
         return
 
     x, y = map(np.array, zip(*dat[[xkey, ykey]]))
@@ -42,7 +43,7 @@ def scatter(dat, xkey=None, ykey=None, delta=1000, xlim=[], ylim=[],
     pr = spearmanr(*zip(*couples))
     so = sorted(couples, key=lambda item: item[0])
     so = [co for co in so if not np.isnan(co[1])]
-    print "there's {0} valid samples".format(len(so))
+    print("there's {0} valid samples".format(len(so)))
 
     # delta = 1000
     cuts = np.arange(0, len(so), delta)
@@ -128,7 +129,7 @@ def scatter(dat, xkey=None, ykey=None, delta=1000, xlim=[], ylim=[],
 
     thresh = [0, 10, 50, 90, 100]
     percs = map(lambda th: np.percentile(xs, th), thresh)
-    print percs
+    print(percs)
     slices = [(start, stop) for start, stop in zip(percs[:-1], percs[1:])]
 
     xx = np.linspace(ybottom, ytop, 100)
@@ -140,9 +141,9 @@ def scatter(dat, xkey=None, ykey=None, delta=1000, xlim=[], ylim=[],
         vals = np.sort(vals)
         lab = '{0}: {1} in ({2:.3f}, {3:.3f}), \
               '.format(i+1, xkey, slices[i][0], slices[i][1])
-        print lab
-        print 'm: {0:.3f}, std:{1:.3f}, skew: {2:.3f}\
-              '.format(np.mean(vals), np.std(vals), stats.skew(vals))
+        print(lab)
+        print('m: {0:.3f}, std:{1:.3f}, skew: {2:.3f}\
+              '.format(np.mean(vals), np.std(vals), stats.skew(vals)))
         axs[1, 0].plot(vals, np.array(range(len(vals)))/float(len(vals)),
                        ls='-', color=color, lw=2,
                        label=lab)
