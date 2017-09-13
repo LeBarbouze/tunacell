@@ -49,7 +49,7 @@ class SamplePlot(object):
         self.parser = parser
         self.cset = conditions
         all_filters = [parser.experiment.fset, ] + conditions
-        raw_obs, func_obs = set_observable_list(obs, all_filters)
+        raw_obs, func_obs = set_observable_list(obs, filters=all_filters)
         self._raw_obs = raw_obs
         self._func_obs = func_obs
 

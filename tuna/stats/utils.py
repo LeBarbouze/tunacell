@@ -39,7 +39,7 @@ def iter_timeseries_(exp, observable, conditions, size=None):
     :class:`TimeSeries` instance
     """
     all_filters = [exp.fset, ] + conditions
-    raw_obs, func_obs = set_observable_list(observable, all_filters)
+    raw_obs, func_obs = set_observable_list(observable, filters=all_filters)
     # run the iterator
     for lineage in exp.iter_lineages(size=size):
         ts = lineage.get_timeseries(observable,
@@ -69,6 +69,8 @@ def iter_timeseries_2(exp, obs1, obs2, conditions, size=None):
     ------
     Couple of :class:`TimeSeries` instances
     """
+    all_filters = [exp.fset, ] + conditions
+    raw_obs, func_obs = set_observable_list(obs1, obs2, filters=all_filters)
     for lineage in exp.iter_lineages(size=size):
         ts1 = lineage.get_timeseries(obs1, conditions)
         ts2 = lineage.get_timeseries(obs2, conditions)
