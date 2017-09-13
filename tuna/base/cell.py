@@ -79,7 +79,7 @@ class Cell(tlib.Node):
         self._birth_time = None
         self._division_time = None
         self._sdata = {}  # dictionary to contain computed data
-        self._protected_against_build = []  # list of obs not to re-build
+        self._protected_against_build = set()  # set of obs not to re-build
         self.container = container  # point to Container instance
         # cells are built from a specific container instance
         # container can be a given field of view, a channel, a microcolony, ...
@@ -189,8 +189,7 @@ class Cell(tlib.Node):
 
     def protect_against_build(self, obs):
         """Protect current cell against building obs array/value"""
-        if obs not in self._protected_against_build:
-            self._protected_against_build.append(obs)
+        self._protected_against_build.add(obs)
         return
 
     def build(self, obs):
