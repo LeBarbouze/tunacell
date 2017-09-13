@@ -33,24 +33,27 @@ class Coordinates(object):
     y_name : str (default 'y')
         name of y-coordinates
     """
-    
+
     @classmethod
     def from_array(cls, array):
         """Load a Coordinates instance from a Numpy 2d structured array"""
-        if len(array[0] < 2):
-            raise ValueError('must be a 2 column array')
-        if len(array[0] > 2):
-            warnings.warn('Taking first 2 columns from multicol array')
+        x_name = 'x'
+        y_name = 'y'
         if array.dtype.names is not None:
             x_name, y_name = array.dtype.names[:2]
+        if len(array) == 0:
+            return cls.__init__([], [], x_name, y_name)
+        if len(array[0]) < 2:
+            raise ValueError('must be a 2 column array')
+        if len(array[0]) > 2:
+            warnings.warn('Taking first 2 columns from multicol array')
+        if array.dtype.names is not None:
             x = array[x_name]
             y = array[y_name]
         else:
-            x_name = 'x'
-            y_name = 'y'
             x = array[:, 0]
             y = array[:, 1]
-        return cls.__init__(x, y, x_name, y_name)
+        return Coordinates(x, y, x_name, y_name)
 
     def __init__(self, x, y, x_name='x', y_name='y'):
 #        if np.any(np.isnan(x)):
