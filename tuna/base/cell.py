@@ -79,10 +79,10 @@ class Cell(tlib.Node):
         self._birth_time = None
         self._division_time = None
         self._sdata = {}  # dictionary to contain computed data
+        self._protected_against_build = []  # list of obs not to re-build
         self.container = container  # point to Container instance
         # cells are built from a specific container instance
         # container can be a given field of view, a channel, a microcolony, ...
-
         return
 
     # We add few definitions to be able to chain between Cell instances
@@ -187,16 +187,22 @@ class Cell(tlib.Node):
             dic['f. N_frames'] = '{}'.format(len(self.data))
         return dic
 
+    def protect_against_build(self, obs):
+        """Protect current cell against building obs array/value"""
+        if obs not in self._protected_against_build:
+            self._protected_against_build.append(obs)
+        return
+
     def build(self, obs):
         """Builds timeseries"""
+        if obs in self._protected_against_build:
+            return
         if isinstance(obs, FunctionalObservable):
             # first build every single Observable
             for item in obs.observables:
                 self.build(item)
             arrays = [self._sdata[item.label] for item in obs.observables]
             self._sdata[obs.label] = obs.f(*arrays)
-            # note that with sliding windows, results might be affected by
-            # later operation on daugther cell -> adjust in lineage.build
         elif isinstance(obs, Observable):
             if obs.mode == 'dynamics':
                 self.build_timelapse(obs)
