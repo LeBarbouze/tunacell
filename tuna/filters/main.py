@@ -22,8 +22,6 @@ except ImportError:
     from io import StringIO  # python3
 
 
-from tuna.base.observable import Observable
-
 def bounded(arg, lower_bound=None, upper_bound=None):
     """Function that test whether argument is bounded.
 
@@ -456,7 +454,9 @@ class FilterSet(object):
         """Returns the list of hidden observables (needed for computations)"""
         self._obs = []
         for filt in [self.cell_filter, self.lineage_filter, self.colony_filter, self.container_filter]:
-            self._obs.extend(_unroll_obs(filt._obs))
+            for suppl_obs in filt._obs:
+                if suppl_obs not in self._obs:
+                    self._obs.append(suppl_obs)
         return
 
     @property
@@ -488,15 +488,4 @@ class FilterSet(object):
                 label += line
             label += '\n'
         return label.rstrip()
-
-
-def _unroll_obs(obs, flatten=[]):
-    """Returns flattened list of Observable instances"""
-    if isinstance(obs, Observable):
-        flatten.append(obs)
-    elif isinstance(obs, collections.Iterable):
-        for item in obs:
-            _unroll_obs(item, flatten)
-    return flatten
-        
     
