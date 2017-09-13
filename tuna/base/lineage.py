@@ -198,6 +198,7 @@ class Lineage(object):
                 cell.protect_against_build(sobs)
             for fobs in func_obs:
                 cell.build(fobs)
+                cell.protect_against_build(fobs)
 
             # collect make time bounds
             if cell.birth_time is not None:
