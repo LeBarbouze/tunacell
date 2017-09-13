@@ -11,6 +11,7 @@ Classes
 """
 from __future__ import print_function
 
+import collections
 import warnings
 import inspect
 import dill
@@ -361,11 +362,12 @@ class FunctionalObservable(object):
         self.source_f = dill.dumps(f)
         argspec = inspect.getargspec(f)
         self.observables = observables
+        self.raw_observables = unroll_raw_obs(observables)
         if len(observables) != len(argspec.args):
             msg = ('length of observable list must match number of arguments of f ')
             raise ValueError(msg)
         for obs in observables:
-            if not isinstance(obs, Observable):
+            if not (isinstance(obs, Observable) or isinstance(obs, FunctionalObservable)):
                 msg = ('observables argument must be a list of Observables '
                        'instances')
                 raise TypeError(msg)
@@ -374,7 +376,6 @@ class FunctionalObservable(object):
     @property
     def timing(self):
         """Return timing depending on observables passed as parameters"""
-        timing = None
         timings = []
         for item in self.observables:
             timings.append(item.timing)
@@ -395,7 +396,6 @@ class FunctionalObservable(object):
     @property
     def mode(self):
         """Returns mode depending on observables passed as parameters"""
-        mode = None
         modes = []
         for item in self.observables:
             modes.append(item.mode)
@@ -421,6 +421,88 @@ class FunctionalObservable(object):
         args = args.replace('$', '').rstrip(',')
         msg = r'$f( {} )$'.format(args)
         return msg
+
+
+def unroll_raw_obs(obs, flatten=[]):
+    """Returns flattened list of Observable instances
+
+    Parameters
+    ----------
+    obs : (list of) :class:`Observable` or :class:`FunctionalObservable` instances
+
+    Returns
+    -------
+    flatten
+        list of :class:`Observable` instances found in argument list, going
+        into nested layers in the case of nested list, or for
+        :class:`FunctionalObservable` instances
+    """
+    if isinstance(obs, Observable):
+        flatten.append(obs)
+    elif isinstance(obs, collections.Iterable):
+        for item in obs:
+            unroll_raw_obs(item, flatten)
+    elif isinstance(obs, FunctionalObservable):
+        for item in obs.observables:
+            unroll_raw_obs(item, flatten)
+    return flatten
+
+def unroll_func_obs(obs, flatten=[]):
+    """Returns flattened list of FunctionalObservable instances
+
+    It inspect recursively the observable content of the argument to list
+    all nested FunctionalObservable instances
+
+    Parameters
+    ----------
+    obs : :class:`FunctionalObservable` instance
+        the observable to inspect
+
+    Returns
+    -------
+    flatten
+        list of :class:`FunctionalObservable` instances found in nested layers.
+        Note that flatten is directly ordered: run the build in direct order.
+    """
+    if isinstance(obs, FunctionalObservable):
+        for item in obs:
+            unroll_func_obs(item, flatten)
+        flatten.append(obs)
+    return flatten
+
+def set_observable_list(observable, filters=[]):
+    """Make raw, and functional observable lists for running analyses
+
+    Parameters
+    ----------
+    observable : :class:`Observable` or :class:`FunctionalObservable` instance
+    filters : list of :class:`tuna.filters.main.FilterSet` isntances
+        where observables may be hidden
+
+    Returns
+    -------
+    raw_obs, func_obs
+        lists of raw observables, functional observables (correctly ordered)
+    """
+    raw_obs = []
+    func_obs = []
+    # run through observables used in filtering
+    for filt in filters:
+        raw_obs.extend(unroll_raw_obs(filt.obs))
+        func_obs.extend(unroll_func_obs(filt.obs))
+    # extend with all raw Observable instances found in obs
+    raw_obs.extend(unroll_raw_obs(observable))
+    # extend with all FunctionalObservable instances found in obs
+    func_obs.extend(unroll_func_obs(observable))
+    # finally add observable to be computed
+    if isinstance(observable, Observable):
+        raw_obs.append(observable)
+    elif isinstance(observable, FunctionalObservable):
+        func_obs.append(observable)
+    else:
+        msg = '`observable` arg must be Observable or FunctionalObservable'
+        raise ValueError(msg)
+    return raw_obs, func_obs
 
 
 if __name__ == '__main__':
