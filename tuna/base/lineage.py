@@ -184,7 +184,7 @@ class Lineage(object):
         # compute timelapsed raw obs for all cells in lineage
         for cell in self.cellseq:
             for sobs in raw_obs:
-                cell.build(sobs.as_timelapse())
+                cell.build_timelapse(sobs.as_timelapse())
         # now that all timelapse observables have been computed, there cannot
         # be overlap between different cell in data evaluation,
         #and we protect against future build
@@ -198,9 +198,6 @@ class Lineage(object):
                 cell.protect_against_build(sobs)
             for fobs in func_obs:
                 cell.build(fobs)
-                # if a FunctionalObservable is listed twice by mistake, prevent
-                # new computation...
-                cell.protect_against_build(fobs)
 
             # collect make time bounds
             if cell.birth_time is not None:

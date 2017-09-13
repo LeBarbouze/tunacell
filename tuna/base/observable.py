@@ -488,31 +488,22 @@ def set_observable_list(*args, filters=[]):
     func_obs = []
     # run through observables used in filtering
     for filt in filters:
-        raw_obs.extend(unroll_raw_obs(filt.obs))
-        func_obs.extend(unroll_func_obs(filt.obs))
+        for obs in unroll_raw_obs(filt.obs):
+            if obs not in raw_obs:
+                raw_obs.append(obs)
+        for obs in unroll_func_obs(filt.obs):
+            if obs not in func_obs:
+                func_obs.append(obs)
     for observable in args:
         # extend with all raw Observable instances found in obs
-        raw_obs.extend(unroll_raw_obs(observable))
+        for obs in unroll_raw_obs(observable):
+            if obs not in raw_obs:
+                raw_obs.append(obs)
         # extend with all FunctionalObservable instances found in obs
-        func_obs.extend(unroll_func_obs(observable))
-        # finally add observable to be computed
-        if isinstance(observable, Observable):
-            raw_obs.append(observable)
-        elif isinstance(observable, FunctionalObservable):
-            func_obs.append(observable)
-        else:
-            msg = 'arg must be Observable or FunctionalObservable'
-            raise ValueError(msg)
-    # return unique values, keeping order
-    unique_raw_obs = []
-    for obs in raw_obs:
-        if obs not in unique_raw_obs:
-            unique_raw_obs.append(obs)
-    unique_func_obs = []
-    for obs in func_obs:
-        if obs not in unique_func_obs:
-            unique_func_obs.append(obs)
-    return unique_raw_obs, unique_func_obs
+        for obs in unroll_func_obs(observable):
+            if obs not in func_obs:
+                func_obs.append(obs)
+    return raw_obs, func_obs
 
 
 if __name__ == '__main__':
