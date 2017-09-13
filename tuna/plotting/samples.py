@@ -19,6 +19,8 @@ import collections
 
 from tuna.base.colony import Colony
 from tuna.base.lineage import Lineage
+from tuna.base.observable import set_observable_list
+
 from tuna.plotting.timeseries import add_timeseries, add_data_statistics
 
 try:
@@ -46,6 +48,10 @@ class SamplePlot(object):
         self.obs = obs
         self.parser = parser
         self.cset = conditions
+        all_filters = [parser.experiment.fset, ] + conditions
+        raw_obs, func_obs = set_observable_list(obs, all_filters)
+        self._raw_obs = raw_obs
+        self._func_obs = func_obs
 
         # building sample list
         self._samples = []
@@ -118,7 +124,7 @@ class SamplePlot(object):
         return
 
     def _add_atomic_sample(self, lineage):
-        ts = lineage.get_timeseries(self.obs, self.cset)
+        ts = lineage.get_timeseries(self.obs, self._raw_obs, self._func_obs, self.cset)
         self._samples.append((lineage, ts))
         return
 

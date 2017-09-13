@@ -15,6 +15,7 @@ import numpy as np
 from tuna.base.parser import Parser
 from tuna.base.experiment import Experiment
 from tuna.io import text
+from tuna.base.observable import set_observable_list
 
 
 def iter_timeseries_(exp, observable, conditions, size=None):
@@ -27,7 +28,7 @@ def iter_timeseries_(exp, observable, conditions, size=None):
     Parameters
     ----------
     exp : :class:`Experiment` instance
-    observable : :class:`Observable` instance
+    observable : :class:`Observable` or :class:`FunctionalObservable` instance
     conditions : list of :class:`FilterSet` instances
 
     size : int (default None)
@@ -37,8 +38,13 @@ def iter_timeseries_(exp, observable, conditions, size=None):
     ------
     :class:`TimeSeries` instance
     """
+    all_filters = [exp.fset, ] + conditions
+    raw_obs, func_obs = set_observable_list(observable, all_filters)
+    # run the iterator
     for lineage in exp.iter_lineages(size=size):
-        ts = lineage.get_timeseries(observable, conditions)
+        ts = lineage.get_timeseries(observable,
+                                    raw_obs=raw_obs, func_obs=func_obs,
+                                    cset=conditions)
         yield ts
     return
 
