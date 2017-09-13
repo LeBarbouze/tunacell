@@ -470,12 +470,12 @@ def unroll_func_obs(obs, flatten=[]):
         flatten.append(obs)
     return flatten
 
-def set_observable_list(observable, filters=[]):
+def set_observable_list(*args, filters=[]):
     """Make raw, and functional observable lists for running analyses
 
     Parameters
     ----------
-    observable : :class:`Observable` or :class:`FunctionalObservable` instance
+    args : list of :class:`Observable` or :class:`FunctionalObservable` instances
     filters : list of :class:`tuna.filters.main.FilterSet` isntances
         where observables may be hidden
 
@@ -490,19 +490,29 @@ def set_observable_list(observable, filters=[]):
     for filt in filters:
         raw_obs.extend(unroll_raw_obs(filt.obs))
         func_obs.extend(unroll_func_obs(filt.obs))
-    # extend with all raw Observable instances found in obs
-    raw_obs.extend(unroll_raw_obs(observable))
-    # extend with all FunctionalObservable instances found in obs
-    func_obs.extend(unroll_func_obs(observable))
-    # finally add observable to be computed
-    if isinstance(observable, Observable):
-        raw_obs.append(observable)
-    elif isinstance(observable, FunctionalObservable):
-        func_obs.append(observable)
-    else:
-        msg = '`observable` arg must be Observable or FunctionalObservable'
-        raise ValueError(msg)
-    return raw_obs, func_obs
+    for observable in args:
+        # extend with all raw Observable instances found in obs
+        raw_obs.extend(unroll_raw_obs(observable))
+        # extend with all FunctionalObservable instances found in obs
+        func_obs.extend(unroll_func_obs(observable))
+        # finally add observable to be computed
+        if isinstance(observable, Observable):
+            raw_obs.append(observable)
+        elif isinstance(observable, FunctionalObservable):
+            func_obs.append(observable)
+        else:
+            msg = 'arg must be Observable or FunctionalObservable'
+            raise ValueError(msg)
+    # return unique values, keeping order
+    unique_raw_obs = []
+    for obs in raw_obs:
+        if obs not in unique_raw_obs:
+            unique_raw_obs.append(obs)
+    unique_func_obs = []
+    for obs in func_obs:
+        if obs not in unique_func_obs:
+            unique_func_obs.append(obs)
+    return unique_raw_obs, unique_func_obs
 
 
 if __name__ == '__main__':
