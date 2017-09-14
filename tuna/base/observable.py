@@ -107,13 +107,10 @@ class Observable(object):
         if from_string is not None:
             self.load_from_string(from_string)
         else:
-            self.name = name
             self.raw = raw
-#            # warn if raw is 'none'
-#            if raw == 'none':
-#                msg = ("'raw' is set to 'none'.\n"
-#                       "Update to a valid column name of your experiment.")
-#                warnings.warn(msg)
+            self.name = name
+            if raw is None and name is not None:
+                self.raw = name
             self.differentiate = differentiate
             self.scale = scale
             self.local_fit = local_fit
@@ -122,6 +119,9 @@ class Observable(object):
             self.mode = mode
             self.timing = timing
             self.tref = tref
+            # case where name is None
+            if name is None:
+                self.name = self.label  # use the codestring
         return
 
     def as_timelapse(self):
@@ -423,31 +423,30 @@ class FunctionalObservable(object):
         return msg
 
 
-def unroll_raw_obs(obs, flatten=[]):
-    """Returns flattened list of Observable instances
+def unroll_raw_obs(obs):
+    """Returns a generator over flattened list of Observable instances
 
     Parameters
     ----------
     obs : (list of) :class:`Observable` or :class:`FunctionalObservable` instances
 
-    Returns
+    Yields
     -------
     flatten
-        list of :class:`Observable` instances found in argument list, going
+        :class:`Observable` instances found in argument list, going
         into nested layers in the case of nested list, or for
         :class:`FunctionalObservable` instances
     """
     if isinstance(obs, Observable):
-        flatten.append(obs)
+        yield obs
     elif isinstance(obs, collections.Iterable):
         for item in obs:
-            unroll_raw_obs(item, flatten)
+            yield from unroll_raw_obs(item)
     elif isinstance(obs, FunctionalObservable):
         for item in obs.observables:
-            unroll_raw_obs(item, flatten)
-    return flatten
+            yield from unroll_raw_obs(item)
 
-def unroll_func_obs(obs, flatten=[]):
+def unroll_func_obs(obs):
     """Returns flattened list of FunctionalObservable instances
 
     It inspect recursively the observable content of the argument to list
@@ -458,17 +457,16 @@ def unroll_func_obs(obs, flatten=[]):
     obs : :class:`FunctionalObservable` instance
         the observable to inspect
 
-    Returns
+    Yields
     -------
     flatten
-        list of :class:`FunctionalObservable` instances found in nested layers.
+        :class:`FunctionalObservable` instances found in nested layers.
         Note that flatten is directly ordered: run the build in direct order.
     """
     if isinstance(obs, FunctionalObservable):
         for item in obs:
-            unroll_func_obs(item, flatten)
-        flatten.append(obs)
-    return flatten
+            yield from unroll_func_obs(item)
+        yield obs
 
 def set_observable_list(*args, filters=[]):
     """Make raw, and functional observable lists for running analyses
