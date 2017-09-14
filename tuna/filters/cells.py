@@ -306,8 +306,8 @@ class FilterSymmetricDivision(FilterCell):
         # Observable to be computed: raw at birth, raw at division
         # hidden _obs because not part of parameters, but should be computed
         self._obs = [Observable(raw=raw, scale='log', mode='birth', timing='b'),
-                    Observable(raw=raw, scale='log', mode='division',
-                               timing='d')]
+                     Observable(raw=raw, scale='log', mode='division',
+                                timing='d')]
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
         label = 'Symmetric division filter:'
@@ -330,9 +330,9 @@ class FilterSymmetricDivision(FilterCell):
             boo = True
         else:
             if filtData(cell):
-                csize = cell._sdata[self._obs[0].label()]
+                csize = cell._sdata[self._obs[0].label]
                 if filtData(cell.parent):
-                    psize = cell.parent._sdata[self._obs[1].label()]
+                    psize = cell.parent._sdata[self._obs[1].label]
                     boo = bounded(csize/psize,
                                   lower_bound=self.lower_bound,
                                   upper_bound=self.upper_bound
