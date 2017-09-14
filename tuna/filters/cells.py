@@ -214,7 +214,7 @@ class FilterObservableBound(FilterCell):
 
     def __init__(self, obs=Observable(name='undefined'), tref=None,
                  lower_bound=None, upper_bound=None):
-        self.obs = obs  # as a param to be correctly represented
+        self.obs_to_test = obs  # observable to be tested
         self._obs = [obs, ]  # hidden to be computed at for filtering purpose
         self.tref = tref
         # code below is commented because func is able to deal with arrays
@@ -238,7 +238,7 @@ class FilterObservableBound(FilterCell):
                              FilterTimeInCycle(tref=self.tref))
         else:
             filt = FilterData()
-        label = self.obs.label
+        label = self.obs_to_test.label
         if filt(cell):
             # retrieve data
             array = cell._sdata[label]  # two cases: array, or single value
