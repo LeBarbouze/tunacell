@@ -72,8 +72,12 @@ def iter_timeseries_2(exp, obs1, obs2, conditions, size=None):
     all_filters = [exp.fset, ] + conditions
     raw_obs, func_obs = set_observable_list(obs1, obs2, filters=all_filters)
     for lineage in exp.iter_lineages(size=size):
-        ts1 = lineage.get_timeseries(obs1, conditions)
-        ts2 = lineage.get_timeseries(obs2, conditions)
+        ts1 = lineage.get_timeseries(obs1,
+                                     raw_obs=raw_obs, func_obs=func_obs,
+                                     cset=conditions)
+        ts2 = lineage.get_timeseries(obs2,
+                                     raw_obs=raw_obs, func_obs=func_obs,
+                                     cset=conditions)
         yield (ts1, ts2)
     return
 
