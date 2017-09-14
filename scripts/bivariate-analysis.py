@@ -12,13 +12,12 @@ type)
 
 from __future__ import print_function
 
-import sys
-
 import matplotlib.pyplot as plt
 import pandas as pd
 
 from tuna import Experiment, Observable, FilterSet
 from tuna.base.observable import FunctionalObservable
+from tuna.base.observable import set_observable_list
 from tuna.filters.cells import FilterCellIDparity
 
 from tuna.stats.api import (compute_univariate, load_univariate,
@@ -212,10 +211,12 @@ fig = plt.figure()
 couple = [division_size, increase]
 print('Bivariate sampling of {} and {} ...'.format(couple[0].name, couple[1].name))
 all_dfs = []
+# need to compute raw/func observable list
+raw_obs, func_obs = set_observable_list(*couple, filters=[condition, ])
 for li in exp.iter_lineages(size=100):  # testing
     dfs = []
     for obs in couple:
-        ts = li.get_timeseries(obs, cset=[condition, ])
+        ts = li.get_timeseries(obs, raw_obs=raw_obs, func_obs=func_obs, cset=[condition, ])
         dfs.append(ts.to_dataframe(sharp_tleft=steady_region.tmin,
                                    sharp_tright=steady_region.tmax))
     all_dfs.append(pd.merge(*dfs, how='outer'))
