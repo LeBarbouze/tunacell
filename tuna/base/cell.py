@@ -299,7 +299,7 @@ class Cell(tlib.Node):
                 to_cell = f
                 to_parent = af
             self._sdata[label] = to_cell
-            if self.parent is not None:
+            if self.parent is not None and (not np.all(np.isnan(to_parent))):
                 if label not in self.parent._sdata.keys():
                     self.parent._sdata[label] = to_parent
                 else:
