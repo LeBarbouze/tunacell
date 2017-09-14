@@ -94,7 +94,7 @@ class BivariateConditioned(object):
         times = []
         with open(item_path, 'r') as f:
             for line in f.readlines():
-                times.append(map(float, line.rstrip().split('\t')[1:]))
+                times.append(list(map(float, line.rstrip().split('\t')[1:])))
         self.times = times
         # matrix for counts
         item_path = os.path.join(cdt_path, 'count_cross.tsv')
