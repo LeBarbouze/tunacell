@@ -464,7 +464,7 @@ def unroll_func_obs(obs):
         Note that flatten is directly ordered: run the build in direct order.
     """
     if isinstance(obs, FunctionalObservable):
-        for item in obs:
+        for item in obs.observables:
             yield from unroll_func_obs(item)
         yield obs
 
