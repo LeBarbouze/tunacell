@@ -18,7 +18,7 @@ from tuna.io import text
 from tuna.base.cell import Cell
 from tuna.base.datatools import compute_secondary_observables
 from tuna.base.colony import Colony
-from tuna.base.observable import Observable
+from tuna.base.observable import Observable, set_observable_list
 
 
 class ParsingContainerError(Exception):
@@ -230,19 +230,12 @@ class Container(object):
             msg = 'Prior to filter, we have {} cells.'.format(len(self.cells))
             print(msg)
         # check for supplementary observables to be computed
-        suppl_obs = []
-        # simple filter: ceck for hidden _obs attributes
-        if hasattr(filt, '_obs'):
-            if isinstance(filt._obs, Observable):
-                suppl_obs.append(filt._obs)
-            elif isinstance(filt._obs, collections.Iterable):
-                for item in filt._obs:
-                    if isinstance(item, Observable):
-                        suppl_obs.append(item)
+        raw_obs, func_obs = set_observable_list(filters=[filt, ])
+
         # compute suppl obs for all cells
-        if suppl_obs:
+        if raw_obs:
             for cell in self.cells:
-                for obs in suppl_obs:
+                for obs in raw_obs:
                     cell.build(obs)
         for cell in self.cells:
             if filt is not None:
@@ -264,7 +257,7 @@ class Container(object):
         # extra obs computation depends on tree decomposition
         # this will be done in lineage.get_timeseries()
         for cell in self.cells:
-            for obs in suppl_obs:
+            for obs in raw_obs:
                 del cell._sdata[obs.label]
         if verbose:
             msg = 'After filtering, we get {} cells.'.format(len(self.cells))
