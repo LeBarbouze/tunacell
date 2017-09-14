@@ -184,7 +184,7 @@ class Lineage(object):
         # compute timelapsed raw obs for all cells in lineage
         for cell in self.cellseq:
             for sobs in raw_obs:
-                cell.build_timelapse(sobs.as_timelapse())
+                cell.build(sobs.as_timelapse())
         # now that all timelapse observables have been computed, there cannot
         # be overlap between different cell in data evaluation,
         #and we protect against future build
@@ -193,7 +193,7 @@ class Lineage(object):
             # compute those that are of cell-cycle mode
             for sobs in raw_obs:
                 if sobs.mode != 'dynamics':
-                    cell.compute_cyclized(sobs)
+                    cell.build(sobs)
                 # protect against future build for raw observable
                 cell.protect_against_build(sobs)
             for fobs in func_obs:
