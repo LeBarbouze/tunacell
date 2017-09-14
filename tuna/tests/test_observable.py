@@ -8,7 +8,9 @@ from __future__ import print_function
 import pytest
 from itertools import product
 
-from tuna.base.observable import Observable, ObservableStringError
+from tuna.base.observable import (Observable, ObservableStringError,
+                                  FunctionalObservable, set_observable_list,
+                                  unroll_func_obs, unroll_raw_obs)
 
 
 t_params = (('name', ['mysoup', 'donald']),
@@ -92,4 +94,30 @@ def test_observable_repr(all_params):
         for attr in obs._attr_names:
             assert hasattr(nobs, attr)
             assert getattr(nobs, attr) == getattr(obs, attr)
+
+
+def test_unrolling():
+    length = Observable(name='length')
+    width = Observable(name='width')
+    area = FunctionalObservable(name='square-area', f=lambda x, y: x*y, observables=[length, width])
+    vol = FunctionalObservable(name='volume', f=lambda x, y: x*y, observables=[area, width])
+    raw_obs, func_obs = set_observable_list(vol, filters=[])
+    assert length in raw_obs
+    assert length not in func_obs
+    assert width in raw_obs
+    assert width not in func_obs
+    assert area in func_obs
+    assert area not in raw_obs
+    assert vol in func_obs
+    assert vol not in raw_obs
+
+def test_unroll_func():
+    length = Observable(name='length')
+    width = Observable(name='width')
+    area = FunctionalObservable(name='square-area', f=lambda x, y: x*y, observables=[length, width])
+    vol = FunctionalObservable(name='volume', f=lambda x, y: x*y, observables=[area, width])
+    func_obs = list(unroll_func_obs(vol))
+    assert func_obs == [area, vol]  # oredering matters for functionalObs
+    func_obs  = list(unroll_func_obs([vol, area]))
+    assert func_obs == [area, vol, area]
     
