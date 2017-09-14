@@ -191,6 +191,11 @@ class FilterGeneral(object):
         self._label = self._type + ', ' + arg
         return
 
+    @property
+    def obs(self):
+        """Provides the list of hidden observables"""
+        return self._obs
+
 
 class FilterBoolean(FilterGeneral):
     """General class to implement Boolean operations between filters
