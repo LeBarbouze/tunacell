@@ -177,7 +177,7 @@ class Container(object):
 
         Parameters
         ----------
-        prefilt : Filter instance
+        prefilt : :class:`tuna.filters.cells.FilterCell` instance
             used to filter Cell instances at reading
         """
         self.make_filiation()
