@@ -441,16 +441,21 @@ def unroll_raw_obs(obs):
         yield obs
     elif isinstance(obs, collections.Iterable):
         for item in obs:
-            yield from unroll_raw_obs(item)
+            for elem in unroll_raw_obs(item):
+                yield elem
     elif isinstance(obs, FunctionalObservable):
         for item in obs.observables:
-            yield from unroll_raw_obs(item)
+            for elem in unroll_raw_obs(item):
+                yield elem
 
 def unroll_func_obs(obs):
     """Returns flattened list of FunctionalObservable instances
 
-    It inspect recursively the observable content of the argument to list
-    all nested FunctionalObservable instances
+    It inspect recursively the observable content of the argument to yield
+    all nested FunctionalObservable instances. They are ordered from lower to
+    deeper layers in nested-ness. If you need to compute f(g(h(x))), where
+    x is a raw Observable, the generator yields h, g, and f lastly, so that
+    evaluation can be performed in direct order.
 
     Parameters
     ----------
@@ -459,23 +464,31 @@ def unroll_func_obs(obs):
 
     Yields
     -------
-    flatten
-        :class:`FunctionalObservable` instances found in nested layers.
-        Note that flatten is directly ordered: run the build in direct order.
+    :class:`FunctionalObservable` instance
+        The generator yields funcObs instance in appropriate order (from lower
+        to higher level in nested-ness).
     """
     if isinstance(obs, FunctionalObservable):
         for item in obs.observables:
-            yield from unroll_func_obs(item)
+            for elem in unroll_func_obs(item):
+                yield elem
         yield obs
+    elif isinstance(obs, collections.Iterable):
+        for item in obs:
+            for elem in unroll_func_obs(item):
+                yield elem
 
-def set_observable_list(*args, filters=[]):
+
+def set_observable_list(*args, **kwargs):
     """Make raw, and functional observable lists for running analyses
 
     Parameters
     ----------
-    args : list of :class:`Observable` or :class:`FunctionalObservable` instances
-    filters : list of :class:`tuna.filters.main.FilterSet` isntances
-        where observables may be hidden
+    *args
+        Variable length argument list of :class:`Observable` or :class:`FunctionalObservable` instances
+    **kwargs
+        Accepted keyword arguments: 'filters=[]' with a list of :class:`FilterSet`
+        or :class:`FilterGeneral` instance (must have a .obs attribute)
 
     Returns
     -------
@@ -485,6 +498,9 @@ def set_observable_list(*args, filters=[]):
     raw_obs = []
     func_obs = []
     # run through observables used in filtering
+    filters = []
+    if 'filters' in kwargs:
+        filters.extend(kwargs['filters'])
     for filt in filters:
         for obs in unroll_raw_obs(filt.obs):
             if obs not in raw_obs:
