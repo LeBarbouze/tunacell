@@ -42,7 +42,7 @@ class Coordinates(object):
         if array.dtype.names is not None:
             x_name, y_name = array.dtype.names[:2]
         if len(array) == 0:
-            return cls.__init__([], [], x_name, y_name)
+            return Coordinates(np.array([]), np.array([]), x_name, y_name)
         if len(array[0]) < 2:
             raise ValueError('must be a 2 column array')
         if len(array[0]) > 2:
@@ -328,28 +328,29 @@ def compute_rates(x, y, x_break=None,
                        'computed rate : {}'.format(rate))
                 print(msg)
 
-    # new values: linear interpolation
+    # fit and rates coordinates that will be interpolated (if possible)
     fit_op_coords = Coordinates(fit_x, fit_op_y)
-    f = interp1d(fit_op_coords.clear_x, fit_op_coords.clear_y, kind='linear',
-                 assume_sorted=True, bounds_error=False)
+    rate_coords = Coordinates(fit_x, rate_op_y)
     # interpolation may be defined over both x range and anterior_x range
     out_y = np.array(len(coords.x) * [np.nan, ])  # initialize to NaNs
     out_anterior_y = np.array(len(anteriors.x) * [np.nan, ])
-    # valid data points: interpolation at initial x coordinates
-    out_y[coords.valid] = y_inv_operator(f(coords.clear_x))
-    if len(anteriors.valid) > 0 and offset is not None:
-        out_anterior_y[anteriors.valid] = y_inv_operator(f(anteriors.clear_x) + offset)
-
-    # rates : linear interpolation
-    rate_coords = Coordinates(fit_x, rate_op_y)
-    f = interp1d(rate_coords.clear_x, rate_coords.clear_y, kind='linear',
-                 assume_sorted=True, bounds_error=False)
     out_rate = np.array(len(coords.x) * [np.nan, ])
     out_anterior_rate = np.array(len(anteriors.x) * [np.nan, ])
-    # valid data points: interpolation at initial x coordinates
-    out_rate[coords.valid] = f(coords.clear_x)
-    if len(anteriors.valid) > 0 and offset is not None:
-        out_anterior_rate[anteriors.valid] = f(anteriors.clear_x)
+    if len(fit_op_coords.clear_x) > 1:  # at least 2 points to interpolate
+        f = interp1d(fit_op_coords.clear_x, fit_op_coords.clear_y,
+                     kind='linear', assume_sorted=True, bounds_error=False)
+        # valid data points: interpolation at initial x coordinates
+        out_y[coords.valid] = y_inv_operator(f(coords.clear_x))
+        if len(anteriors.valid) > 0 and offset is not None:
+            out_anterior_y[anteriors.valid] = y_inv_operator(f(anteriors.clear_x) + offset)
+
+    if len(rate_coords.clear_x) > 1:
+        f = interp1d(rate_coords.clear_x, rate_coords.clear_y, kind='linear',
+                     assume_sorted=True, bounds_error=False)
+        # valid data points: interpolation at initial x coordinates
+        out_rate[coords.valid] = f(coords.clear_x)
+        if len(anteriors.valid) > 0 and offset is not None:
+            out_anterior_rate[anteriors.valid] = f(anteriors.clear_x)
 
     return out_rate, out_y, out_anterior_rate, out_anterior_y, all_x, all_y
 
