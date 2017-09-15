@@ -25,13 +25,40 @@ movies of dividing micro-organisms.
 
 # Install
 
-tunacell has been developed with Python 2 and can be installed locally using pip.
+tunacell has been developed with Python 2.7, and is now compatible with Python 3.6
+(note that there might be hidden compatibility bugs).
+It can be installed locally using pip.
 Clone (or download) the repo and make a local (editable) install using pip:
 
     pip install -e .
 
-Python 3 compatibility is not fully guaranteed, but has been tested against
-the scripts listed below.
+## Local install, and `virtualenv`
+
+If Python is installed system-wide, you may have to `sudo` the command above.
+When it's not possible you may give the option to install it on the user
+directory:
+
+   pip install -e --user .
+
+A better solution when Python, pip, and virtualenv are installed on the system,
+is to create a virtual environment where you plan to work with tunacell.
+The Makefile does the job, run the command:
+
+   make virtualenv
+
+and then
+
+   source venv/bin/activate
+
+to activate the virtual environment. Then you can run the `pip install -e.`
+command, without worrying about permissions since everything will be installed
+locally, and accesses only when your virtual environment is active.
+When you finish working with tunacell, type:
+
+   deactivate
+
+and that's it.
+
 
 ## Dependencies
 
@@ -72,6 +99,8 @@ try:
     pip -V
 
 If it is not installed, you may check [this to install pip][install-pip].
+
+Then get back to install instructions above.
 
 [python-downloads]: https://www.python.org/ "Python"
 [install-pip]: https://pip.pypa.io/en/stable/installing/ "Install pip"
@@ -122,11 +151,22 @@ please report them with an Issue, or better, fork, make the patch, and PR :)
 
 * Made the dynamic analysis API a bit clearer (hopefully)
 * Added few scripts to introduce tunacell API
-* FunctionalObservable class has been added in tuna/base/observable.py: 
+* `FunctionalObservable` class has been added in tuna/base/observable.py: 
   it allows the user to define a new observable as a function of other
   observables. For instance, it can be helpful when one wants to rescale a
   dynamic, time-lapse observable (say, growth rate) by a cell-cycle observable
-  (say, brith growth rate).
+  (say, birth growth rate).
+* Noticeable change how hidden observables are collected to perform all computation.
+  A hidden observable is an observable involved in filtering (filter out those
+  cells that have abnormal values for this observable), or present as an
+  argument of a `FunctionalObservable`. They need to be computed internally and
+  there is a distinction between regular `Observable` and the new
+  `FunctionalObservable` classes. It changed the parameterization of
+  `Lineage.get_timeseries` method (that can be used to parse data, see the end
+  of `bivariate-analysis.py` script for a short example). 
+  `Cell` instances are now equiped with protection against building mutltiple
+  times a given observable (although the protection needs to be specified,
+  it is not automatic).
 
 ## Future work
 
