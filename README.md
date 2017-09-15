@@ -38,24 +38,24 @@ If Python is installed system-wide, you may have to `sudo` the command above.
 When it's not possible you may give the option to install it on the user
 directory:
 
-   pip install -e --user .
+    pip install -e --user .
 
 A better solution when Python, pip, and virtualenv are installed on the system,
 is to create a virtual environment where you plan to work with tunacell.
 The Makefile does the job, run the command:
 
-   make virtualenv
+    make virtualenv
 
 and then
 
-   source venv/bin/activate
+    source venv/bin/activate
 
 to activate the virtual environment. Then you can run the `pip install -e.`
 command, without worrying about permissions since everything will be installed
 locally, and accesses only when your virtual environment is active.
 When you finish working with tunacell, type:
 
-   deactivate
+    deactivate
 
 and that's it.
 
