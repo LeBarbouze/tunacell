@@ -2,7 +2,7 @@ pipinstall:
 	pip install -e .
 
 virtualenv:
-	virtualenv --python=python2.7 --system-site-packages venv
+	virtualenv --system-site-packages venv
 	venv/bin/pip install flake8 pytest
 
 flake8:
