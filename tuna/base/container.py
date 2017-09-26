@@ -509,12 +509,13 @@ def build_cells(arr, container=None, report_NaNs=True,
         # first check that identifiers are unique
         cids = np.unique(arr['cellID'])
         if len(cids) > 1:
-            raise CellIdentifierError
+            raise CellIdentifierError('ids found: {}'.format(cids))
         else:
             cid = str(cids[0])  # map to string (immutable)
         pids = np.unique(arr['parentID'])
         if len(pids) > 1:
-            raise CellParentError
+            msg = 'From cellID {}; found these parentIDs: {}'.format(cid, pids)
+            raise CellParentError(msg)
         else:
             pid = str(pids[0])  # map to string (immutable)
         # create Cell instance and update bpointer when pid is valid
