@@ -192,8 +192,10 @@ def compute_rates(x, y, x_break=None,
 
     # find period (can be different from dt when multiple acquisition periods)
     no_data = len(coords.clear_x) == 0
+    if no_data:
+        return nans_coords, nans_coords, nans_anteriors, nans_anteriors, [], []
     too_few_data = coords.clear_x[-1] - coords.clear_x[0] < time_window
-    if no_data or too_few_data:
+    if too_few_data:
         return nans_coords, nans_coords, nans_anteriors, nans_anteriors, [], []
 
     # coords.clear_x is necesarily of length >=2
