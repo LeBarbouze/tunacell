@@ -335,7 +335,7 @@ def plot_onepoint(univariate, show_cdts='all', left=None, right=None,
 
 
 def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
-                   trange=(-100., 100.), show_exp_decay=None,
+                   delta_t_max=None, show_exp_decay=None,
                    save=False, ext='.png'):
     """Plot two-point functions.
 
@@ -349,8 +349,10 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
         if left empty, reference times will be computed automatically
     ntrefs : int
         if trefs is empty, number of times of reference to display
-    trange : couple of floats
-        limits of x-axis (time)
+    delta_t_max : float (default None)
+        when given, bottom plot will be using this max range symmetrically;
+        otherwise, will use the largest intervals found in data (often too
+        large to see something)
     show_exp_decay : float (default None)
         when a floating point number is passed, a light exponential decay
         curve is plotted for each tref
@@ -360,6 +362,12 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
         extension to be used when saving figure
     """
     obs = univariate.obs
+    # get priod from eval times
+    if len(univariate.eval_times) > 0:
+        period = univariate.eval_times[1] - univariate.eval_times[0]
+    # or from experiment metadata
+    else:
+        period = univariate.exp.period
     fig, axs = plt.subplots(3, 1, figsize=(6, 9))
 
     # define time label
@@ -408,7 +416,7 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
 
         for tref in trefs:
             # this tref may not be in conditioned data (who knows)
-            if np.amin(np.abs(times - tref)) > 1.:
+            if np.amin(np.abs(times - tref)) > period:
                 continue
             index = np.argmin(np.abs(times - tref))
             if obs.timing == 'g':
@@ -420,8 +428,8 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
 
             ax = axs[0]
             ok = np.where(counts[index, :] > 0)
-            if len(ok[0]) == 0:
-                continue
+#            if len(ok[0]) == 0:
+#                continue
             # time limits
             xmin, xmax = np.nanmin(times[ok]), np.nanmax(times[ok])
             ax01_mins.append(xmin)
@@ -473,8 +481,13 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
         right = None
     for ax in axs[:2]:
         ax.set_xlim(left=left, right=right)
-    delta_left, delta_right = left-right, right-left
-    axs[2].set_xlim(left=delta_left, right=delta_right)
+    # bottom plot : try to zoom over provided range
+    if delta_t_max is not None:
+        axs[2].set_xlim(left=-delta_t_max, right=delta_t_max)
+    # if not provided, compute automatic ranges (not pretty usually)
+    elif left is not None and right is not None:
+        delta_left, delta_right = left-right, right-left
+        axs[2].set_xlim(left=delta_left, right=delta_right)
 
     axs[0].set_ylim(bottom=0)  # counts
     
