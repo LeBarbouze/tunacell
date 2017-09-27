@@ -132,6 +132,13 @@ class Experiment(object):
         else:
             warnings.warn('{} is not a FilterSet'.format(value))
         return
+    
+    @property
+    def analysis_path(self):
+        """Get analysis path (with appropriate filterset path)"""
+        analysis_path = text.get_analysis_path(self, write=True)
+        index, filterset_path = text.get_filter_path(analysis_path, self.fset, write=True)
+        return filterset_path
 
     def load_from_text(self):
         """Load parameters from text filetype"""
