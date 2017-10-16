@@ -15,19 +15,19 @@ from __future__ import print_function
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from tuna import Experiment, Observable, FilterSet
-from tuna.base.observable import FunctionalObservable
-from tuna.base.observable import set_observable_list
-from tuna.filters.cells import FilterCellIDparity
+from tunacell import Experiment, Observable, FilterSet
+from tunacell.base.observable import FunctionalObservable
+from tunacell.base.observable import set_observable_list
+from tunacell.filters.cells import FilterCellIDparity
 
-from tuna.stats.api import (compute_univariate, load_univariate,
+from tunacell.stats.api import (compute_univariate, load_univariate,
                             compute_stationary, load_stationary, NoValidTimes,
                             compute_bivariate, load_bivariate,
                             compute_stationary_bivariate, load_stationary_bivariate)
-from tuna.stats.single import UnivariateIOError, StationaryUnivariateIOError
-from tuna.stats.two import BivariateIOError, StationaryBivariateIOError
-from tuna.stats.utils import Regions, CompuParams
-from tuna.plotting.dynamics import plot_stationary
+from tunacell.stats.single import UnivariateIOError, StationaryUnivariateIOError
+from tunacell.stats.two import BivariateIOError, StationaryBivariateIOError
+from tunacell.stats.utils import Regions, CompuParams
+from tunacell.plotting.dynamics import plot_stationary
 
 from tutorial import press_enter, args
 

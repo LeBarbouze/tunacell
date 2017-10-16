@@ -32,7 +32,7 @@ def find_version(*file_paths):
     
 
 setup(name='tunacell',
-      version=find_version('tuna','__init__.py'),
+      version=find_version('tunacell','__init__.py'),
       description='Analysis of Timeseries from dividing UNicellular microorganisms',
       long_description=descr,
       url='',

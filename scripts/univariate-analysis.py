@@ -9,7 +9,7 @@ computing one-point, and two-point functions for single observables
 To do so we will use numerically simulated data (generated with the simurun.py
 script) in the simutest folder. No filterset is applied (we consider all data
 is valid for statistics). A toy condition is defined by taking the ensemble of
-cells with an even identifier. We define a few observables to illustrate tuna's
+cells with an even identifier. We define a few observables to illustrate tunacell's
 capabilities.
 """
 
@@ -17,11 +17,11 @@ from __future__ import print_function
 
 import matplotlib.pyplot as plt
 
-from tuna import Experiment, Observable, FilterSet
-from tuna.filters.cells import FilterCellIDparity
-from tuna.stats.api import compute_univariate
-from tuna.plotting.dynamics import plot_onepoint, plot_twopoints
-from tuna.io import text
+from tunacell import Experiment, Observable, FilterSet
+from tunacell.filters.cells import FilterCellIDparity
+from tunacell.stats.api import compute_univariate
+from tunacell.plotting.dynamics import plot_onepoint, plot_twopoints
+from tunacell.io import text
 
 from tutorial import press_enter, args
 
@@ -38,7 +38,7 @@ plt.close('all')
 #argparser = argparse.ArgumentParser()
 #argparser.add_argument('-e', '--exp', type=str,
 #                       help='Path to experiment root folder',
-#                       default='~/tmptuna/simutest')
+#                       default='~/tmptunacell/simutest')
 #
 #args = argparser.parse_args()
 
@@ -149,10 +149,10 @@ press_enter(fig2)
 univariate.export_text()  # save results as text files in structured folders
 
 # =============================================================================
-# You can go check your ~/tmptuna/simutest folder. There should be an analysis
+# You can go check your ~/tmptunacell/simutest folder. There should be an analysis
 # folder with subfolders: filterset folder > observable folder > condition folders
 # where results are stored.
-# There are also a few sets of functions defined in the tuna.io.text module
+# There are also a few sets of functions defined in the tunacell.io.text module
 # that allow the user to inspect the various folders in a console,
 # and to load objects (at the exception of FunctionalObservable instances)
 # =============================================================================

@@ -11,9 +11,9 @@ from __future__ import print_function
 
 import matplotlib.pyplot as plt
 
-from tuna import Experiment, Parser, Observable, FilterSet
-from tuna.filters.cells import FilterCellIDparity
-from tuna.plotting.samples import SamplePlot
+from tunacell import Experiment, Parser, Observable, FilterSet
+from tunacell.filters.cells import FilterCellIDparity
+from tunacell.plotting.samples import SamplePlot
 
 from tutorial import press_enter, args
 

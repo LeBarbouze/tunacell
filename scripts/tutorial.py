@@ -26,7 +26,7 @@ def press_enter(*figs):
 argparser = argparse.ArgumentParser()
 argparser.add_argument('-e', '--experiment', type=str,
                        help='Path to experiment root folder',
-                       default='~/tmptuna/simutest')
+                       default='~/tmptunacell/simutest')
 
 args = argparser.parse_args()
 
@@ -34,7 +34,7 @@ args = argparser.parse_args()
 
 if __name__ == '__main__':
     # %% Loads data from text files (exported from numerical simulations)
-    from tuna import Experiment, Parser
+    from tunacell import Experiment, Parser
 
     path_to_exp = args.experiment
     exp = Experiment(path_to_exp)  # this defines the Experiment object
@@ -67,7 +67,7 @@ if __name__ == '__main__':
     
     # %% define observable from raw data
     
-    from tuna import Observable
+    from tunacell import Observable
     obs = Observable(name='size', raw='exp_ou_int')
     print(obs)
     print(obs.as_string_table())
@@ -75,7 +75,7 @@ if __name__ == '__main__':
     
     # %% plotting timeseries of our colony
     
-    from tuna.plotting.samples import SamplePlot
+    from tunacell.plotting.samples import SamplePlot
     myplot = SamplePlot(obs, colony, parser=parser)
     myplot.make_plot()
     press_enter(myplot.fig)
@@ -86,13 +86,13 @@ if __name__ == '__main__':
     # looking at ou observable
     ou = Observable(name='growth-rate', raw='ou')
     
-    from tuna.stats.api import compute_univariate
+    from tunacell.stats.api import compute_univariate
     univariate = compute_univariate(exp, ou)
     univariate.export_text()
     
     # %% Plotting the statistics
     
-    from tuna.plotting.dynamics import plot_onepoint, plot_twopoints
+    from tunacell.plotting.dynamics import plot_onepoint, plot_twopoints
     fig = plot_onepoint(univariate, show_ci=True, save=True)
     fig2 = plot_twopoints(univariate, save=True)
     press_enter(fig, fig2)

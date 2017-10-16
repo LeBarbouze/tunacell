@@ -22,14 +22,14 @@ import argparse
 import os
 import shutil
 import numpy as np
-from tuna.simu.main import SimuParams, DivisionParams
-from tuna.simu.ou import OUParams, OUSimulation
+from tunacell.simu.main import SimuParams, DivisionParams
+from tunacell.simu.ou import OUParams, OUSimulation
 
 # Arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--path', type=str,
                     help='Parent directory in which simulation is stored',
-                    default='~/tmptuna')
+                    default='~/tmptunacell')
 parser.add_argument('-l', '--label', type=str,
                     help='Label of the experiment/simulation',
                     default='simutest')
