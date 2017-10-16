@@ -6,7 +6,7 @@ Testing container features
 from __future__ import print_function
 
 import pytest
-import tuna
+import tunacell
 import os
 
 from tunacell.base.experiment import Experiment

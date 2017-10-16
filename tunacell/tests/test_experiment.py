@@ -8,7 +8,7 @@ from __future__ import print_function
 import pytest
 import os
 
-import tuna
+import tunacell
 from tunacell.base.experiment import Experiment
 from tunacell.base.container import Container
 

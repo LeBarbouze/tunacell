@@ -8,7 +8,7 @@ from __future__ import print_function
 import pytest
 import os
 
-import tuna
+import tunacell
 from tunacell.io import text
 
 

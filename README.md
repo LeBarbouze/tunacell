@@ -5,8 +5,7 @@
       \__|\__,_|_| |_|\__,_|\___\___|_|_|
      
 
-`tunacell`, or in its shorter form `tuna`,
-is a Python package that provides tools to analyze data from time-lapse
+`tunacell` is a Python package that provides tools to analyze data from time-lapse
 movies of dividing micro-organisms.
 
 # Main features
@@ -25,7 +24,7 @@ movies of dividing micro-organisms.
 
 # Install
 
-tunacell has been developed with Python 2.7, and is now compatible with Python 3.6
+tunacell has been developed with Python 2.7 and is now compatible with Python 3.6
 (note that there might be hidden compatibility bugs).
 It can be installed locally using pip.
 Clone (or download) the repo and make a local (editable) install using pip:
@@ -40,7 +39,7 @@ directory:
 
     pip install -e --user .
 
-A better solution when Python, pip, and virtualenv are installed on the system,
+A better solution when Python, pip, and virtualenv are installed on the system
 is to create a virtual environment where you plan to work with tunacell.
 The Makefile does the job, run the command:
 
@@ -118,7 +117,7 @@ There are two main options to dive into tunacell.
 
 First option is to go through the user manual of the documentation, stepping
 through each point. Although it might give you an in-depth, logical introduction
-to tuna, it might be tedious as a first approach.
+to tunacell, it might be tedious as a first approach.
 
 The second, pragmatic option is to run **sequentially** the scripts in the ``scripts``
 folder. In a terminal:
