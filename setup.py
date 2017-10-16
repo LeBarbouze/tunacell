@@ -59,6 +59,6 @@ setup(name='tunacell',
                         'treelib',
                         'matplotlib>=2',  # new color code...
                         'future',
-                        'dill'],
-#      scripts=['bin/commande.py'],
+                        'dill'],   
+      scripts=['scripts/simurun.py'],
       zip_safe=False)
