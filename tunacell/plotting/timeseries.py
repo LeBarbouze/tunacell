@@ -8,6 +8,7 @@ from __future__ import print_function
 import numpy as np
 import re
 
+import matplotlib as mpl
 import matplotlib.transforms as transforms
 
 from tunacell.stats.api import load_univariate, UnivariateIOError
@@ -53,12 +54,12 @@ def add_data_statistics(axes, parser, obs, conditions,
 def add_timeseries(ax, ts, condition_label='master',
                    show_markers=True,
                    marker='o',
-                   markersize=4.,
-                   markeredgewidth=.8,
+#                   markersize=4.,
+#                   markeredgewidth=.8,
                    end_points_emphasis=False,
                    show_lines=True,
                    linestyle='-',
-                   linewidth=2.,
+#                   linewidth=2.,
                    join_cells=False,
                    color=None,
                    alpha=1.,
@@ -66,7 +67,8 @@ def add_timeseries(ax, ts, condition_label='master',
                    use_last_color=True,
                    report_cids=False,
                    report_cids_yposAxes=.9,
-                   fontsize='medium'):
+#                   fontsize='medium'
+                   ):
     """Plot timeseries object in ax.
 
     Parameters
@@ -127,6 +129,11 @@ def add_timeseries(ax, ts, condition_label='master',
     joins : list of Line2D instances
         lines connecting cells when join_cells is True
     """
+    # size settings defined by matplotlib.rcParams 
+    markersize = mpl.rcParams['lines.markersize']
+    markeredgewidth = mpl.rcParams['lines.markeredgewidth']
+    linewidth = mpl.rcParams['lines.linewidth']
+
     # PLOTTING PARAMETERS
     alpha_connecting = .3
     if not show_markers and not show_lines:
@@ -278,7 +285,7 @@ def add_timeseries(ax, ts, condition_label='master',
                 else:
                     lines_unvalid.append(connecting)
             if report_cids:
-                xposData = np.mean(xdata)
+                xposData = np.percentile(xdata, 1./3.)
                 ax.text(xposData, report_cids_yposAxes, '{}'.format(cid),
                         transform=trans, color=color, alpha=.8)
             # append first/last frame (registered if cell completed its cycle)
@@ -304,7 +311,8 @@ def add_timeseries(ax, ts, condition_label='master',
                     ax.text(xposData + xstep, report_cids_yposAxes,
                             '{}'.format(cid),
                             transform=trans, color='k', alpha=.5,
-                            fontsize=fontsize)
+#                            fontsize=fontsize
+                            )
         prej = sl.stop
 
     return (left, right, bottom, top), (lines_valid, lines_unvalid, joins)

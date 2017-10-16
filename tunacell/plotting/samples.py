@@ -79,11 +79,11 @@ class SamplePlot(object):
                   yscale='linear',
                   show_markers=True,
                   marker='o',
-                  markersize=6.,
-                  markeredgewidth=.8,
+#                  markersize=6.,
+#                  markeredgewidth=.8,
                   show_lines=True,
                   linestyle='-',
-                  linewidth=2.,
+#                  linewidth=2.,
                   join_cells=True,
                   end_points_emphasis=False,
                   color='C0',
@@ -215,11 +215,11 @@ def plot_samples(samples, obs, parser=None, conditions=[],
                  yscale='linear',
                  show_markers=True,
                  marker='o',
-                 markersize=6.,
-                 markeredgewidth=.8,
+#                 markersize=6.,
+#                 markeredgewidth=.8,
                  show_lines=True,
                  linestyle='-',
-                 linewidth=2.,
+#                 linewidth=2.,
                  join_cells=True,
                  end_points_emphasis=False,
                  color='C0',
@@ -232,7 +232,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
                  limit_axes=20,
                  axe_xsize=6,
                  axe_ysize=1.6,
-                 fontsize=10.,
+#                 fontsize=10.,
                  report_cids=True,
                  report_cids_yposAxes=.8,
                  report_divisions=True,
@@ -333,8 +333,8 @@ def plot_samples(samples, obs, parser=None, conditions=[],
         user can set the variance here
     """
     # get fontsize
-    default_fs = mpl.rcParams['font.size']
-    mpl.rc('font', size=fontsize)
+#    default_fs = mpl.rcParams['font.size']
+#    mpl.rc('font', size=fontsize)
     # check that report_condition is a valid condition
     condition_label = 'master'
     if conditions:
@@ -529,11 +529,11 @@ def plot_samples(samples, obs, parser=None, conditions=[],
                                  end_points_emphasis=end_points_emphasis,
                                  show_markers=show_markers,
                                  marker=marker,
-                                 markersize=markersize,
-                                 markeredgewidth=markeredgewidth,
+#                                 markersize=markersize,
+#                                 markeredgewidth=markeredgewidth,
                                  show_lines=show_lines,
                                  linestyle=linestyle,
-                                 linewidth=linewidth,
+#                                 linewidth=linewidth,
                                  join_cells=join_cells,
                                  color=color,
                                  alpha=alpha,
@@ -541,7 +541,8 @@ def plot_samples(samples, obs, parser=None, conditions=[],
                                  use_last_color=True,
                                  report_cids=report_cids,
                                  report_cids_yposAxes=report_cids_yposAxes,
-                                 fontsize='medium')
+#                                 fontsize='medium'
+                                 )
 
             # getting min, max values; possible to get color: dat.get_color()
             limits, lines = ret
@@ -607,6 +608,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
                                                 alpha=jalpha)
         container_lab = this_container
         colony_root = this_root
+        iax = this_iax
 
     # PLOT SETTINGS
     left = np.amin(lefts)
@@ -629,18 +631,18 @@ def plot_samples(samples, obs, parser=None, conditions=[],
             ax.set_yscale('log')
         if not at_least_one_timeseries[iax]:
             ax.text(0.4, 0.4, "NO DATA", transform=ax.transAxes)
-
-    axes[0].tick_params(axis='x', direction='out', top='on',
-                        labeltop='on')
+#
+#    axes[0].tick_params(axis='x', direction='out', top='on',
+#                        labeltop='on')
     axes[0].tick_params(axis='x', direction='in', bottom='on',
                         labelbottom='off')
 
     axes[-1].set_xlabel('Time (mins)', x=.95, horizontalalignment='right',
                         fontsize='large')
-    if n_axes > 1:
-        axes[0].xaxis.set_label_position('top')
-        axes[0].set_xlabel('Time (mins)', x=.95, horizontalalignment='right',
-                           fontsize='large')
+#    if n_axes > 1:
+#        axes[0].xaxis.set_label_position('top')
+#        axes[0].set_xlabel('Time (mins)', x=.95, horizontalalignment='right',
+#                           fontsize='large')
 
     # add legend
     if show_legend:
@@ -687,7 +689,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
 
     # add title
     ax = axes[0]
-    ax.text(0.5, 1.3, r'{}'.format(obs.as_latex_string),
+    ax.text(0.5, 1.1, r'{}'.format(obs.as_latex_string),
             size='x-large',
             horizontalalignment='center',
             verticalalignment='bottom',
@@ -695,7 +697,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
 
     fig.subplots_adjust(hspace=0)
     # restore default font size
-    mpl.rc('font', size=default_fs)
+#    mpl.rc('font', size=default_fs)
     return fig
 
 
