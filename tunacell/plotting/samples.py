@@ -14,6 +14,8 @@ import inspect
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
+import matplotlib.ticker as ticker
+
 import numpy as np
 import collections
 
@@ -76,14 +78,12 @@ class SamplePlot(object):
         return
 
     def make_plot(self, report_condition='master',
+                  units='',
                   yscale='linear',
                   show_markers=True,
                   marker='o',
-#                  markersize=6.,
-#                  markeredgewidth=.8,
                   show_lines=True,
                   linestyle='-',
-#                  linewidth=2.,
                   join_cells=True,
                   end_points_emphasis=False,
                   color='C0',
@@ -212,14 +212,12 @@ class SamplePlot(object):
 
 def plot_samples(samples, obs, parser=None, conditions=[],
                  report_condition='master',
+                 units='',
                  yscale='linear',
                  show_markers=True,
                  marker='o',
-#                 markersize=6.,
-#                 markeredgewidth=.8,
                  show_lines=True,
                  linestyle='-',
-#                 linewidth=2.,
                  join_cells=True,
                  end_points_emphasis=False,
                  color='C0',
@@ -231,8 +229,9 @@ def plot_samples(samples, obs, parser=None, conditions=[],
                  superimpose='none',
                  limit_axes=20,
                  axe_xsize=6,
+                 axe_xrange=(None, None),  # auto
                  axe_ysize=1.6,
-#                 fontsize=10.,
+                 axe_yrange=(None, None),  # auto
                  report_cids=True,
                  report_cids_yposAxes=.8,
                  report_divisions=True,
@@ -257,9 +256,11 @@ def plot_samples(samples, obs, parser=None, conditions=[],
         when data_statistics is used, needs parser.fset info
     conditions : list of :class:`FilterSet` instances
         set of conditions that are evaluated
+    units : str (default '')
+        units to add to title
     report_condition: str (default 'master')
         which condition to report on the plot: This must be either 'master',
-        either a repr of one element of conditions
+        either the repr of one item of conditions, or its label attribute 
     suppl_obs: list of :class:`Observables`
         supplementary observables that need to be computed so that each filter
         in conditions can be applied
@@ -269,10 +270,6 @@ def plot_samples(samples, obs, parser=None, conditions=[],
         whether to plot markers for data (True is encouraged)
     marker : str
         type of markers
-    markersize : float
-        size of markers
-    markeredgewidth : float
-        width of marker edges; used for cell note verifying condition_label
     show_lines : bool {True, False}
         whether to show lines. When show_markers is active, lines will get
         a low a low alpha value (0.3); when inactive, alpha parameters adjusts
@@ -325,26 +322,31 @@ def plot_samples(samples, obs, parser=None, conditions=[],
         this option is set to False automatically if superimpose is not 'none'
     show_legend : bool {True, False}
         whether to show legend
-    data_statistics : bool {True, False}
-        if True, try to find analysis folder to plot mean values from data
+    data_statistics : bool {True, False} or str
+        if True, try to find analysis folder to plot mean values from data;
+        if str, tries to identify the appropriate condition from conditions
+        to represent (can be 'master', repr(condition), or condition.label)
     ref_mean : float (default None)
         user can set the expected value here
     ref_var : float (default None)
         user can set the variance here
     """
-    # get fontsize
-#    default_fs = mpl.rcParams['font.size']
-#    mpl.rc('font', size=fontsize)
     # check that report_condition is a valid condition
-    condition_label = 'master'
+    condition_repr = 'master'
     if conditions:
         if report_condition in map(repr, conditions):
-            condition_label = report_condition  # default setting
+            condition_repr = report_condition  # default setting
             # find it
             for cdt in conditions:
                 if repr(cdt) == report_condition:
                     condition_human_readable = str(cdt)
-    if condition_label == 'master':
+        # if one used the FilterSet.label
+        else:
+            for cdt in conditions:
+                if report_condition == cdt.label:
+                    condition_repr = repr(cdt)
+                    condition_human_readable = report_condition
+    if condition_repr == 'master':
         condition_human_readable = 'No condition'
 
     # counting the number of axes and makinf dictionary lineage index: ax index
@@ -428,12 +430,17 @@ def plot_samples(samples, obs, parser=None, conditions=[],
     # plotting values from computed statistics
     data_stat_handles = []
     if data_statistics:
+        statistics_condition_repr = 'master'  # default
+        # data_statistics can be True, repr(condition), condition.label
+        if isinstance(data_statistics, str):
+            statistics_condition_repr = data_statistics
         if parser is None:
             raise IOError('Need parser to get fset info')
         else:
             try:
+
                 res = add_data_statistics(axes, parser, obs, conditions,
-                                          condition_label=condition_label)
+                                          condition_repr=statistics_condition_repr)
                 for item in res:
                     if item is not None:
                         data_stat_handles.append(item)
@@ -500,23 +507,14 @@ def plot_samples(samples, obs, parser=None, conditions=[],
                     color = 'C{}'.format((cindex + 1) % 10)
 
         # write container label to each new panel
-        show_container_label = False  # needs activation
         show_colony_root = False  # needs activation
         if this_iax != iax:
-            show_container_label = (this_container != container_lab and
-                                    (superimpose in ['none',
-                                                     'colony',
-                                                     'container',
-                                                     1]))
-            if show_container_label:
-                msg = 'Container {}'.format(this_container)
-                ax.text(0.01, 0.05, msg, color='C7', transform=ax.transAxes)
             show_colony_root = (this_root != colony_root and
                                 superimpose in ['none', 'colony', 1])
+            msg = ''
             if show_colony_root:
-                msg = 'Root {}'.format(this_root)
-                ax.text(0.01, 0.9, msg, color=color, transform=ax.transAxes)
-
+                 msg += 'cont. {}, root {}'.format(this_container, this_root)
+                 ax.text(0.01, 0.05, msg, color='C7', alpha=.8, transform=ax.transAxes)
         if len(ts.timeseries.clear_x) > 0:
             at_least_one_timeseries[this_iax] = True
             x = ts.timeseries.clear_x
@@ -525,15 +523,12 @@ def plot_samples(samples, obs, parser=None, conditions=[],
             if np.isnan(x).all() or np.isnan(y).all():
                 continue
             # calling add_timeseries
-            ret = add_timeseries(ax, ts, condition_label=condition_label,
+            ret = add_timeseries(ax, ts, condition_repr=condition_repr,
                                  end_points_emphasis=end_points_emphasis,
                                  show_markers=show_markers,
                                  marker=marker,
-#                                 markersize=markersize,
-#                                 markeredgewidth=markeredgewidth,
                                  show_lines=show_lines,
                                  linestyle=linestyle,
-#                                 linewidth=linewidth,
                                  join_cells=join_cells,
                                  color=color,
                                  alpha=alpha,
@@ -541,7 +536,6 @@ def plot_samples(samples, obs, parser=None, conditions=[],
                                  use_last_color=True,
                                  report_cids=report_cids,
                                  report_cids_yposAxes=report_cids_yposAxes,
-#                                 fontsize='medium'
                                  )
 
             # getting min, max values; possible to get color: dat.get_color()
@@ -611,6 +605,8 @@ def plot_samples(samples, obs, parser=None, conditions=[],
         iax = this_iax
 
     # PLOT SETTINGS
+    
+    # found limits
     left = np.amin(lefts)
     right = np.amax(rights)
     bottom = np.amin(bottoms)
@@ -618,31 +614,84 @@ def plot_samples(samples, obs, parser=None, conditions=[],
 
     hrange = right - left
     vrange = top - bottom
+    hfrac = 1/10.  # fraction of horizontal blank space to the leftmost, rightmost point
+    vfrac = 1/5.  # fraction of vertical blank space to the bottom, top point
+
+    # user-defined limits
+    if axe_xrange[0] is not None:
+        if axe_xrange[0] > left:
+            warnings.warn('Using non-inclusive user-defined left bound')
+        left = axe_xrange[0]
+    else:
+        left = left - hfrac * hrange
+    if axe_xrange[1] is not None:
+        if axe_xrange[1] < right:
+            warnings.warn('Using non-inclusive user-defined right bound')
+        right = axe_xrange[1]
+    else:
+        right = right + hfrac * hrange
+    if axe_yrange[0] is not None:
+        if axe_xrange[0] > bottom:
+            warnings.warn('Using non-inclusive user-defined bottom bound')
+        bottom = axe_yrange[0]
+    else:
+        bottom = bottom - vfrac * vrange
+    if axe_yrange[1] is not None:
+        if axe_xrange[1] < top:
+            warnings.warn('Using non-inclusive user-defined top bound')
+        top = axe_yrange[1]
+    else:
+        top = top + vfrac * vrange
 
     # ticks
+    # locator
+    for ax in axes:
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(60))
+
+    # erase labels for intermediate layers
     for ax in axes[1:-1]:
         ax.set_xticklabels([])
 
     for iax, ax in enumerate(axes):
         ax.tick_params(axis='x', direction='in')
-        ax.set_xlim(left=left-hrange/10., right=right+hrange/10.)
-        ax.set_ylim(bottom=bottom-vrange/10., top=top+vrange/10.)
+        ax.set_xlim(left=left, right=right)
+        ax.set_ylim(bottom=bottom, top=top)
         if yscale == 'log':
             ax.set_yscale('log')
         if not at_least_one_timeseries[iax]:
             ax.text(0.4, 0.4, "NO DATA", transform=ax.transAxes)
-#
-#    axes[0].tick_params(axis='x', direction='out', top='on',
-#                        labeltop='on')
-    axes[0].tick_params(axis='x', direction='in', bottom='on',
-                        labelbottom='off')
+    
+    if len(axes) > 1:
+        for ax in axes[:-1]:
+            ax.spines['bottom'].set_visible(False)
+            ax.tick_params(axis='x', colors='C7')
+        for ax in axes[1:]:
+            ax.spines['top'].set_color('C7')
+
+        axes[0].tick_params(axis='x', direction='in', bottom='on',
+                            labelbottom='off')
+    
+    yfmt = ticker.ScalarFormatter()
+    yfmt.set_powerlimits((-1, 2))
+    
+    ax = axes[0]
+    loc = ticker.MaxNLocator(nbins=2)
+    ax.yaxis.set_major_locator(loc)
+    # call loc to set up
+    _ = loc()
+    ax.yaxis.set_major_formatter(yfmt)
+    yfmt.set_locs(ax.get_yticks())
+    yticklocs = yfmt.locs
+#    print(yticklocs)
+    yticklabels = [yfmt.pprint_val(item) for item in yticklocs]
+
+    # use first ax locations and formetter
+    for ax in axes[1:]:
+        ax.yaxis.set_major_locator(ticker.FixedLocator(yticklocs))
+        ax.yaxis.set_ticklabels(yticklabels)
 
     axes[-1].set_xlabel('Time (mins)', x=.95, horizontalalignment='right',
                         fontsize='large')
-#    if n_axes > 1:
-#        axes[0].xaxis.set_label_position('top')
-#        axes[0].set_xlabel('Time (mins)', x=.95, horizontalalignment='right',
-#                           fontsize='large')
 
     # add legend
     if show_legend:
@@ -684,20 +733,21 @@ def plot_samples(samples, obs, parser=None, conditions=[],
         labels += data_stat_labs
         ax.legend(handles=handles, labels=labels,
                   loc=2,
-                  bbox_to_anchor=(0, -.4),
+                  bbox_to_anchor=(0, -.8),
                   borderaxespad=0.)
-
+        
     # add title
-    ax = axes[0]
-    ax.text(0.5, 1.1, r'{}'.format(obs.as_latex_string),
-            size='x-large',
-            horizontalalignment='center',
-            verticalalignment='bottom',
-            transform=ax.transAxes)
+    titling = r'{}'.format(obs.as_latex_string)
+    if units:
+        titling += ' [{}]'.format(units)
+    axes[0].text(0.5, 1.15, titling,
+                size='x-large',
+                horizontalalignment='center',
+                verticalalignment='bottom',
+                transform=axes[0].transAxes)
 
     fig.subplots_adjust(hspace=0)
-    # restore default font size
-#    mpl.rc('font', size=default_fs)
+
     return fig
 
 

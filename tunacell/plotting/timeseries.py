@@ -14,7 +14,7 @@ import matplotlib.transforms as transforms
 from tunacell.stats.api import load_univariate, UnivariateIOError
 
 def add_data_statistics(axes, parser, obs, conditions,
-                        condition_label='master'):
+                        condition_repr='master'):
     """Add dynamics of single observable statistics.
 
     Parameters
@@ -23,7 +23,7 @@ def add_data_statistics(axes, parser, obs, conditions,
     parser : :class:`Parser` instance
     obs : :class:`Observable` instance
     conditions : list of :class:`FilterSet` instances
-    condition_label : str (default 'master')
+    condition_repr : str (default 'master')
         use computed statistics for this condition;
         must be either 'master', either a repr of one of conditions.selections
 
@@ -37,29 +37,39 @@ def add_data_statistics(axes, parser, obs, conditions,
         single = load_univariate(parser.experiment, obs, cset=conditions)
     except UnivariateIOError:
         return None, None
-    item = single[condition_label]
+    # condition_repr can be either a repr(condition), condition.label, or 'master'
+    use_repr = 'master'
+    human_readable = 'all'
+    if condition_repr != 'master':
+        for cdt in conditions:
+            if condition_repr == repr(cdt):
+                use_repr = condition_repr
+                human_readable = cdt.label
+                break
+            elif condition_repr == cdt.label:
+                use_repr = repr(cdt)
+                human_readable = condition_repr
+                break
+    item = single[use_repr]
     tt = item.time
     mm = item.average
     std = item.std
 
     for ax in axes:
         line_mean, = ax.plot(tt, mm, color='C7', alpha=0.8,
-                             label='sample mean')
+                             label='average ({} samples)'.format(human_readable))
         fill_std = ax.fill_between(tt, mm - std, mm + std,
-                                   facecolor='C7', alpha=.2,
+                                   facecolor='C7', alpha=0.2,
                                    label='+/-1 standard deviation')
     return line_mean, fill_std
 
 
-def add_timeseries(ax, ts, condition_label='master',
+def add_timeseries(ax, ts, condition_repr='master',
                    show_markers=True,
                    marker='o',
-#                   markersize=4.,
-#                   markeredgewidth=.8,
                    end_points_emphasis=False,
                    show_lines=True,
                    linestyle='-',
-#                   linewidth=2.,
                    join_cells=False,
                    color=None,
                    alpha=1.,
@@ -67,7 +77,6 @@ def add_timeseries(ax, ts, condition_label='master',
                    use_last_color=True,
                    report_cids=False,
                    report_cids_yposAxes=.9,
-#                   fontsize='medium'
                    ):
     """Plot timeseries object in ax.
 
@@ -77,16 +86,12 @@ def add_timeseries(ax, ts, condition_label='master',
         the axis onto which plotting is performed
     ts: :class:`tunacell.base.timeseries.Timeseries` instance
         TimeSeries objects contain data
-    condition_label : str (default 'master')
+    condition_repr : str (default 'master')
         repr of :class:`FilterSet` instance used to condition data, or 'master'
     show_markers: bool {True, False}
         whether to report data as data points (*i.e.* with markers)
     marker : str
         marker style to use for data-points
-    markersize : float
-        size of markers
-    markeredgewidth : float
-        width of marker edges; used for cell note verifying condition_label
     end_points_emphasis : bool {False, True}
         whether to plot extra, larger markers for first and last frames
     show_lines : bool {True, False}
@@ -95,8 +100,6 @@ def add_timeseries(ax, ts, condition_label='master',
         otherwise use alpha paramater below
     linestyle : str
         linestyle to use
-    linewidth : float
-        width of lines
     join_cells : bool {False, True}
         whether to plot a dashed line connected parent to daughter cell
     color : str (default None)
@@ -123,9 +126,9 @@ def add_timeseries(ax, ts, condition_label='master',
     lines_valid : list of Line2D instances
         only main Line2D are reported (when both markers and lines are plotted
         only the Line2D object associated to markers is reported here)
-        Those ones are the timeseries that fulfils condition_label
+        Those ones are the timeseries that fulfils condition_repr
     lines_unvalid: list of Line2D instances
-        idem, but for timeseries that does not fulfil condition_label
+        idem, but for timeseries that does not fulfil condition_repr
     joins : list of Line2D instances
         lines connecting cells when join_cells is True
     """
@@ -186,8 +189,8 @@ def add_timeseries(ax, ts, condition_label='master',
                             transform=trans, color='k', alpha=.5)
             continue
 
-        # check that data is valid under condition_label
-        if not ts.selections[condition_label][si]:
+        # check that data is valid under condition_repr
+        if not ts.selections[condition_repr][si]:
             appears = False
         else:
             appears = True
