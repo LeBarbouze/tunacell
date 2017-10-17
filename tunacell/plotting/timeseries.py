@@ -285,7 +285,7 @@ def add_timeseries(ax, ts, condition_label='master',
                 else:
                     lines_unvalid.append(connecting)
             if report_cids:
-                xposData = np.percentile(xdata, 1./3.)
+                xposData = np.percentile(xdata, 35.)
                 ax.text(xposData, report_cids_yposAxes, '{}'.format(cid),
                         transform=trans, color=color, alpha=.8)
             # append first/last frame (registered if cell completed its cycle)
