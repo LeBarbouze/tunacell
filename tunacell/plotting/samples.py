@@ -10,6 +10,7 @@ import warnings
 import re
 import datetime
 import inspect
+import logging
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -22,6 +23,8 @@ import collections
 from tunacell.base.colony import Colony
 from tunacell.base.lineage import Lineage
 from tunacell.base.observable import set_observable_list
+from tunacell.base.datatools import Coordinates
+
 
 from tunacell.plotting.timeseries import add_timeseries, add_data_statistics
 
@@ -84,7 +87,7 @@ class SamplePlot(object):
                   marker='o',
                   show_lines=True,
                   linestyle='-',
-                  join_cells=True,
+                  join_cells=False,
                   end_points_emphasis=False,
                   color='C0',
                   change_cell_color=False,
@@ -218,7 +221,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
                  marker='o',
                  show_lines=True,
                  linestyle='-',
-                 join_cells=True,
+                 join_cells=False,
                  end_points_emphasis=False,
                  color='C0',
                  change_cell_color=False,
@@ -274,7 +277,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
         whether to show lines. When show_markers is active, lines will get
         a low a low alpha value (0.3); when inactive, alpha parameters adjusts
         line transparency
-    join_cells : bool {True, False}
+    join_cells : bool {False, True}
         whether to connect parent last frame to daughter first frame with
         dashed line
     end_points_emphasis : bool {False, True}
@@ -515,10 +518,10 @@ def plot_samples(samples, obs, parser=None, conditions=[],
             if show_colony_root:
                  msg += 'cont. {}, root {}'.format(this_container, this_root)
                  ax.text(0.01, 0.05, msg, color='C7', alpha=.8, transform=ax.transAxes)
-        if len(ts.timeseries.clear_x) > 0:
+        if len(ts.timeseries.clear) > 0:
             at_least_one_timeseries[this_iax] = True
-            x = ts.timeseries.clear_x
-            y = ts.timeseries.clear_y
+            x = ts.timeseries.clear.x
+            y = ts.timeseries.clear.y
             # only NaNs ? move along
             if np.isnan(x).all() or np.isnan(y).all():
                 continue
@@ -554,52 +557,6 @@ def plot_samples(samples, obs, parser=None, conditions=[],
             if line2D_join is None and lines_join:
                 line2D_join = lines_join[0]
 
-            # visualisation of cell divisions, works only when superimpose='none'
-            if report_divisions:
-                # getting parameters
-                if line2D_join is not None:
-                    jlw = line2D_join.get_linewidth()
-                    jls = line2D_join.get_linestyle()
-                    jalpha = line2D_join.get_alpha()
-                # default
-                else:
-                    jlw = 1.
-                    jls = '--'
-                    jalpha = .3
-                # get first cell
-                if len(lineage.idseq) > 0:
-                    cid = lineage.idseq[0]
-#                    print(cid)
-                    cell = lineage.colony.get_node(cid)
-                    if cell.birth_time is not None:
-                        # add cell_birth as left limit
-                        lefts.append(cell.birth_time)
-                        pid = cell.bpointer
-#                        print(pid)
-                        # get index corresponding to pid
-                        for pi, (plin, pts) in enumerate(samples[:index+1]):
-                            if pid in plin.idseq and plin.colony == lineage.colony:
-                                break
-                        if pi < index:
-                            i_top = index_to_iax[pi]
-                            axes[i_top].axvline(cell.birth_time,
-                                                ymax=.5,
-                                                lw=jlw,
-                                                ls=jls,
-                                                color=color,
-                                                alpha=jalpha)
-                            i_bottom = index_to_iax[index]
-                            axes[i_bottom].axvline(cell.birth_time, ymin=.5,
-                                                   lw=jlw,
-                                                   ls=jls,
-                                                   color=color,
-                                                   alpha=jalpha)
-                            for k in range(i_top + 1, i_bottom):
-                                axes[k].axvline(cell.birth_time,
-                                                lw=jlw,
-                                                ls=jls,
-                                                color=color,
-                                                alpha=jalpha)
         container_lab = this_container
         colony_root = this_root
         iax = this_iax
@@ -692,6 +649,10 @@ def plot_samples(samples, obs, parser=None, conditions=[],
 
     axes[-1].set_xlabel('Time (mins)', x=.95, horizontalalignment='right',
                         fontsize='large')
+    
+    # now that limits have been set : report for divisions
+    if report_divisions:
+        _report_divisions(samples, axes, line2D_join, index_to_iax, limit_axes)
 
     # add legend
     if show_legend:
@@ -739,8 +700,8 @@ def plot_samples(samples, obs, parser=None, conditions=[],
     # add title
     titling = r'{}'.format(obs.as_latex_string)
     if units:
-        titling += ' [{}]'.format(units)
-    axes[0].text(0.5, 1.15, titling,
+        titling += ' ({})'.format(units)
+    axes[0].text(0.5, 1.2, titling,
                 size='x-large',
                 horizontalalignment='center',
                 verticalalignment='bottom',
@@ -749,6 +710,109 @@ def plot_samples(samples, obs, parser=None, conditions=[],
     fig.subplots_adjust(hspace=0)
 
     return fig
+
+
+def _report_divisions(samples, axes, line2D_join, index_to_iax, limit_axes):
+    """Helper function to draw vertical lines at cell divisions
+
+    As this function use data, and axe inverted transforms, it needs to be
+    called after all axe limits have been set
+    """
+    color = 'C7'  # uniform color for tree visualization
+    for index, (lineage, ts) in enumerate(samples):
+        # let's pick the corresponding axe
+        try:
+            this_iax = index_to_iax[index]
+        except KeyError:
+            break  # we're out of registered axes
+        # if we've reached the end of axes, let's get out of here
+        if this_iax >= limit_axes:
+            break
+
+        if len(ts.timeseries.clear) > 0:
+
+            x = ts.timeseries.clear.x
+            y = ts.timeseries.clear.y
+
+            # visualisation of cell divisions, works only when superimpose='none'
+            logging.debug('reporting cell division')
+            # getting parameters
+            if line2D_join is not None:
+                jlw = line2D_join.get_linewidth()
+                jls = line2D_join.get_linestyle()
+                jalpha = line2D_join.get_alpha()
+            # default
+            else:
+                jlw = 1.
+                jls = ':'
+                jalpha = .8
+            # get first cell
+            if len(lineage.idseq) > 0:
+                cid = lineage.idseq[0]
+                cell = lineage.colony.get_node(cid)
+                if cell.birth_time is not None:
+                    pid = cell.bpointer
+                    pvals = None  # must be set to Coordinates instances if found
+                    # get index corresponding to pid AND last parent value
+                    for pi, (plin, pts) in enumerate(samples[:index+1]):
+                        # check that colonies match
+                        if plin.colony == lineage.colony:
+                            # parse previous lineage idseq to find pid
+                            for pindex, plinid in enumerate(plin.idseq):
+                                # get parent values
+                                if pid == plinid:
+                                    parent_iax = index_to_iax[pi]
+                                    logging.debug('cid: {} (in axe {}), pid: {} (in axe {})'.format(cid, this_iax,pid, parent_iax))
+                                    pslice = pts.slices[pindex]
+#                                    x_pvals = pts.timeseries.x[pts.slices[pindex]]
+#                                    y_pvals = pts.timeseries.y[pts.slices[pindex]]
+#                                    pvals = Coordinates(x_pvals, y_pvals, x_name=pts.timeseries.x_name, y_name=pts.timeseries.y_name)
+                                    pvals = pts.timeseries[pslice].clear
+                                    break
+                            if pid in plin.idseq:
+                                break
+                    # it works only when pid is in a previous lineage
+                    if pi < index:
+                        logging.debug('current lineage index {}, parent lineage index {}'.format(index, pi))
+                        i_top = index_to_iax[pi]
+                        # get transData and inverse transAxe
+                        # last valid parent y value in transAxes coords
+                        if len(pvals) > 0:
+                            dispx, dispy = axes[i_top].transData.transform((pvals.x[-1], pvals.y[-1]))
+                            inv = axes[i_top].transAxes.inverted()
+                            _, ymax = inv.transform((dispx, dispy))
+                        # when no valid values, point to center y
+                        else:
+                            ymax=.5  # in transAxes coordinates
+                        # logging.debug('in parent cell axe, ymax={}'.format(ymax))
+                        axes[i_top].axvline(cell.birth_time,
+                                            ymax=ymax,
+                                            lw=jlw,
+                                            ls=jls,
+                                            color='C7',
+                                            alpha=jalpha)
+                        i_bottom = index_to_iax[index]
+                        # first valid cell y value in transAxes coords
+                        if len(x) > 0:
+                            dispx, dispy = axes[i_bottom].transData.transform((x[0], y[0]))
+                            inv = axes[i_bottom].transAxes.inverted()
+                            _, ymin = inv.transform((dispx, dispy))
+                        # when no valid values, point to center y
+                        else:
+                            ymin = .5  # in transAxes coords
+                        # logging.debug('in current cell axe, ymin={}'.format(ymin))
+                        axes[i_bottom].axvline(cell.birth_time, ymin=ymin,
+                                               lw=jlw,
+                                               ls=jls,
+                                               color=color,
+                                               alpha=jalpha)
+                        for k in range(i_top + 1, i_bottom):
+                            axes[k].axvline(cell.birth_time,
+                                            lw=jlw,
+                                            ls=jls,
+                                            color=color,
+                                            alpha=jalpha)
+    return
 
 
 def _count_containers(samples):

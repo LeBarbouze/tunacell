@@ -138,7 +138,7 @@ def add_timeseries(ax, ts, condition_repr='master',
     linewidth = mpl.rcParams['lines.linewidth']
 
     # PLOTTING PARAMETERS
-    alpha_connecting = .3
+    alpha_connecting = .8
     if not show_markers and not show_lines:
         show_lines = True
     # color to be used
@@ -200,11 +200,8 @@ def add_timeseries(ax, ts, condition_repr='master',
         if len(local) > 0:
             # plot each cell data
             # data points
-            xdata = ts.timeseries.x[sl]
-            ydata = ts.timeseries.y[sl]
-            find_nans = np.logical_or(np.isnan(xdata), np.isnan(ydata))
-            xdata = xdata[np.logical_not(find_nans)]
-            ydata = ydata[np.logical_not(find_nans)]
+            xdata = ts.timeseries[sl].clear.x
+            ydata = ts.timeseries[sl].clear.y
             # is there valid data?
             # if empty, move to next slice
             if len(xdata) == 0:
@@ -297,7 +294,7 @@ def add_timeseries(ax, ts, condition_repr='master',
                 if prej is not None and sl.start == prej:  # ensure consecutive
                     xjoins, yjoins = zip(*(fins[-1:] + inits[-1:]))
                     join, = ax.plot(xjoins, yjoins,
-                                    ls='--',
+                                    ls=':',
                                     lw=linewidth,
                                     alpha=alpha_connecting,
                                     color=ucolor)
