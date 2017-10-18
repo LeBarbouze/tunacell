@@ -99,12 +99,28 @@ class Coordinates(object):
     @property
     def clear(self):
         """Returns coordinates cleared off NaNs"""
-        return Coordinates(self.clear_x, self.clear_y)
+        return Coordinates(self.clear_x, self.clear_y,
+                           x_name=self.x_name, y_name=self.y_name)
+
+    def __getitem__(self, val):
+        """Return the sliced Coordinates"""
+        return Coordinates(self.x[val], self.y[val],
+                           x_name=self.x_name, y_name=self.y_name)
+    
+    def __len__(self):
+        """Returns the number of coordinates"""
+        return len(self.x)
 
     def as_array(self):
-        array = np.array(list(zip(self.clear_x, self.clear_y)),
+        array = np.array(list(zip(self.x, self.y)),
                          dtype=[(self.x_name, 'f8'), (self.y_name, 'f8')])
         return array
+
+    def __str__(self):
+        return str(self.as_array())
+    
+    def __repr__(self):
+        return repr(self.as_array())
 
 
 
@@ -749,8 +765,9 @@ if __name__ == '__main__':
                                          anterior_y=anterior_y,
                                          dt=1, time_window=15., testing=True)
     coords = Coordinates(np.concatenate([anterior_x, x]),
-                         np.concatenate([af, f]))
-    array = coords.as_array(x_name='time', y_name='value')
+                         np.concatenate([af, f]),
+                         x_name='time', y_name='value')
+    array = coords.as_array()
     print(array['time'])
     print(array['value'])
     

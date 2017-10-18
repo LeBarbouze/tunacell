@@ -246,7 +246,7 @@ class Lineage(object):
                                          cell._sdata[label],
                                          x_name='time',
                                          y_name=obs_name)
-                    arrays.append(coords.as_array())  # remove NaNs
+                    arrays.append(coords.clear.as_array())  # remove NaNs
                     size = len(arrays[-1])
                     index_cycles.append((count, count + size - 1))
                     count += size
