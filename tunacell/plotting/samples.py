@@ -80,45 +80,11 @@ class SamplePlot(object):
 
         return
 
-    def make_plot(self, report_condition='master',
-                  units='',
-                  yscale='linear',
-                  show_markers=True,
-                  marker='o',
-                  show_lines=True,
-                  linestyle='-',
-                  join_cells=False,
-                  end_points_emphasis=False,
-                  color='C0',
-                  change_cell_color=False,
-                  change_lineage_color=False,
-                  change_colony_color=False,
-                  change_container_color=False,
-                  alpha=1.,
-                  superimpose='none',
-                  limit_axes=20,
-                  axe_xsize=6,
-                  axe_ysize=1.6,
-                  report_cids=True,
-                  report_cids_yposAxes=.8,
-                  report_divisions=True,
-                  show_legend=True,
-                  data_statistics=False,
-                  ref_mean=None, ref_var=None):
+    def make_plot(self, **kwargs):
         """Produce Figure and save plotted data.
 
         Look at plot_samples doctring for parameters (too long to repeat here)
         """
-        # make keyword arguments
-        plt.ioff()
-        kwargs = {}
-        frame = inspect.currentframe()
-        res = inspect.getargvalues(frame)
-        for key in res.args:
-            if key == 'self':
-                continue
-            kwargs[key] = res.locals[key]
-        # make figure by calling plot_samples
         fig = plot_samples(self._samples, self.obs,
                            conditions=self.cset,
                            parser=self.parser,
@@ -232,8 +198,10 @@ def plot_samples(samples, obs, parser=None, conditions=[],
                  superimpose='none',
                  limit_axes=20,
                  axe_xsize=6,
+                 xrange_fractional_pad=.1,
                  axe_xrange=(None, None),  # auto
                  axe_ysize=1.6,
+                 yrange_fractional_pad=.2,
                  axe_yrange=(None, None),  # auto
                  report_cids=True,
                  report_cids_yposAxes=.8,
@@ -310,9 +278,19 @@ def plot_samples(samples, obs, parser=None, conditions=[],
         limit the number of axes on a figure (will limit size as well, as each
         axe has fixed size)
     axe_xsize : float
-        size of the x-axis
+        size of the x-axis (inches)
+    xrange_fractional_pad : float (default .1)
+        when xrange is fixed automatically by getting min, max values, set the
+        padding to left, rightas a fraction of max-min range
+    axe_xrange : couple of floats (default (None, None))
+        user can force values for the left, right bounds here
     axe_ysize : float
-        size if a single ax y-axis
+        size if a single ax y-axis (inches)
+    yrange_fractional_pad : float (default .2)
+        when yrange is fixed automatically by getting min, max values, set the
+        padding to bottom, top as a fraction of max-min range
+    axe_yrange : couple of floats (default (None, None))
+        user can force values for the bottom, top bounds here
     fontsize : float
         basis of fontsizes,in points
     report_cids : {False, True}
@@ -571,8 +549,8 @@ def plot_samples(samples, obs, parser=None, conditions=[],
 
     hrange = right - left
     vrange = top - bottom
-    hfrac = 1/10.  # fraction of horizontal blank space to the leftmost, rightmost point
-    vfrac = 1/5.  # fraction of vertical blank space to the bottom, top point
+    hfrac = xrange_fractional_pad  # fraction of horizontal blank space to the leftmost, rightmost point
+    vfrac = yrange_fractional_pad  # fraction of vertical blank space to the bottom, top point
 
     # user-defined limits
     if axe_xrange[0] is not None:
@@ -657,7 +635,6 @@ def plot_samples(samples, obs, parser=None, conditions=[],
     # add legend
     if show_legend:
         ax = axes[-1]
-        color = 'C7'
         clab = condition_human_readable
         handles = []
         labels = []
@@ -665,8 +642,12 @@ def plot_samples(samples, obs, parser=None, conditions=[],
             valid = mlines.Line2D([], [])
             valid.update_from(line2D_valid)
             lab_from_data = valid.get_label()
-            output_lab = ('data (e.g. cell {})'.format(lab_from_data) + ', '
-                          'valid: {}'.format(clab))
+            color = valid.get_color()
+            output_lab = 'tracks'
+            if report_cids:
+                output_lab += ' (e.g. cell {})'.format(lab_from_data)
+            if report_condition != 'master':
+                output_lab += ', {}: YES'.format(clab)
             valid.set_label(output_lab)
             valid.set_color(color)
             handles.append(valid)
@@ -675,8 +656,12 @@ def plot_samples(samples, obs, parser=None, conditions=[],
             unvalid = mlines.Line2D([], [])
             unvalid.update_from(line2D_unvalid)
             lab_from_data = unvalid.get_label()
-            output_lab = ('data (e.g. cell {})'.format(lab_from_data) + ', '
-                          'not valid: {}'.format(clab))
+            color = unvalid.get_color()
+            output_lab = 'tracks'
+            if report_cids:
+                output_lab += ' (e.g. cell {})'.format(lab_from_data)
+            if report_condition != 'master':
+                output_lab += ', {}: NO'.format(clab)
             unvalid.set_label(output_lab)
             unvalid.set_color(color)
             handles.append(unvalid)
@@ -684,6 +669,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
         if report_divisions and line2D_join is not None:
             join = mlines.Line2D([], [])
             join.update_from(line2D_join)
+            color = join.get_color()
             lab = 'connections at division'
             join.set_label(lab)
             join.set_color(color)
@@ -693,8 +679,8 @@ def plot_samples(samples, obs, parser=None, conditions=[],
         handles += data_stat_handles
         labels += data_stat_labs
         ax.legend(handles=handles, labels=labels,
-                  loc=2,
-                  bbox_to_anchor=(0, -.8),
+                  loc='upper left',
+                  bbox_to_anchor=(0, -.5/axe_ysize),
                   borderaxespad=0.)
         
     # add title
