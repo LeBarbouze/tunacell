@@ -6,6 +6,8 @@ Created on Tue Oct 18 15:36:53 2016
 """
 from __future__ import print_function
 
+import logging
+
 import numpy as np
 import pandas as pd
 
@@ -16,7 +18,7 @@ from tunacell.base.experiment import Experiment
 from tunacell.base.container import Container
 from tunacell.base.colony import Colony
 
-from tunacell.simu.main import Ecoli, SimuParams, DivisionParams
+from tunacell.simu.main import Ecoli, SimuParams, DivisionParams, SampleInitialSize
 
 
 class OUSimulation(Experiment):
@@ -40,6 +42,7 @@ class OUSimulation(Experiment):
 
     def __init__(self, label=None,
                  simuParams=None, divisionParams=None, ouParams=None,
+                 birthsizeParams=None,
                  filter_set=None):
         today = datetime.datetime.today()
         self.date = today
@@ -52,6 +55,9 @@ class OUSimulation(Experiment):
         if ouParams is None:
             ouParams = OUParams()
             print('Using default OUParams:\n{}'.format(ouParams))
+        if birthsizeParams is None:
+            birthsizeParams = SampleInitialSize(size_cutoff=divisionParams.size_cutoff,
+                                             mode='fixed')
         if label is None:
             self._label = 'simu_{}'.format(today.strftime('%Y-%m-%d_%H-%M-%S'))
         else:
@@ -69,6 +75,7 @@ class OUSimulation(Experiment):
         self.simuParams = simuParams
         self.divisionParams = divisionParams
         self.ouParams = ouParams
+        self.birthsizeParams = birthsizeParams
         
         self._set_metadata()
         # set filterset
@@ -84,6 +91,7 @@ class OUSimulation(Experiment):
         content += self.simuParams.content
         content += self.divisionParams.content
         content += self.ouParams.content
+        content += self.birthsizeParams.content
 
         dics = {key: {self.label: value} for key, value in content}
 
@@ -120,10 +128,15 @@ class OUSimulation(Experiment):
                        shuffle=False):  # idem
         if size is None:
             size = self.simuParams.nbr_container
+        start = datetime.datetime.now()
+        logging.info('Iterating over containers for simulation {}...'.format(self.label))
         for index in range(size):
             yield OUContainer(self, simuParams=self.simuParams,
                               divisionParams=self.divisionParams,
-                              ouParams=self.ouParams)
+                              ouParams=self.ouParams,
+                              birthsizeParams=self.birthsizeParams)
+        end = datetime.datetime.now()
+        logging.info('...completed in {} (H:MM:SS)'.format(end-start))
         return
 
 
@@ -131,12 +144,18 @@ class OUContainer(Container):
     "subclassed from Container to get all methods, only __init__ changes"
 
     def __init__(self, simu, label=None, simuParams=None,
-                 divisionParams=None, ouParams=None):
+                 divisionParams=None, ouParams=None, birthsizeParams=None):
         """Runs the simulation upon call.
 
-        Argument
-        --------
-        sample -- int, number of colonies simulated in the container
+        Parameters
+        ----------
+        simu : OUSimulation instance
+        label : str
+            label for the container
+        simuParams : SimuParams instance
+        divisionParams : DivisionParams instance
+        ouParams : OUParams instance
+        birthsizeParams : SampleInitialSize instance
         """
         self.exp = simu  # Container compatibility
         self.abspath = '{}'.format(hex(id(self)))  # Container compatibility
@@ -155,7 +174,9 @@ class OUContainer(Container):
         count = 0
         for samp in range(simuParams.nbr_colony_per_container):
             colony, count = ou_tree(ouParams,
-                                    divisionParams, count=count+1,
+                                    divisionParams,
+                                    birthsizeParams,
+                                    count=count+1,
                                     tstart=simuParams.start,
                                     tstop=simuParams.stop,
                                     dt=simuParams.interval)
@@ -170,6 +191,19 @@ class OUContainer(Container):
 
 class OUParams(object):
     """Class to store Ornstein-Uhlenbeck parameters.
+
+    Parameters
+    ----------
+    target : float
+        target value for growth rate
+    spring : float
+        spring constant (inverse of autocorrelation time)
+    noise : float
+        sets the noise intensity
+
+    See also
+    --------
+    Gillespie, D.T., Phys Rev E, vol 54, pp 2084-2091 (1996)
     """
 
     def __init__(self, target=0., spring=1., noise=1.):
@@ -198,12 +232,15 @@ class OUsteps(object):
 
     Parameters
     ----------
-    params -- set of parameters for OU process, stored in OUParams instance
-    dt -- float, time interval for update.
+    params : OUParams instance
+        set of parameters for OU process
+    dt : float
+        time interval for update.
     
     Attributes
     ----------
     mu : float
+        target value
     sigma : float
     sigma_y : float
     kappa : float
@@ -302,7 +339,46 @@ def ou_track(params, dt=1., steps=10, start=0., y_start=1.):
     return xs, ys
 
 
-def root_cell(ouparams, divparams, identifier=None, tstart=0.):
+def ou_tree(ouparams, divparams, birthsizeparams, count=None, tstart=0., tstop=300., dt=5.):
+    """Generates recursively OU process on dividing cells.
+
+    Parameters
+    ----------
+    ouparams : OUParams instance
+    divparams : DivisionParams instance
+    birthsizeparams : SampleInitialSize instance
+    count : int
+        label for root cell
+    tstart : float
+        time at which simulation starts
+    tstop : float
+        time at which simulation stops
+    dt : float
+        time interval at which value of OU process are recorded. Such value is
+        used to reject smaller interdivision times.
+
+    Returns
+    -------
+    tree : Colony instance
+        in which process is stored in each node Ecoli.data
+    count : int
+        last cell label used
+    """
+    if count is not None:
+        rootid = str(count)  # labeling by integers (exported as strings)
+    else:
+        rootid = None  # automatic labeling
+    root = root_cell(ouparams, divparams, birthsizeparams, identifier=rootid, tstart=tstart, dt=dt)
+    tree = Colony()
+    tree.add_node(root)
+    count = add_recursive_branch(root, tree, count=count,
+                                 tstart=tstart, tstop=tstop, dt=dt,
+                                 ouparams=ouparams, divparams=divparams)
+
+    return tree, count
+
+
+def root_cell(ouparams, divparams, birthsizeparams, identifier=None, tstart=0., dt=5.):
     """Set state for root cell, that initialize a sample.
 
     Parameters
@@ -311,56 +387,48 @@ def root_cell(ouparams, divparams, identifier=None, tstart=0.):
         store OU parameters: target, spring, noise
     divparams : DivisionParams instance
         store information to generate random cell cycle duration
+    birthsizeParams : SampleInitialSize instance
+        sets sampling of root cell birth size
+    identifier : str or int (default None)
+        identifier to give to root cell. Give an integer to increase +1.
+    tstart : float (default 0.)
+        start of recording simulations
+    dt : float (default 5.)
+        time between two successive acquisitions; smaller interdivision times
+        are rejected.
+    birth_size : float (default 1.)
+        size at birth for the root cell
     """
+    # start with OU equilibrium sample for alpha
+    equilibrium_mean = ouparams.target
+    equilibrium_std = np.sqrt(ouparams.noise / (2. * ouparams.spring))
+    birth_alpha = np.random.normal(loc=equilibrium_mean, scale=equilibrium_std)
+    birth_size = birthsizeparams.rv()
+    
+    if divparams.use_growth_rate == 'parameter':
+        alpha = ouparams.target
+    elif divparams.use_growth_rate == 'birth':
+        alpha = birth_alpha
+    # reject lifetime smaller than dt
+    counter = 0
+    lifetime_root = -1
+    while lifetime_root < dt and counter < 1000:
+        lifetime_root = divparams.rv(birth_size, alpha)
+        if lifetime_root < dt:
+            logging.info('Rejecting interdivision time {} < period {}'.format(lifetime_root, dt))
+        counter += 1
+    if counter == 1000:
+        raise ValueError('Interdivision time always larger than acquisition period.')
+
     age_root = np.random.uniform()
-    lifetime_root = divparams.rv()
     birth_root = tstart - age_root * lifetime_root
 
     root = Ecoli(identifier=identifier, parent=None,
                  birth_time=birth_root, lifetime=lifetime_root)
 
-    # start with OU equilibrium sample
-    equilibrium_mean = ouparams.target
-    equilibrium_std = np.sqrt(ouparams.noise / (2. * ouparams.spring))
-    root.birth_value = (np.random.normal(loc=equilibrium_mean,
-                                        scale=equilibrium_std),
-                        np.log(1.))
+    root.birth_value = (birth_alpha, np.log(birth_size))
 
     return root
-
-
-def ou_tree(ouparams, divparams, count=None, tstart=0., tstop=300., dt=5.):
-    """Generates recursively OU process on dividing cells.
-
-    Arguments
-    ---------
-    ouparams -- OUParams instance
-    divparams -- DivisionParams instance
-
-    Parameters
-    ----------
-    count -- int, label for root cell
-    tstart -- float, time at which simulation starts
-    tstop -- float, time at which simulation stops
-    dt -- float, time interval at which value of OU process are recorded
-
-    Returns
-    -------
-    tree -- Colony instance, in which process is stored in each node Ecoli.data
-    count -- int, last cell label used
-    """
-    if count is not None:
-        rootid = str(count)  # labeling by integers (exported as strings)
-    else:
-        rootid = None  # automatic labeling
-    root = root_cell(ouparams, divparams, identifier=rootid, tstart=tstart)
-    tree = Colony()
-    tree.add_node(root)
-    count = add_recursive_branch(root, tree, count=count,
-                                 tstart=tstart, tstop=tstop, dt=dt,
-                                 ouparams=ouparams, divparams=divparams)
-
-    return tree, count
 
 
 def add_recursive_branch(ecoli, tree, count=None,
@@ -467,8 +535,24 @@ def add_recursive_branch(ecoli, tree, count=None,
 
     # create two daughter cells if time has not reached tmax
     if t_div < tstop:
+        new_birth_size = np.exp(ecoli.division_value[1])/2.  # symmetric division
+        new_alpha = ecoli.division_value[0]
         for i in range(2):
-            lt = divparams.rv()
+            if divparams.use_growth_rate == 'parameter':
+                alpha = ouparams.target
+            elif divparams.use_growth_rate == 'birth':
+                alpha = new_alpha
+            # compute cell interdivision time and accept if larger than period
+            counter = 0
+            lt = -1
+            while lt < dt and counter < 1000:
+                lt = divparams.rv(new_birth_size, alpha)
+                if lt < dt:
+                    logging.info('Rejecting interdivision time {} < period {}'.format(lt, dt))
+                counter += 1
+            if counter == 1000:  # stupid control
+                raise ValueError('Interdivision time always smaller than acquisition period')
+            # moving on
             if count is not None:
                 count += 1
                 newid = str(count)
@@ -476,8 +560,7 @@ def add_recursive_branch(ecoli, tree, count=None,
                 newid = None  # will create identifier as uuid item
             necoli = Ecoli(identifier=newid, parent=ecoli, lifetime=lt)
             # update necoli.birth_value for y process
-            necoli.birth_value = (ecoli.division_value[0],
-                                  ecoli.division_value[1] - np.log(2.))  # symmetric div
+            necoli.birth_value = (new_alpha, np.log(new_birth_size))
             tree.add_node(necoli, parent=ecoli.identifier)
             count = add_recursive_branch(necoli, tree, count=count,
                                          tstart=tstart, tstop=tstop, dt=dt,
