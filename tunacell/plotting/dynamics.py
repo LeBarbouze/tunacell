@@ -257,8 +257,7 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
         se = 2.58 * std / np.sqrt(counts)
 #        var = np.diagonal(univariate[c_repr].autocorr)
 
-        ax = axs[0]
-        line_counts, = ax.plot(times, counts, alpha=alpha, lw=lw,
+        line_counts, = axs[0].plot(times, counts, alpha=alpha, lw=lw,
                                label='{}'.format(c_label))
         main_handles.append(line_counts)
         color = line_counts.get_color()
@@ -276,10 +275,17 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
 
     # adding reference lines
     if mean_ref is not None:
-        axs[1].axhline(mean_ref, ls='--', color='C7', alpha=.7)
+        mref = axs[1].axhline(mean_ref, ls='-.', color='C7', alpha=.7,
+                               label='reference value')
+        main_handles.append(mref)
         all_average.append(mean_ref)
     if var_ref is not None:
-        axs[2].axhline(var_ref, ls='--', color='C7', alpha=.7)
+        vref = axs[2].axhline(var_ref, ls='-.', color='C7', alpha=.7,
+                              label='reference value')
+        # check last label if meanèref has been saved
+        last_lab = main_handles[-1].get_label()
+        if last_lab != vref.get_label():
+            main_handles.append(vref)
         all_variance.append(var_ref)
 
     # xaxis limits
@@ -343,9 +349,13 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
     axs[1].tick_params(axis='x', direction='in', bottom='on', labelbottom='on', pad=-10)
     axs[2].set_xlabel(timelabel, x=.95, horizontalalignment='right',
                       fontsize='large')
-#    axs[0].xaxis.set_label_position('top')
-#    axs[0].set_xlabel(timelabel, x=.95, horizontalalignment='right',
-#                      fontsize='large')
+
+    # hide intermediate x axis
+    for ax in axs[:2]:
+        ax.spines['bottom'].set_visible(False)
+        ax.tick_params(axis='x', colors='C7')
+    for ax in axs[1:]:
+        ax.spines['top'].set_color('C7')
 
     axs[0].set_ylabel('Counts', fontsize='large')
     axs[1].set_ylabel('Average', fontsize='large')
@@ -524,9 +534,6 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
 
         valid = counts != 0
         
-        tref_latex_label = 't_{{\mathrm{{ref}}}}'
-        gref_latex_label = 'g_{{\mathrm{{ref}}}}'
-        
         latex_ref = '{{\mathrm{{ref}}}}'
         if obs.timing == 'g':
             prefix = 'g'
@@ -561,6 +568,7 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
             axs[0].plot((tref, tref), (0, counts[index, index]),
                         ls=':', color=color)
 
+            axs[1].axhline(0, ls='-', color='C7', alpha=.3)  # thin line at 0
             dat, = axs[1].plot(times[valid[index, :]],
                            corr[index, :][valid[index, :]]/var[index],
                            ls=lt, lw=lw, alpha=alpha)
@@ -568,28 +576,10 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
             color = dat.get_color()
             
             axs[1].axvline(tref, ymin=0.1, ymax=0.9, ls=':', color=color)
-            axs[1].axhline(0, ls='--', color='C7', alpha=.8)
             
-            # add text to point to tref
-            # figure out where
-#            if obs.timing == 'g':
-#                pos = times[index] + 0.1
-#            elif index < len(times) - 1:
-#                pos = times[index + 1]
-#            else:
-#                pos = times[index - 2]
-#            for ax in axs[:2]:
-#                # define heterogeneous transform
-#                # the x coords of this transformation are data, and the
-#                # y coord are axes
-#                trans = transforms.blended_transform_factory(ax.transData,
-#                                                             ax.transAxes)
-#                ax.text(pos, 0.05, lab, color=color, transform=trans)
-            # xmin, xmax = ax.xaxis.get_data_interval()
-
+            axs[2].axhline(0, ls='-', color='C7', alpha=.3)  # thin line at 0
             axs[2].plot(times[valid[index, :]] - tref,
                     corr[index, :][valid[index, :]]/var[index], ls=lt, lw=lw, alpha=alpha)
-            axs[2].axhline(0, ls='--', color='C7', alpha=.8)
     
     # xaxis limits
     if ax01_mins:
@@ -615,6 +605,19 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
     elif left is not None and right is not None:
         axs[2].set_xlim(left=-hrange, right=hrange)
 
+    # add exponential decay
+    if show_exp_decay is not None:
+        tt = np.linspace(left, right, 100)
+        dd = np.linspace(-hrange, hrange, 100)
+        lab = r'$t_{{\mathrm{{decay}}}} = {:.1f}$ {}'.format(1./show_exp_decay, units)
+        for tref in trefs:
+            axs[1].plot(tt, np.exp(-show_exp_decay * np.abs(tt - tref)),
+                        ls='-.', color='C7', alpha=.7)
+        dec, = axs[2].plot(dd, np.exp(-show_exp_decay * np.abs(dd)),
+                    ls='-.', color='C7', alpha=.5, label=lab)
+        all_corr.extend(np.exp(-show_exp_decay * np.abs(dd)))
+        handles.append(dec)
+
     # yaxis limits
     max_count = np.nanmax(all_counts)
     axs[0].set_ylim(bottom=0, top=max_count*(1. + counts_fractional_pad))  # counts
@@ -629,18 +632,6 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
     for ax in axs[1:]:
         ax.set_ylim(bottom=bottom - corr_fractional_pad*vrange,
                         top=top + corr_fractional_pad*vrange)
-    
-    # add exponential decay
-    if show_exp_decay is not None:
-        tt = np.linspace(left, right, 100)
-        dd = np.linspace(-hrange, hrange, 100)
-        lab = r'$t_{{\mathrm{{decay}}}} = {:.1f}$ {}'.format(1./show_exp_decay, units)
-        for tref in trefs:
-            axs[1].plot(tt, np.exp(-show_exp_decay * np.abs(tt - tref)),
-                        ls='-.', color='C7', alpha=.7)
-        dec, = axs[2].plot(dd, np.exp(-show_exp_decay * np.abs(dd)),
-                    ls='-.', color='C7', alpha=.5, label=lab)
-        handles.append(dec)
 
     labels = [h.get_label() for h in handles]
     axs[-1].legend(handles=handles, labels=labels, loc='upper left',
@@ -669,19 +660,26 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
     axs[1].tick_params(axis='x', direction='in', bottom='on', labelbottom='on', pad=-10)
     axs[2].set_xlabel(timelabel, x=.95, horizontalalignment='right',
                       fontsize='large')
+    
+    # hide intermediate x axis
+    for ax in axs[:1]:
+        ax.spines['bottom'].set_visible(False)
+        ax.tick_params(axis='x', colors='C7')
+    for ax in axs[1:2]:
+        ax.spines['top'].set_color('C7')
 
     # ylabels
     axs[0].set_ylabel(r'# $\langle t_{\mathrm{ref}} | t \rangle$',
                       fontsize='large')
-    axs[1].set_ylabel(r'$g(t_{\mathrm{ref}}, t)$',
+    axs[1].set_ylabel(r'$a(t_{\mathrm{ref}}, t)$',
                       fontsize='large')
-    axs[2].set_ylabel(r'$g(t_{\mathrm{ref}}, t- t_{\mathrm{ref}})$',
+    axs[2].set_ylabel(r'$a(t_{\mathrm{ref}}, t- t_{\mathrm{ref}})$',
                       fontsize='large')
 
     # title
     latex_obs = obs.as_latex_string
     axs[0].text(0.5, 1+.2/axe_ysize,
-                r' Autocorrelation :{}'.format(latex_obs),
+                r' Autocorrelation: {}'.format(latex_obs),
                 size='x-large',
                 horizontalalignment='center',
                 verticalalignment='bottom',
@@ -706,6 +704,13 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
 
 
 def plot_stationary(stationary, show_cdts='all',
+                    axe_xsize=6., axe_ysize=2.,
+                    time_range=(None, None),
+                    time_fractional_pad=.1,
+                    counts_range=(None, None),
+                    counts_fractional_pad=.1,
+                    corr_range=(None, None),  # auto
+                    corr_fractional_pad=.1,
                     fitlog=False, epsilon=0.1, fitting_time_max=None,
                     ref_decay=None,
                     interval_max=None, save=False, ext='.png'):
@@ -747,12 +752,12 @@ def plot_stationary(stationary, show_cdts='all',
         obs = stationary.obs
     elif isinstance(stationary, StationaryBivariate):
         obs = [uni.obs for uni in stationary.univariates]
-    if fitlog and isinstance(stationary, StationaryUnivariate):
-        nplots = 3
-    else:
-        nplots = 2
-
-    fig = plt.figure(figsize=(6, 2 * (nplots + 1)))
+#    if fitlog and isinstance(stationary, StationaryUnivariate):
+#        nplots = 3
+#    else:
+#        nplots = 2
+    nplots = 3
+    fig = plt.figure(figsize=(axe_xsize, (nplots + 1)*axe_ysize))
     gs = gridspec.GridSpec(nplots + 1, 1)
     ax1 = fig.add_subplot(gs[0])
     if nplots == 2:
