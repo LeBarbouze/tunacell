@@ -10,6 +10,7 @@ import warnings
 import numpy as np
 import string
 import collections
+import logging
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -322,18 +323,12 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
             ax.axvline(univariate.obs.tref, color='C7', ls='--', alpha=.5)
 
     # ticks and labels
-    if hrange < 20:
-        spacing = 5
-    elif hrange < 120:
-        spacing = 20
-    elif hrange < 601:
-        spacing = 60
-    else:
-        spacing = 300
     for ax in axs:
-        ax.xaxis.set_major_locator(ticker.MultipleLocator(spacing))
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(_spacing_trange(hrange)))
     # counts
-    axs[0].yaxis.set_major_locator(MaxNLocator(nbins=4, integer=True))
+    axs[0].yaxis.set_major_locator(MaxNLocator(nbins=3, integer=True))
+    for ax in axs[1:]:
+        ax.yaxis.set_major_locator(MaxNLocator(nbins=2))
     formatter = ScalarFormatter(useMathText=True, useOffset=False)
     formatter.set_powerlimits((-2, 4))
     for ax in axs:
@@ -343,12 +338,9 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
         msg = t.get_text()
         ax.text(0, .95, msg, ha='left', va='top', transform=ax.transAxes)
         t.set_visible(False)
-    axs[0].tick_params(axis='x', direction='out', top='on',
-                       labeltop='off')
-    axs[0].tick_params(axis='x', direction='in', bottom='on',
-                       labelbottom='off')
-    axs[1].tick_params(axis='x', direction='in')
-    axs[1].set_xticklabels([])
+
+    axs[0].tick_params(axis='x', direction='in', bottom='on', labelbottom='on', pad=-10)
+    axs[1].tick_params(axis='x', direction='in', bottom='on', labelbottom='on', pad=-10)
     axs[2].set_xlabel(timelabel, x=.95, horizontalalignment='right',
                       fontsize='large')
 #    axs[0].xaxis.set_label_position('top')
@@ -399,8 +391,30 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
     return fig
 
 
+def _spacing_trange(hrange):
+    if hrange < 20:
+        spacing = 5
+    elif hrange < 120:
+        spacing = 20
+    elif hrange < 601:
+        spacing = 60
+    else:
+        spacing = 300
+    return spacing
+
+
 def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
-                   delta_t_max=None, show_exp_decay=None,
+                   axe_xsize=6., axe_ysize=2.,
+                   time_range=(None, None),
+                   time_fractional_pad=.1,
+                   counts_range=(None, None),
+                   counts_fractional_pad=.1,
+                   corr_range=(None, None),  # auto
+                   corr_fractional_pad=.1,
+                   delta_t_max=None,
+                   show_exp_decay=None,
+                   show_legend=True,
+                   show_cdt_details_in_legend=False,
                    save=False, ext='.png'):
     """Plot two-point functions.
 
@@ -414,6 +428,22 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
         if left empty, reference times will be computed automatically
     ntrefs : int
         if trefs is empty, number of times of reference to display
+    axe_xsize : float (default 6)
+        size of the x-axis (inches)
+    axe_ysize : float (default 2.)
+        size if a single ax y-axis (inches)
+    time_range : couple of floats (default (None, None))
+        specifies (left, right) bounds
+    time_fractional_pad : float (default .1)
+        fraction of x-range to add as padding
+    counts_range : couple of floats (default (None, None))
+        specifies range for the Counts y-axis
+    counts_fractional_pad : float (default .2)
+        fractional amount of y-range to add as padding
+    corr_range : couple of floats (default (None, None))
+        sepcifies range for the Average y-axis
+    corr_fractional_pad : couple of floats (default .2)
+        fractional amounts of range to padding
     delta_t_max : float (default None)
         when given, bottom plot will be using this max range symmetrically;
         otherwise, will use the largest intervals found in data (often too
@@ -421,6 +451,10 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
     show_exp_decay : float (default None)
         when a floating point number is passed, a light exponential decay
         curve is plotted for each tref
+     show_legend : bool {True, False}
+        print out legend
+    show_cdt_details_in_legend : bool {False, True}
+        show details about filters
     save : bool {False, True}
         whether to save figure at canonical path
     ext : str {'.png', '.pdf'}
@@ -433,7 +467,7 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
     # or from experiment metadata
     else:
         period = univariate.exp.period
-    fig, axs = plt.subplots(3, 1, figsize=(6, 9))
+    fig, axs = plt.subplots(3, 1, figsize=(axe_xsize, 3*axe_ysize))
 
     # define time label
     if univariate.obs.mode != 'dynamics' and univariate.obs.timing == 'g':
@@ -447,37 +481,59 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
     times = univariate['master'].time
     npoints = len(times)
     if not trefs:
-        print('Determining trefs...')
+        logging.info('Determining trefs...')
         di = npoints // ntrefs + 1
         indices = np.arange(0, npoints, di, dtype=int)
         trefs = times[indices]
-        print(trefs)
+        logging.info(trefs)
 
     ax01_mins = []
     ax01_maxs = []
+    
+    all_counts = []
+    all_corr = []
 
-    if condition_label is None or condition_label == 'master':
-        labels = ['master', ]
-    else:
-        labels = ['master', condition_label]
+    default_lw = mpl.rcParams['lines.linewidth']
+    handles = []
 
-    for c_label in labels:
-        if c_label is None:
-            continue
-        if c_label == 'master':
+    conditions = ['master', ] + univariate.cset
+    for index, cdt in enumerate(conditions):
+        if cdt == 'master':
+            c_repr = 'master'
+            c_label = 'all samples'
+            lw = default_lw + 1
             lt = '-'
-        else:
+            alpha = .8
+        elif cdt.label == condition_label or str(cdt) == condition_label or repr(cdt) == condition_label:
+            c_repr = repr(cdt)
+            if show_cdt_details_in_legend:
+                c_label = str(cdt)
+            else:
+                c_label = cdt.label
+            lw = default_lw
             lt = '--'
+            alpha = .6
+        # we plot master and one condition if given, not more...
+        else:
+            continue
 
-        times = univariate[c_label].time
-        counts = univariate[c_label].count_two
-        corr = univariate[c_label].autocorr
+        times = univariate[c_repr].time
+        counts = univariate[c_repr].count_two
+        corr = univariate[c_repr].autocorr
         var = np.diagonal(corr)
 
         valid = counts != 0
         
         tref_latex_label = 't_{{\mathrm{{ref}}}}'
         gref_latex_label = 'g_{{\mathrm{{ref}}}}'
+        
+        latex_ref = '{{\mathrm{{ref}}}}'
+        if obs.timing == 'g':
+            prefix = 'g'
+            units = ''
+        else:
+            prefix = 't'
+            units = 'mins'
 
         for tref in trefs:
             # this tref may not be in conditioned data (who knows)
@@ -486,12 +542,10 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
             index = np.argmin(np.abs(times - tref))
             if obs.timing == 'g':
                 lab = '{:d}'.format(tref)
-                line_label = r'$' + gref_latex_label + '=' + lab +'$'
             else:
-                lab = '{:.0f} mins'.format(tref)
-                line_label = r'$' + tref_latex_label + '=' + lab + '$'
+                lab = '{:.0f}'.format(tref)
+            line_label = r'$ {}_{} = {}$ {} ({})'.format(prefix, latex_ref, lab, units, c_label)
 
-            ax = axs[0]
             ok = np.where(counts[index, :] > 0)
 #            if len(ok[0]) == 0:
 #                continue
@@ -499,43 +553,45 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
             xmin, xmax = np.nanmin(times[ok]), np.nanmax(times[ok])
             ax01_mins.append(xmin)
             ax01_maxs.append(xmax)
-            dat, = ax.plot(times[ok], counts[index, :][ok], ls=lt, label=line_label)
+            dat, = axs[0].plot(times[ok], counts[index, :][ok],
+                      ls=lt, lw=lw, alpha=alpha, label=line_label)
+            handles.append(dat)
+            all_counts.extend(counts[index, :][ok])
             color = dat.get_color()
-            ax.plot((tref, tref), (0, counts[index, index]),
-                    ls=':', color=color)
+            axs[0].plot((tref, tref), (0, counts[index, index]),
+                        ls=':', color=color)
 
-            ax = axs[1]
-            dat, = ax.plot(times[valid[index, :]],
+            dat, = axs[1].plot(times[valid[index, :]],
                            corr[index, :][valid[index, :]]/var[index],
-                           ls=lt)
+                           ls=lt, lw=lw, alpha=alpha)
+            all_corr.extend(corr[index, :][valid[index, :]]/var[index])
             color = dat.get_color()
             
-            ax.axvline(tref, ymin=0.1, ymax=0.9, ls=':', color=color)
-            ax.axhline(0, ls='--', color='k')
+            axs[1].axvline(tref, ymin=0.1, ymax=0.9, ls=':', color=color)
+            axs[1].axhline(0, ls='--', color='C7', alpha=.8)
             
             # add text to point to tref
             # figure out where
-            if obs.timing == 'g':
-                pos = times[index] + 0.1
-            elif index < len(times) - 1:
-                pos = times[index + 1]
-            else:
-                pos = times[index - 2]
-            for ax in axs[:2]:
-                # define heterogeneous transform
-                # the x coords of this transformation are data, and the
-                # y coord are axes
-                trans = transforms.blended_transform_factory(ax.transData,
-                                                             ax.transAxes)
-                ax.text(pos, 0.05, lab, color=color, transform=trans)
+#            if obs.timing == 'g':
+#                pos = times[index] + 0.1
+#            elif index < len(times) - 1:
+#                pos = times[index + 1]
+#            else:
+#                pos = times[index - 2]
+#            for ax in axs[:2]:
+#                # define heterogeneous transform
+#                # the x coords of this transformation are data, and the
+#                # y coord are axes
+#                trans = transforms.blended_transform_factory(ax.transData,
+#                                                             ax.transAxes)
+#                ax.text(pos, 0.05, lab, color=color, transform=trans)
             # xmin, xmax = ax.xaxis.get_data_interval()
 
-            ax = axs[2]
-            ax.plot(times[valid[index, :]] - tref,
-                    corr[index, :][valid[index, :]]/var[index], ls=lt)
-            ax.axhline(0, ls='--', color='k')
+            axs[2].plot(times[valid[index, :]] - tref,
+                    corr[index, :][valid[index, :]]/var[index], ls=lt, lw=lw, alpha=alpha)
+            axs[2].axhline(0, ls='--', color='C7', alpha=.8)
     
-    # axes limits
+    # xaxis limits
     if ax01_mins:
         left = np.amin(ax01_mins)
     else:
@@ -544,73 +600,93 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
         right = np.amax(ax01_maxs)
     else:
         right = None
+    if time_range[0] is not None:
+        left = time_range[0]
+    if time_range[1] is not None:
+        right = time_range[1]
+    hrange = right - left
     for ax in axs[:2]:
-        ax.set_xlim(left=left, right=right)
+        ax.set_xlim(left=left - time_fractional_pad*hrange,
+                    right=right + time_fractional_pad*hrange)
     # bottom plot : try to zoom over provided range
     if delta_t_max is not None:
         axs[2].set_xlim(left=-delta_t_max, right=delta_t_max)
     # if not provided, compute automatic ranges (not pretty usually)
     elif left is not None and right is not None:
-        delta_left, delta_right = left-right, right-left
-        axs[2].set_xlim(left=delta_left, right=delta_right)
+        axs[2].set_xlim(left=-hrange, right=hrange)
 
-    axs[0].set_ylim(bottom=0)  # counts
+    # yaxis limits
+    max_count = np.nanmax(all_counts)
+    axs[0].set_ylim(bottom=0, top=max_count*(1. + counts_fractional_pad))  # counts
+
+    # average
+    bottom, top = np.nanmin(all_corr), np.nanmax(all_corr)
+    if corr_range[0] is not None:
+        bottom = corr_range[0]
+    if corr_range[1] is not None:
+        top = corr_range[1]
+    vrange = top - bottom
+    for ax in axs[1:]:
+        ax.set_ylim(bottom=bottom - corr_fractional_pad*vrange,
+                        top=top + corr_fractional_pad*vrange)
     
     # add exponential decay
     if show_exp_decay is not None:
         tt = np.linspace(left, right, 100)
-        dd = np.linspace(delta_left, delta_right, 100)
+        dd = np.linspace(-hrange, hrange, 100)
+        lab = r'$t_{{\mathrm{{decay}}}} = {:.1f}$ {}'.format(1./show_exp_decay, units)
         for tref in trefs:
             axs[1].plot(tt, np.exp(-show_exp_decay * np.abs(tt - tref)),
                         ls='-.', color='C7', alpha=.7)
-        axs[2].plot(dd, np.exp(-show_exp_decay * np.abs(dd)),
-                    ls='-.', color='C7', alpha=.7)
+        dec, = axs[2].plot(dd, np.exp(-show_exp_decay * np.abs(dd)),
+                    ls='-.', color='C7', alpha=.5, label=lab)
+        handles.append(dec)
 
-    # legends
-    axs[0].legend(loc=2)
-
-    master_line = mlines.Line2D([], [], color='C7', ls='-',
-                                label='master (color: see top)')
-    handles = [master_line, ]
-    if condition_label is not None and condition_label != 'master':
-        c_line = mlines.Line2D([], [], color='C7', ls='--',
-                               label=condition_label)
-        handles.append(c_line)
-    if show_exp_decay is not None:
-        exp_line = mlines.Line2D([], [], color='C7', ls='-.', label='exp decay')
-        handles.append(exp_line)
-    axs[2].legend(handles=handles, loc=2)
+    labels = [h.get_label() for h in handles]
+    axs[-1].legend(handles=handles, labels=labels, loc='upper left',
+                   bbox_to_anchor=(0, -.6/axe_ysize), labelspacing=0.2)  # reduce labelspacing because of LaTeX
 
     # ticks and labels
-    # first axes locators are integers
-    axs[0].yaxis.set_major_locator(MaxNLocator(integer=True))
-    axs[0].tick_params(axis='x', direction='out', top='on',
-                       labeltop='on')
-    axs[0].tick_params(axis='x', direction='in', bottom='on',
-                       labelbottom='off')
-    axs[1].tick_params(axis='x', direction='in')
+    for ax in axs:
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(_spacing_trange(hrange)))
+    # counts
+    axs[0].yaxis.set_major_locator(MaxNLocator(nbins=3, integer=True))
+    for ax in axs[1:]:
+        ax.yaxis.set_major_locator(MaxNLocator(nbins=2))
+    for ax in axs[1:]:
+        ax.yaxis.set_major_locator(MaxNLocator(nbins=3))
+    formatter = ScalarFormatter(useMathText=True, useOffset=False)
+    formatter.set_powerlimits((-2, 4))
+    for ax in axs:
+        ax.yaxis.set_major_formatter(formatter)
+        t = ax.yaxis.get_offset_text()
+        plt.draw()
+        msg = t.get_text()
+        ax.text(0, .95, msg, ha='left', va='top', transform=ax.transAxes)
+        t.set_visible(False)
 
-    axs[2].set_xlabel('Delta' + timelabel, x=.95, horizontalalignment='right',
-                      fontsize='large')
-    axs[0].xaxis.set_label_position('top')
-    axs[0].set_xlabel(timelabel, x=.95, horizontalalignment='right',
+    axs[0].tick_params(axis='x', direction='in', bottom='on', labelbottom='on', pad=-10)
+    axs[1].tick_params(axis='x', direction='in', bottom='on', labelbottom='on', pad=-10)
+    axs[2].set_xlabel(timelabel, x=.95, horizontalalignment='right',
                       fontsize='large')
 
     # ylabels
-    axs[0].set_ylabel(r'Samples $\langle t_{\mathrm{ref}} | t \rangle$',
+    axs[0].set_ylabel(r'# $\langle t_{\mathrm{ref}} | t \rangle$',
                       fontsize='large')
-    axs[1].set_ylabel(r'Autocorr. $g(t_{\mathrm{ref}}, t)$',
+    axs[1].set_ylabel(r'$g(t_{\mathrm{ref}}, t)$',
                       fontsize='large')
-    axs[2].set_ylabel(r'Shifted $g(t_{\mathrm{ref}}, t- t_{\mathrm{ref}})$',
+    axs[2].set_ylabel(r'$g(t_{\mathrm{ref}}, t- t_{\mathrm{ref}})$',
                       fontsize='large')
 
+    # title
     latex_obs = obs.as_latex_string
-    axs[0].text(0.5, 1.3, r' Autocorrelation fcts for {}'.format(latex_obs),
-                size='large',
+    axs[0].text(0.5, 1+.2/axe_ysize,
+                r' Autocorrelation :{}'.format(latex_obs),
+                size='x-large',
                 horizontalalignment='center',
                 verticalalignment='bottom',
                 transform=axs[0].transAxes)
-    fig.subplots_adjust(hspace=.1)
+    fig.subplots_adjust(hspace=0.)
     # save fig at canonical path
     if save:
         # export data files if not existing yet
