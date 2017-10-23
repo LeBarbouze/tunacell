@@ -630,7 +630,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
     
     # now that limits have been set : report for divisions
     if report_divisions:
-        _report_divisions(samples, axes, line2D_join, index_to_iax, limit_axes)
+        line2D_join = _report_divisions(samples, axes, line2D_join, index_to_iax, limit_axes)
 
     # add legend
     if show_legend:
@@ -680,14 +680,14 @@ def plot_samples(samples, obs, parser=None, conditions=[],
         labels += data_stat_labs
         ax.legend(handles=handles, labels=labels,
                   loc='upper left',
-                  bbox_to_anchor=(0, -.5/axe_ysize),
+                  bbox_to_anchor=(0, -.6/axe_ysize),
                   borderaxespad=0.)
         
     # add title
     titling = r'{}'.format(obs.as_latex_string)
     if units:
         titling += ' ({})'.format(units)
-    axes[0].text(0.5, 1.2, titling,
+    axes[0].text(0.5, 1 + .2/axe_ysize, titling,
                 size='x-large',
                 horizontalalignment='center',
                 verticalalignment='bottom',
@@ -703,8 +703,27 @@ def _report_divisions(samples, axes, line2D_join, index_to_iax, limit_axes):
 
     As this function use data, and axe inverted transforms, it needs to be
     called after all axe limits have been set
+    
+    Parameters
+    ----------
+    samples : list of (Lineage instance, corresponding TimeSeries
+        samples to be plotted
+    axes : list of Axes instances
+        axes used to plot successive samples
+    line2D_join : Line2D instance
+        sets the styling when not None
+    index_to_iax : dict
+        maps sample index to axe index
+    limit_axes : int
+        maximum number of axes
+
+    Returns
+    -------
+    line2D_join : Line2D instance
+        used to get styling in main function
     """
     color = 'C7'  # uniform color for tree visualization
+    vjoin = None
     for index, (lineage, ts) in enumerate(samples):
         # let's pick the corresponding axe
         try:
@@ -732,6 +751,8 @@ def _report_divisions(samples, axes, line2D_join, index_to_iax, limit_axes):
                 jlw = 1.
                 jls = ':'
                 jalpha = .8
+            # styling options dict
+            styling = {'lw': jlw, 'ls': jls, 'color': color, 'alpha': jalpha}
             # get first cell
             if len(lineage.idseq) > 0:
                 cid = lineage.idseq[0]
@@ -771,12 +792,7 @@ def _report_divisions(samples, axes, line2D_join, index_to_iax, limit_axes):
                         else:
                             ymax=.5  # in transAxes coordinates
                         # logging.debug('in parent cell axe, ymax={}'.format(ymax))
-                        axes[i_top].axvline(cell.birth_time,
-                                            ymax=ymax,
-                                            lw=jlw,
-                                            ls=jls,
-                                            color='C7',
-                                            alpha=jalpha)
+                        vjoin = axes[i_top].axvline(cell.birth_time, ymax=ymax, **styling)
                         i_bottom = index_to_iax[index]
                         # first valid cell y value in transAxes coords
                         if len(x) > 0:
@@ -787,18 +803,13 @@ def _report_divisions(samples, axes, line2D_join, index_to_iax, limit_axes):
                         else:
                             ymin = .5  # in transAxes coords
                         # logging.debug('in current cell axe, ymin={}'.format(ymin))
-                        axes[i_bottom].axvline(cell.birth_time, ymin=ymin,
-                                               lw=jlw,
-                                               ls=jls,
-                                               color=color,
-                                               alpha=jalpha)
+                        axes[i_bottom].axvline(cell.birth_time, ymin=ymin, **styling)
+
                         for k in range(i_top + 1, i_bottom):
-                            axes[k].axvline(cell.birth_time,
-                                            lw=jlw,
-                                            ls=jls,
-                                            color=color,
-                                            alpha=jalpha)
-    return
+                            axes[k].axvline(cell.birth_time, **styling)
+    if line2D_join is None and vjoin is not None:
+        line2D_join = vjoin
+    return line2D_join
 
 
 def _count_containers(samples):

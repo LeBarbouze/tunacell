@@ -11,11 +11,13 @@ import numpy as np
 import string
 import collections
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator, ScalarFormatter
 import matplotlib.transforms as transforms
 import matplotlib.lines as mlines
 import matplotlib.gridspec as gridspec
+import matplotlib.ticker as ticker
 
 from tunacell.filters.main import FilterSet
 from tunacell.stats.single import Univariate, StationaryUnivariate
@@ -123,10 +125,19 @@ def _append_cdt(univariate, this_cdt, cdt_list):
     return
 
 
-def plot_onepoint(univariate, show_cdts='all', left=None, right=None,
-                  mean_ref=None, mean_lims=(None, None),
-                  show_ci=False,
-                  var_ref=None, var_lims=(None, None),
+def plot_onepoint(univariate, show_cdts='all', show_ci=False,
+                  mean_ref=None, var_ref=None,
+                  axe_xsize=6., axe_ysize=2.,
+                  time_range=(None, None),
+                  time_fractional_pad=.1,
+                  counts_range=(None, None),
+                  counts_fractional_pad=.1,
+                  average_range=(None, None),  # auto
+                  average_fractional_pad=.1,
+                  variance_range=(None, None),
+                  variance_fractional_pad=.1,
+                  show_legend=True,
+                  show_cdt_details_in_legend=False,
                   save=False, user_path=None, ext='.png'):
     """Plot one point statistics.
 
@@ -136,20 +147,36 @@ def plot_onepoint(univariate, show_cdts='all', left=None, right=None,
     show_cdts : str (default 'all')
         must be either 'all', or 'master', or the repr of a condition, or a
         list thereof
-    left : float (default None)
-        leftest value to display
-    right : float (default None)
-        rightest value to display
     mean_ref : float
         reference mean value: what user expect to see as sample average to
         compare with data
-    mean_lims : (float, float) (default (None, None))
-        required limits for sample mean axes.yaxis
     var_ref : float
         reference variance value: what user expect to see as sample variance to
         compare with data
-    var_lims : (float, float) (default (None, None))
-        required limits for sample variance axes.yaxis
+    axe_xsize : float (default 6)
+        size of the x-axis (inches)
+    axe_ysize : float (default 2.)
+        size if a single ax y-axis (inches)
+    time_range : couple of floats (default (None, None))
+        specifies (left, right) bounds
+    time_fractional_pad : float (default .1)
+        fraction of x-range to add as padding
+    counts_range : couple of floats (default (None, None))
+        specifies range for the Counts y-axis
+    counts_fractional_pad : float (default .2)
+        fractional amount of y-range to add as padding
+    average_range : couple of floats (default (None, None))
+        sepcifies range for the Average y-axis
+    average_fractional_pad : couple of floats (default .2)
+        fractional amounts of range to padding
+    variance_range : couple of floats (default (None, None))
+        sepcifies range for the Variance y-axis
+    average_fractional_pad : couple of floats (default .2)
+        fractional amounts of range to padding
+    show_legend : bool {True, False}
+        print out legend
+    show_cdt_details_in_legend : bool {False, True}
+        show details about filters
     save : bool {False, True}
         whether to save plot
     user_path : str (default None)
@@ -160,8 +187,8 @@ def plot_onepoint(univariate, show_cdts='all', left=None, right=None,
     """
     if not isinstance(univariate, Univariate):
         raise TypeError('Input is not {}'.format(Univariate))
-    vsize = 2.5
-    fig, axs = plt.subplots(3, 1, figsize=(6, 3*vsize))
+
+    fig, axs = plt.subplots(3, 1, figsize=(axe_xsize, 3*axe_ysize))
 
     obs = univariate.obs
 
@@ -176,7 +203,13 @@ def plot_onepoint(univariate, show_cdts='all', left=None, right=None,
     else:
         timelabel = 'Time (mins)'
 
+    main_handles = []
     additional_handles = []
+
+    all_times = []
+    all_counts = []
+    all_average = []
+    all_variance = []
 
     # build condition list
     conditions = ['master', ]  # list of conditions to be plotted
@@ -190,77 +223,98 @@ def plot_onepoint(univariate, show_cdts='all', left=None, right=None,
     else:
         _append_cdt(univariate, show_cdts, conditions)
 
+    default_lw = mpl.rcParams['lines.linewidth']
     for index, cdt in enumerate(conditions):
-        letter = string.ascii_lowercase[index]
+
         if cdt == 'master':
             c_repr = 'master'
             c_label = 'all samples'
+            lw = default_lw + 1
+            alpha = 1
+            alpha_fill = .5
         else:
             c_repr = repr(cdt)
-            c_label = str(cdt)
+            if show_cdt_details_in_legend:
+                c_label = str(cdt)
+            else:
+                c_label = cdt.label
+            lw = default_lw
+            alpha = .8
+            alpha_fill = 0.3
 
         ok = np.where(univariate[c_repr].count_one > 0)
 
         times = univariate[c_repr].time[ok]
+        all_times.extend(times)
         counts = univariate[c_repr].count_one[ok]
+        all_counts.extend(counts)
         mean = univariate[c_repr].average[ok]
+        all_average.extend(mean)
         var = univariate[c_repr].var[ok]
+        all_variance.extend(var)
         std = univariate[c_repr].std[ok]
         se = 2.58 * std / np.sqrt(counts)
 #        var = np.diagonal(univariate[c_repr].autocorr)
 
         ax = axs[0]
-        line_counts, = ax.plot(times, counts, alpha=0.8,
-                               label='({}) {}'.format(letter, c_label))
-
+        line_counts, = ax.plot(times, counts, alpha=alpha, lw=lw,
+                               label='{}'.format(c_label))
+        main_handles.append(line_counts)
         color = line_counts.get_color()
 
-        ax = axs[1]
-        ax.plot(times, mean, color=color, alpha=0.8, label=c_label)
+        average, = axs[1].plot(times, mean, color=color, alpha=0.8, lw=lw, label=c_label)
         if show_ci:
-            fill_std = ax.fill_between(times, mean-se, mean+se,
-                                       facecolor=color, alpha=.3,
-                                       label='.99 C.I. for ({})'.format(letter))
+            fill_std = axs[1].fill_between(times, mean-se, mean+se,
+                                       facecolor=color, alpha=alpha_fill)
             # add onbly if empty (no need to repeat on conditions)
             additional_handles.append(fill_std)
+            all_average.extend(mean-se)
+            all_average.extend(mean+se)
 
-        ax = axs[2]
-        ax.plot(times, var, color=color, alpha=0.8, label=c_label)
-
-        ax.set_ylim(bottom=0)
+        variance, = axs[2].plot(times, var, color=color, alpha=0.8, lw=lw, label=c_label)
 
     # adding reference lines
     if mean_ref is not None:
-        ax = axs[1]
-        ax.axhline(mean_ref, ls='--', color='C7', alpha=.7)
+        axs[1].axhline(mean_ref, ls='--', color='C7', alpha=.7)
+        all_average.append(mean_ref)
     if var_ref is not None:
-        ax = axs[2]
-        ax.axhline(var_ref, ls='--', color='C7', alpha=.7)
+        axs[2].axhline(var_ref, ls='--', color='C7', alpha=.7)
+        all_variance.append(var_ref)
 
     # xaxis limits
+    left, right = np.nanmin(all_times), np.nanmax(all_times)
+    if time_range[0] is not None:
+        left = time_range[0]
+    if time_range[1] is not None:
+        right = time_range[1]
+    hrange = right - left
     for ax in axs:
-        if left is not None:
-            ax.set_xlim(left=left)
-        if right is not None:
-            ax.set_xlim(right=right)
-    
-    # yaxis limits
-    axs[0].set_ylim(bottom=0)  # counts
+        ax.set_xlim(left=left - time_fractional_pad*hrange,
+                    right=right + time_fractional_pad*hrange)
 
-    mean_min, mean_max = mean_lims
-    if mean_min is not None or mean_max is not None:
-        ax = axs[1]
-        if mean_min is not None:
-            ax.set_ylim(bottom=mean_min)
-        if mean_max is not None:
-            ax.set_ylim(top=mean_max)
-    var_min, var_max = var_lims
-    if var_min is not None or var_max is not None:
-        ax = axs[2]
-        if var_min is not None:
-            ax.set_ylim(bottom=var_min)
-        if var_max is not None:
-            ax.set_ylim(top=var_max)
+    # yaxis limits
+    max_count = np.nanmax(all_counts)
+    axs[0].set_ylim(bottom=0, top=max_count*(1. + counts_fractional_pad))  # counts
+
+    # average
+    bottom, top = np.nanmin(all_average), np.nanmax(all_average)
+    if average_range[0] is not None:
+        bottom = average_range[0]
+    if average_range[1] is not None:
+        top = average_range[1]
+    vrange = top - bottom
+    axs[1].set_ylim(bottom=bottom - average_fractional_pad*vrange,
+                    top=top + average_fractional_pad*vrange)
+    
+    # variance
+    bottom, top = np.nanmin(all_variance), np.nanmax(all_variance)
+    if variance_range[0] is not None:
+        bottom = variance_range[0]
+    if average_range[1] is not None:
+        top = variance_range[1]
+    vrange = top - bottom
+    axs[2].set_ylim(bottom=bottom - variance_fractional_pad*vrange,
+                    top=top + variance_fractional_pad*vrange)
 
     # print vertical line at tref
     if univariate.obs.timing != 'g' and isinstance(univariate.obs.tref, float):
@@ -268,8 +322,18 @@ def plot_onepoint(univariate, show_cdts='all', left=None, right=None,
             ax.axvline(univariate.obs.tref, color='C7', ls='--', alpha=.5)
 
     # ticks and labels
-    # first axes locators are integers
-    axs[0].yaxis.set_major_locator(MaxNLocator(integer=True))
+    if hrange < 20:
+        spacing = 5
+    elif hrange < 120:
+        spacing = 20
+    elif hrange < 601:
+        spacing = 60
+    else:
+        spacing = 300
+    for ax in axs:
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(spacing))
+    # counts
+    axs[0].yaxis.set_major_locator(MaxNLocator(nbins=4, integer=True))
     formatter = ScalarFormatter(useMathText=True, useOffset=False)
     formatter.set_powerlimits((-2, 4))
     for ax in axs:
@@ -280,32 +344,32 @@ def plot_onepoint(univariate, show_cdts='all', left=None, right=None,
         ax.text(0, .95, msg, ha='left', va='top', transform=ax.transAxes)
         t.set_visible(False)
     axs[0].tick_params(axis='x', direction='out', top='on',
-                       labeltop='on')
+                       labeltop='off')
     axs[0].tick_params(axis='x', direction='in', bottom='on',
                        labelbottom='off')
     axs[1].tick_params(axis='x', direction='in')
     axs[1].set_xticklabels([])
     axs[2].set_xlabel(timelabel, x=.95, horizontalalignment='right',
                       fontsize='large')
-    axs[0].xaxis.set_label_position('top')
-    axs[0].set_xlabel(timelabel, x=.95, horizontalalignment='right',
-                      fontsize='large')
+#    axs[0].xaxis.set_label_position('top')
+#    axs[0].set_xlabel(timelabel, x=.95, horizontalalignment='right',
+#                      fontsize='large')
 
     axs[0].set_ylabel('Counts', fontsize='large')
     axs[1].set_ylabel('Average', fontsize='large')
     axs[2].set_ylabel('Variance', fontsize='large')
     # legend
-    if len(conditions) > 2:
-        axs[0].legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-    else:
-        axs[0].legend(loc=0)
+    handles = main_handles[:]
+    labels = [h.get_label() for h in handles]
+    axs[-1].legend(handles=handles, labels=labels, loc='upper left',
+                   bbox_to_anchor=(0, -.6/axe_ysize))
+    # C.I.
     if additional_handles:
+        ci = additional_handles[0]
+        ci.set_color('C7')
+        ci.set_label('.99 C.I.')
         labels = [item.get_label() for item in additional_handles]
-        if len(conditions) > 2:
-            axs[1].legend(handles=additional_handles, labels=labels,
-                          bbox_to_anchor=(1.05, 1), loc=2)
-        else:
-            axs[1].legend(handles=additional_handles, labels=labels, loc=0)
+        axs[1].legend(handles=[ci, ], labels=[ci.get_label(), ], loc=0)
 
     # add info above first ax
 #    info = '(binning interval {})'.format(univariate.indexify.binsize)
@@ -313,8 +377,9 @@ def plot_onepoint(univariate, show_cdts='all', left=None, right=None,
 
     # title
     latex_obs = obs.as_latex_string
-    axs[0].text(0.5, 1.3, r' One-point stats for {}'.format(latex_obs),
-                size='large',
+    axs[0].text(0.5, 1+.2/axe_ysize,
+                r'Statistics: {}'.format(latex_obs),
+                size='x-large',
                 horizontalalignment='center',
                 verticalalignment='bottom',
                 transform=axs[0].transAxes)

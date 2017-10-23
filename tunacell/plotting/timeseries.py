@@ -205,7 +205,7 @@ def add_timeseries(ax, ts, condition_repr='master',
             # is there valid data?
             # if empty, move to next slice
             if len(xdata) == 0:
-                # update color is using chanhe_cell_color
+                # update color is using change_cell_color
                 if change_cell_color and color is not None:
                     m = pcolor.match(color)
                     if m:
@@ -291,7 +291,7 @@ def add_timeseries(ax, ts, condition_repr='master',
             # append first/last frame (registered if cell completed its cycle)
             if sl.start is not None:
                 inits.append((xdata[0], ydata[0]))
-                if prej is not None and sl.start == prej:  # ensure consecutive
+                if join_cells and prej is not None and sl.start == prej:  # ensure consecutive
                     xjoins, yjoins = zip(*(fins[-1:] + inits[-1:]))
                     join, = ax.plot(xjoins, yjoins,
                                     ls=':',
@@ -299,8 +299,8 @@ def add_timeseries(ax, ts, condition_repr='master',
                                     alpha=alpha_connecting,
                                     color=ucolor)
                     joins.append(join)
-                    if not join_cells:
-                        join.set_visible(False)
+#                    if not join_cells:
+#                        join.set_visible(False)
             if sl.stop is not None:
                 fins.append((xdata[-1], ydata[-1]))
         # there might be no data for current slice, but still the cell exists
