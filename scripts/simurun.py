@@ -8,6 +8,16 @@ used to run numerical simulations from terminal. Command is:
     python simurun.py [[-p|--path <path>]
                        [-l|--label <exp-name>]
                        [-s|--samples <number-of-samples>]
+                       [--alpha <growth-rate-target>]
+                       [--alpha_sd <standard-deviation-for-alpha]
+                       [--alpha_autocorr <autocorrelation time for alpha>]
+                       [--div_lambda <lambda division parameter>]
+                       [--div_size_cutoff <target size for division>]
+                       [--div_use_alpha {'parameter', 'birth'}]
+                       [--div_fluctuation_mode {'gamma', 'none'}]
+                       [--div_relative_fluctuations <ratio sd/mean>]
+                       [--initial_birth_size_mode {'fixed', 'lognormal'}]
+                       [--initial_birth_size_sigma <sigma for initial birth size>]
                        [--start <starting-time-value>]
                        [--stop <stoping-time-value>]
                        [--period <time-interval-between-acquisitions>]
@@ -18,24 +28,64 @@ All parameters have default values (see code).
 from __future__ import print_function
 from builtins import input  # future package
 
+import logging
 import argparse
 import os
 import shutil
 import numpy as np
-from tunacell.simu.main import SimuParams, DivisionParams
-from tunacell.simu.ou import OUParams, OUSimulation
+
+from tunacell.simu.ou import OUParams, OUSimulation, SimuParams, DivisionParams, SampleInitialSize
+
+
+logging.basicConfig(level=logging.INFO)
 
 # Arguments
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+# files
 parser.add_argument('-p', '--path', type=str,
                     help='Parent directory in which simulation is stored',
                     default='~/tmptunacell')
 parser.add_argument('-l', '--label', type=str,
                     help='Label of the experiment/simulation',
-                    default='simutest')
+                    default='s1')
 parser.add_argument('-s', '--samples', type=int,
                     help='Number of simulated container samples',
                     default=100)
+# OU parameters
+parser.add_argument('--alpha', type=float,
+                    help='Growth rate target (in [/min])',
+                    default=np.log(2.)/60.)  # corresponding to size doubling time = 1 hour, in /min
+parser.add_argument('--alpha_sd', type=float,
+                    help='Equilibrium standard deviation for alpha (in [/min])',
+                    default=np.log(2.)/(10.*60.))  #1/10 of default target, in /min
+parser.add_argument('--alpha_autocorr', type=float,
+                    help='Autocorrelation time for alpha (in [min]',
+                    default=30.)  # in mins
+# division parameters
+parser.add_argument('--div_lambda', type=float,
+                    help='Lambda parameter for interdivision timing (between 0 and 1)',
+                    default=0)  # timer
+parser.add_argument('--div_size_cutoff', type=float,
+                    help='Division size cutoff (in arbitrary units)',
+                    default=2.)
+parser.add_argument('--div_use_alpha', type=str,
+                    help='Use parameter, or birth value growth rate',
+                    default='parameter')
+parser.add_argument('--div_fluctuation_mode', type=str,
+                    help='[gamma, none] whether to add or not fluctuations to interdivision time',
+                    default='gamma')
+parser.add_argument('--div_relative_fluctuations', type=float,
+                    help='Ratio sd/predicted linear interdivision time',
+                    default=.1)
+
+# initial birth size sampling
+parser.add_argument('--initial_birth_size_mode', type=str,
+                    help='[fixed, lognormal]', default='fixed')
+parser.add_argument('--initial_birth_size_sigma', type=float,
+                    help='sigma param for the lognormal distribution',
+                    default=2.*np.log(2.))
+
+# simulation parameters
 parser.add_argument('--start', type=float,
                     help='Time at which simulation starts',
                     default=0.)
@@ -64,51 +114,54 @@ nsamples = args.samples  # number of containers that will be created by simulati
 
 tree_per_cont = 2  # number of trees per container
 
-# OU parameters
-target_value = np.log(2.)/60.  # average value of the random process
-spring = 1./30.  # spring constant (brings back random walker to target value)
-noise_intensity = 2. * spring * (target_value/10.)**2   # noise intensity for random walk
-
-# DIVISION TIMING
-interdivision_mean = 60.  # average of interdivision time
-interdivision_std = 6.  # standard deviation for interdivision time
-minimum = dt  # minimum value of interdivision time should be >= dt
-
-# %% Instantiating parameters objects
-
 simuParams = SimuParams(nbr_container=nsamples,
                         nbr_colony_per_container=tree_per_cont,
                         start=tstart, stop=tstop, interval=dt)
 
-ouParams = OUParams(target=target_value, spring=spring,
-                    noise=noise_intensity)
+# OU parameters
+target_value = args.alpha  # average value of the random process
+spring = 1./args.alpha_autocorr  # spring constant (brings back random walker to target value)
+noise_intensity = 2. * spring * (args.alpha_sd)**2   # noise intensity for random walk
 
-divParams = DivisionParams(mean=interdivision_mean, std=interdivision_std)
+ouParams = OUParams(target=target_value, spring=spring, noise=noise_intensity)
 
-# %% SIMULATION: initiate, define, run/write
-np.random.seed()  # seed for the random number generator
+# DIVISION TIMING
+divParams = DivisionParams(lambda_=args.div_lambda,
+                           size_target=args.div_size_cutoff,
+                           mode=args.div_fluctuation_mode,
+                           relative_fluctuations=args.div_relative_fluctuations)
 
-exp = OUSimulation(label=args.label,
-                   simuParams=simuParams, divisionParams=divParams,
-                   ouParams=ouParams)
+# INITIAL BIRTH SIZE
+birthsizeParams = SampleInitialSize(size_cutoff=args.div_size_cutoff,
+                                    mode=args.initial_birth_size_mode,
+                                    sigma=args.initial_birth_size_sigma)
 
-# check that experiment has been saved before
-ans = 'go'
-current_name = args.label
-exp_path = os.path.join(path, args.label)
-while os.path.exists(exp_path) and ans != 'a':
-    print('Experiment {} already exists.'.format(current_name))
-    ans = input('Override [o], Change experiment name [c], Abort [a]: ')
-    if ans == 'c':
-        new_name = current_name
-        while new_name == current_name:
-            new_name = input('NEW NAME: ')
-        exp.label = new_name
-        exp_path = os.path.join(path, new_name)
-    # when overriding, need to erase everything first
-    elif ans == 'o':
-        shutil.rmtree(exp_path)
-
-# export except if process has been aborted
-if ans != 'a':
-    exp.raw_text_export(path=path)
+if __name__ == '__main__':
+    
+    # %% SIMULATION: initiate, define, run/write
+    np.random.seed()  # seed for the random number generator
+    
+    exp = OUSimulation(label=args.label,
+                       simuParams=simuParams, divisionParams=divParams,
+                       ouParams=ouParams, birthsizeParams=birthsizeParams)
+    
+    # check that experiment has been saved before
+    ans = 'go'
+    current_name = args.label
+    exp_path = os.path.join(path, args.label)
+    while os.path.exists(exp_path) and ans != 'a':
+        print('Experiment {} already exists.'.format(current_name))
+        ans = input('Override [o], Change experiment name [c], Abort [a]: ')
+        if ans == 'c':
+            new_name = current_name
+            while new_name == current_name:
+                new_name = input('NEW NAME: ')
+            exp.label = new_name
+            exp_path = os.path.join(path, new_name)
+        # when overriding, need to erase everything first
+        elif ans == 'o':
+            shutil.rmtree(exp_path)
+    
+    # export except if process has been aborted
+    if ans != 'a':
+        exp.raw_text_export(path=path)
