@@ -14,11 +14,10 @@ import logging
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator, ScalarFormatter
+from matplotlib import ticker
 import matplotlib.transforms as transforms
 import matplotlib.lines as mlines
 import matplotlib.gridspec as gridspec
-import matplotlib.ticker as ticker
 
 from tunacell.filters.main import FilterSet
 from tunacell.stats.single import Univariate, StationaryUnivariate
@@ -98,6 +97,33 @@ class UnivariatePlot(object):
         return
 
 
+def _set_condition_list(univariate, show_cdts='master'):
+    """Set the list of conditions to show
+
+    Parameters
+    ----------
+    show_cdts : str or FilterSet or iterable on these (default 'master')
+        the conditions to plot, use 'all' for all conditions in univariate
+    univariate : Univariate instance
+        conditions will be matched against conditions stored in univariate
+
+    Returns
+    -------
+    list of FilterSet (conditions) to show
+    """
+    conditions = ['master', ]  # list of conditions to be plotted
+    if show_cdts == 'all':
+        conditions = ['master', ] + univariate.cset
+    elif show_cdts == 'master':
+        pass
+    elif isinstance(show_cdts, collections.Iterable):
+        for item in show_cdts:
+            _append_cdt(univariate, item, conditions)
+    else:
+        _append_cdt(univariate, show_cdts, conditions)
+    return conditions
+    
+
 def _append_cdt(univariate, this_cdt, cdt_list):
     """Append condition associated to this_cdt in univariate object to cdt_list
 
@@ -113,6 +139,7 @@ def _append_cdt(univariate, this_cdt, cdt_list):
     if isinstance(this_cdt, str):
         # find which
         for cdt in univariate.cset:
+            # TODO : compare also cdt.label
             if repr(cdt) == this_cdt:
                 found = True
                 break
@@ -124,6 +151,50 @@ def _append_cdt(univariate, this_cdt, cdt_list):
     if found:
         cdt_list.append(cdt)
     return
+
+
+def _set_axis_limits(ax, values, which='x', pad=.1, force_range=(None, None)):
+    """Computes axis limits with padding given values.
+
+    Parameters
+    ----------
+    ax : Axes instance
+        axes tp set limits
+    values : iterable/list of ints/floats
+        list of values to find bounds
+    which : str {'x', 'y'}
+        which axis to set limits
+    pad : float (default .1)
+        fractional padding to add at both boundaries
+    force_range: couple of floats (default (None, None))
+        when not None, will force this boun
+
+    Raises
+    ------
+    ValueError
+        when which is not 'x' or 'y'
+    """
+    if len(values) == 0:
+        lower, upper = -1, 1  # default
+    else:
+        lower, upper = np.nanmin(values), np.nanmax(values)
+    if force_range[0] is not None:
+        lower = force_range[0]
+    if force_range[1] is not None:
+        upper = force_range[1]
+    if lower == upper:
+        vrange = .1 * upper  # 10% of unique value
+    else:
+        vrange = upper - lower
+    low = lower - pad * vrange
+    up = upper + pad * vrange
+    if which == 'x':
+        ax.set_xlim(left=low, right=up)
+    elif which == 'y':
+        ax.set_ylim(bottom=low, top=up)
+    else:
+        raise ValueError("'which' argument can be either 'x' or 'y'")
+    return lower, upper
 
 
 def plot_onepoint(univariate, show_cdts='all', show_ci=False,
@@ -198,14 +269,11 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
         timelabel = 'Generations'
         if univariate.obs.tref is not None:
             timelabel += ' (since tref {})'.format(univariate.obs.tref)
-        # force ticks to be integers
-        for ax in axs:
-            ax.xaxis.set_major_locator(MaxNLocator(integer=True))
     else:
         timelabel = 'Time (mins)'
 
-    main_handles = []
-    additional_handles = []
+    main_handles = []  # main legend
+    ci_handles = []  # additional legend (TODO: check if necessary)
 
     all_times = []
     all_counts = []
@@ -213,16 +281,7 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
     all_variance = []
 
     # build condition list
-    conditions = ['master', ]  # list of conditions to be plotted
-    if show_cdts == 'all':
-        conditions = ['master', ] + univariate.cset
-    elif show_cdts == 'master':
-        pass
-    elif isinstance(show_cdts, collections.Iterable):
-        for item in show_cdts:
-            _append_cdt(univariate, item, conditions)
-    else:
-        _append_cdt(univariate, show_cdts, conditions)
+    conditions = _set_condition_list(univariate, show_cdts)
 
     default_lw = mpl.rcParams['lines.linewidth']
     for index, cdt in enumerate(conditions):
@@ -254,7 +313,7 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
         var = univariate[c_repr].var[ok]
         all_variance.extend(var)
         std = univariate[c_repr].std[ok]
-        se = 2.58 * std / np.sqrt(counts)
+        se = 2.58 * std / np.sqrt(counts)  # standard error 99% CI Gaussian
 #        var = np.diagonal(univariate[c_repr].autocorr)
 
         line_counts, = axs[0].plot(times, counts, alpha=alpha, lw=lw,
@@ -265,9 +324,8 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
         average, = axs[1].plot(times, mean, color=color, alpha=0.8, lw=lw, label=c_label)
         if show_ci:
             fill_std = axs[1].fill_between(times, mean-se, mean+se,
-                                       facecolor=color, alpha=alpha_fill)
-            # add onbly if empty (no need to repeat on conditions)
-            additional_handles.append(fill_std)
+                                           facecolor=color, alpha=alpha_fill)
+            ci_handles.append(fill_std)
             all_average.extend(mean-se)
             all_average.extend(mean+se)
 
@@ -288,54 +346,34 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
             main_handles.append(vref)
         all_variance.append(var_ref)
 
-    # xaxis limits
-    left, right = np.nanmin(all_times), np.nanmax(all_times)
-    if time_range[0] is not None:
-        left = time_range[0]
-    if time_range[1] is not None:
-        right = time_range[1]
-    hrange = right - left
-    for ax in axs:
-        ax.set_xlim(left=left - time_fractional_pad*hrange,
-                    right=right + time_fractional_pad*hrange)
-
-    # yaxis limits
-    max_count = np.nanmax(all_counts)
-    axs[0].set_ylim(bottom=0, top=max_count*(1. + counts_fractional_pad))  # counts
-
-    # average
-    bottom, top = np.nanmin(all_average), np.nanmax(all_average)
-    if average_range[0] is not None:
-        bottom = average_range[0]
-    if average_range[1] is not None:
-        top = average_range[1]
-    vrange = top - bottom
-    axs[1].set_ylim(bottom=bottom - average_fractional_pad*vrange,
-                    top=top + average_fractional_pad*vrange)
-    
-    # variance
-    bottom, top = np.nanmin(all_variance), np.nanmax(all_variance)
-    if variance_range[0] is not None:
-        bottom = variance_range[0]
-    if average_range[1] is not None:
-        top = variance_range[1]
-    vrange = top - bottom
-    axs[2].set_ylim(bottom=bottom - variance_fractional_pad*vrange,
-                    top=top + variance_fractional_pad*vrange)
-
     # print vertical line at tref
     if univariate.obs.timing != 'g' and isinstance(univariate.obs.tref, float):
         for ax in axs:
-            ax.axvline(univariate.obs.tref, color='C7', ls='--', alpha=.5)
+            vtref = ax.axvline(univariate.obs.tref, color='C7', ls='--',
+                                alpha=.5, label='reference time in obs')
+        main_handles.append(vtref)  # only the last one
 
-    # ticks and labels
+    # ## limits and ticks ##
+    # xaxis
     for ax in axs:
-        ax.xaxis.set_major_locator(ticker.MultipleLocator(_spacing_trange(hrange)))
-    # counts
-    axs[0].yaxis.set_major_locator(MaxNLocator(nbins=3, integer=True))
-    for ax in axs[1:]:
-        ax.yaxis.set_major_locator(MaxNLocator(nbins=2))
-    formatter = ScalarFormatter(useMathText=True, useOffset=False)
+        _set_axis_limits(ax, all_times, which='x', pad=time_fractional_pad,
+                         force_range=time_range)
+        ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+
+    # yaxis limits
+    _set_axis_limits(axs[0], all_counts, which='y', pad=counts_fractional_pad,
+                     force_range=counts_range)
+    axs[0].yaxis.set_major_locator(ticker.MaxNLocator(nbins=3, integer=True))
+    # average
+    _set_axis_limits(axs[1], all_average, which='y', pad=average_fractional_pad,
+                     force_range=average_range)
+    axs[1].yaxis.set_major_locator(ticker.MaxNLocator(nbins=2))
+    # variance
+    _set_axis_limits(axs[2], all_variance, which='y', pad=variance_fractional_pad,
+                     force_range=variance_range)
+    axs[2].yaxis.set_major_locator(ticker.MaxNLocator(nbins=2))
+    # tick formatter
+    formatter = ticker.ScalarFormatter(useMathText=True, useOffset=False)
     formatter.set_powerlimits((-2, 4))
     for ax in axs:
         ax.yaxis.set_major_formatter(formatter)
@@ -360,22 +398,19 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
     axs[0].set_ylabel('Counts', fontsize='large')
     axs[1].set_ylabel('Average', fontsize='large')
     axs[2].set_ylabel('Variance', fontsize='large')
-    # legend
+    
+    # ## legend ##
+    # C.I.
+    if ci_handles:
+        ci = ci_handles[0]
+        ci.set_color('C7')
+        ci.set_label('.99 C.I.')
+        main_handles.append(ci)
+
     handles = main_handles[:]
     labels = [h.get_label() for h in handles]
     axs[-1].legend(handles=handles, labels=labels, loc='upper left',
                    bbox_to_anchor=(0, -.6/axe_ysize))
-    # C.I.
-    if additional_handles:
-        ci = additional_handles[0]
-        ci.set_color('C7')
-        ci.set_label('.99 C.I.')
-        labels = [item.get_label() for item in additional_handles]
-        axs[1].legend(handles=[ci, ], labels=[ci.get_label(), ], loc=0)
-
-    # add info above first ax
-#    info = '(binning interval {})'.format(univariate.indexify.binsize)
-#    axs[2].text(0., -.2, info, va='top', transform=axs[2].transAxes)
 
     # title
     latex_obs = obs.as_latex_string
@@ -401,18 +436,6 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
     return fig
 
 
-def _spacing_trange(hrange):
-    if hrange < 20:
-        spacing = 5
-    elif hrange < 120:
-        spacing = 20
-    elif hrange < 601:
-        spacing = 60
-    else:
-        spacing = 300
-    return spacing
-
-
 def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
                    axe_xsize=6., axe_ysize=2.,
                    time_range=(None, None),
@@ -427,6 +450,8 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
                    show_cdt_details_in_legend=False,
                    save=False, ext='.png'):
     """Plot two-point functions.
+    
+    These plots are able to show only one extra condition with 'master'
 
     Parameters
     ----------
@@ -496,15 +521,22 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
         indices = np.arange(0, npoints, di, dtype=int)
         trefs = times[indices]
         logging.info(trefs)
-
-    ax01_mins = []
-    ax01_maxs = []
     
+    all_times = []
     all_counts = []
     all_corr = []
 
     default_lw = mpl.rcParams['lines.linewidth']
     handles = []
+
+    # prep work for latex printing
+    latex_ref = '{{\mathrm{{ref}}}}'
+    if obs.timing == 'g':
+        prefix = 'g'
+        units = ''
+    else:
+        prefix = 't'
+        units = 'mins'
 
     conditions = ['master', ] + univariate.cset
     for index, cdt in enumerate(conditions):
@@ -533,14 +565,6 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
         var = np.diagonal(corr)
 
         valid = counts != 0
-        
-        latex_ref = '{{\mathrm{{ref}}}}'
-        if obs.timing == 'g':
-            prefix = 'g'
-            units = ''
-        else:
-            prefix = 't'
-            units = 'mins'
 
         for tref in trefs:
             # this tref may not be in conditioned data (who knows)
@@ -557,9 +581,7 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
 #            if len(ok[0]) == 0:
 #                continue
             # time limits
-            xmin, xmax = np.nanmin(times[ok]), np.nanmax(times[ok])
-            ax01_mins.append(xmin)
-            ax01_maxs.append(xmax)
+            all_times.extend(times[ok])
             dat, = axs[0].plot(times[ok], counts[index, :][ok],
                       ls=lt, lw=lw, alpha=alpha, label=line_label)
             handles.append(dat)
@@ -574,36 +596,28 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
                            ls=lt, lw=lw, alpha=alpha)
             all_corr.extend(corr[index, :][valid[index, :]]/var[index])
             color = dat.get_color()
-            
+
             axs[1].axvline(tref, ymin=0.1, ymax=0.9, ls=':', color=color)
-            
+
             axs[2].axhline(0, ls='-', color='C7', alpha=.3)  # thin line at 0
             axs[2].plot(times[valid[index, :]] - tref,
                     corr[index, :][valid[index, :]]/var[index], ls=lt, lw=lw, alpha=alpha)
-    
-    # xaxis limits
-    if ax01_mins:
-        left = np.amin(ax01_mins)
-    else:
-        left = None
-    if ax01_maxs:
-        right = np.amax(ax01_maxs)
-    else:
-        right = None
-    if time_range[0] is not None:
-        left = time_range[0]
-    if time_range[1] is not None:
-        right = time_range[1]
-    hrange = right - left
+
+    # ## limits and ticks ##
+    # xaxis
     for ax in axs[:2]:
-        ax.set_xlim(left=left - time_fractional_pad*hrange,
-                    right=right + time_fractional_pad*hrange)
+        left, right = _set_axis_limits(ax, all_times, which='x',
+                                       pad=time_fractional_pad,
+                                       force_range=time_range)
+        hrange = right - left
+        ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
     # bottom plot : try to zoom over provided range
     if delta_t_max is not None:
         axs[2].set_xlim(left=-delta_t_max, right=delta_t_max)
     # if not provided, compute automatic ranges (not pretty usually)
-    elif left is not None and right is not None:
+    else:
         axs[2].set_xlim(left=-hrange, right=hrange)
+    axs[2].xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
 
     # add exponential decay
     if show_exp_decay is not None:
@@ -618,35 +632,23 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
         all_corr.extend(np.exp(-show_exp_decay * np.abs(dd)))
         handles.append(dec)
 
-    # yaxis limits
-    max_count = np.nanmax(all_counts)
-    axs[0].set_ylim(bottom=0, top=max_count*(1. + counts_fractional_pad))  # counts
+    # ## yaxis limits ##
+    # counts
+    _set_axis_limits(axs[0], all_counts, which='y', pad=counts_fractional_pad,
+                     force_range=counts_range)
+    axs[0].yaxis.set_major_locator(ticker.MaxNLocator(nbins=3, integer=True))
 
-    # average
-    bottom, top = np.nanmin(all_corr), np.nanmax(all_corr)
-    if corr_range[0] is not None:
-        bottom = corr_range[0]
-    if corr_range[1] is not None:
-        top = corr_range[1]
-    vrange = top - bottom
+    # corr
     for ax in axs[1:]:
-        ax.set_ylim(bottom=bottom - corr_fractional_pad*vrange,
-                        top=top + corr_fractional_pad*vrange)
+        _set_axis_limits(ax, all_corr, which='y', pad=corr_fractional_pad,
+                         force_range=corr_range)
+        ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=3))
 
     labels = [h.get_label() for h in handles]
     axs[-1].legend(handles=handles, labels=labels, loc='upper left',
                    bbox_to_anchor=(0, -.6/axe_ysize), labelspacing=0.2)  # reduce labelspacing because of LaTeX
 
-    # ticks and labels
-    for ax in axs:
-        ax.xaxis.set_major_locator(ticker.MultipleLocator(_spacing_trange(hrange)))
-    # counts
-    axs[0].yaxis.set_major_locator(MaxNLocator(nbins=3, integer=True))
-    for ax in axs[1:]:
-        ax.yaxis.set_major_locator(MaxNLocator(nbins=2))
-    for ax in axs[1:]:
-        ax.yaxis.set_major_locator(MaxNLocator(nbins=3))
-    formatter = ScalarFormatter(useMathText=True, useOffset=False)
+    formatter = ticker.ScalarFormatter(useMathText=True, useOffset=False)
     formatter.set_powerlimits((-2, 4))
     for ax in axs:
         ax.yaxis.set_major_formatter(formatter)
@@ -769,23 +771,24 @@ def plot_stationary(stationary, show_cdts='all',
     additional_handles = []
 
     # build condition list
-    conditions = ['master', ]  # list of conditions to be plotted
-    if show_cdts == 'all':
-        conditions = ['master', ] + stationary.cset
-    elif show_cdts == 'master':
-        pass
-    elif isinstance(show_cdts, collections.Iterable):
-        for item in show_cdts:
-            _append_cdt(stationary.univariate, item, conditions)
-    else:
-        _append_cdt(stationary.univariate, show_cdts, conditions)
+    if isinstance(stationary, StationaryUnivariate):
+        conditions = _set_condition_list(stationary.univariate, show_cdts=show_cdts)
+    elif isinstance(stationary, StationaryBivariate):
+        conditions = []
+        conditions_0 = _set_condition_list(stationary.univariates[0], show_cdts=show_cdts)
+        conditions_1 = _set_condition_list(stationary.univariates[1], show_cdts=show_cdts)
+        # intersect
+        for cdt in conditions_0:
+            if cdt in conditions_1:
+                conditions.append(cdt)
+    # TODO : stop here
 
     tleft = np.infty
     tright = - np.infty
     xleft = np.infty
     xright = - np.infty
     for index, condition in enumerate(conditions):
-        letter = string.ascii_lowercase[index]
+#        letter = string.ascii_lowercase[index]
 
         if condition == 'master':
             cdt_repr = 'master'
