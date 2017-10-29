@@ -313,8 +313,8 @@ class Observable(object):
         
         output += '\\left( {} \\right)'.format(within_parenthesis)
 
-        if self.local_fit:
-            output += '\\ [window: {}]'.format(self.time_window)
+#        if self.local_fit:
+#            output += '\\ [window: {}]'.format(self.time_window)
         output += '$'
         return output
 
