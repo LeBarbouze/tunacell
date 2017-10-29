@@ -14,7 +14,7 @@ from tunacell.stats.utils import (iter_timeseries_,
                               CompuParams)
 from tunacell.stats.single import (Univariate, StationaryUnivariate,
                                UnivariateIOError, StationaryUnivariateIOError)
-from tunacell.stats.two import Bivariate, StationaryBivariate
+from tunacell.stats.two import Bivariate, StationaryBivariate, StationaryBivariateIOError
 from tunacell.stats.compute import (set_dynamics,
                                 set_stationary_autocorrelation,
                                 set_crosscorrelation,
