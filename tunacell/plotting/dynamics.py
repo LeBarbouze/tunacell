@@ -852,6 +852,8 @@ def plot_stationary(stationary, show_cdts='all',
                                       facecolor=col, alpha=alpha_fill,
                                       label='.99 C.I.')
             ci_handles.append(ci)
+            all_corrs.extend((corr-se)/norm)
+            all_corrs.extend((corr+se)/norm)
 
     ax2.axhline(0, ls=':', color='C7', alpha=.5)
     ax2.axvline(0, ls=':', color='C7', alpha=.5)
@@ -888,7 +890,7 @@ def plot_stationary(stationary, show_cdts='all',
         ax1.text(0, .95, msg, ha='left', va='top', transform=ax.transAxes)
         t.set_visible(False)
     else:
-        ax1.set_yscale('log')
+        ax1.set_yscale('symlog', linthresh=1)
 
     # corr
     
@@ -903,7 +905,8 @@ def plot_stationary(stationary, show_cdts='all',
         ax2.text(0, .95, msg, ha='left', va='top', transform=ax.transAxes)
         t.set_visible(False)
     else:
-        ax2.set_yscale('log')
+        ax2.set_yscale('symlog', linthreshy=0.1, linscaley=0.2,
+                       subsy=[2, 3, 4, 5, 6, 7, 8, 9])
         if corr_range[0] is not None and corr_range[0] > 0.:
             ax2.set_ylim(bottom=corr_range[0])
 
@@ -926,14 +929,12 @@ def plot_stationary(stationary, show_cdts='all',
     # writting observable
     # case: obs is a single observable
     if isinstance(stationary, StationaryUnivariate):
-        latex_obs = obs.as_latex_string
-        msg = 'auto-correlation'
+        msg = '{}:{}'.format(obs.latexify(), obs.latexify(plus_delta=True))
     # case: obs is a couple of observables
     else:
-        latex_obs = ', '.join([ob.as_latex_string for ob in obs])
-        msg = 'cross-correlation'
+        msg = '{}:{}'.format(obs[0].latexify(), obs[1].latexify(plus_delta=True))
 
-    ax1.text(0.5, 1+.2/axe_ysize, r'{}:{}'.format(msg, latex_obs),
+    ax1.text(0.5, 1+.2/axe_ysize, r'{}'.format(msg),
              size='large',
              horizontalalignment='center',
              verticalalignment='bottom',
