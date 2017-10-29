@@ -261,13 +261,10 @@ class Observable(object):
             msg += '\n' + formatting([key, val])
         msg += '\n'
         return msg
-
-    @property
-    def as_latex_string(self):
-        """Export as LaTeX string.
-        """
+    
+    def latexify(self, as_description=False, plus_delta=False, prime_time=False):
         output = r'$'
-        if self.name is not None:
+        if self.name is not None and not as_description:
             output += '\\mathrm{{ {} }}'.format(self.name.replace('-', '\, ').replace('_', '\ '))
         else:
             # give all details using raw and operations on it
@@ -294,7 +291,10 @@ class Observable(object):
             time_char += ('\\frac{t_{\\mathrm{birth}} + t_{\\mathrm{div}}}'
                           '{2}')
         elif self.timing == 'g':
-            time_char += 'n_{\\mathrm{gen}}'
+            time_char += 'g'  # 'n_{\\mathrm{gen}}'
+        if prime_time:
+            time_char += "^'"
+        
         # substract troot
         to_substract = ''
         if self.tref is None:
@@ -309,14 +309,24 @@ class Observable(object):
                 to_substract += '- {:.2f}'.format(self.tref)
             else:
                 to_substract += '- n_{{\mathrm{{gen}} }}({:.2f})'.format(self.tref)
-        within_parenthesis = time_char + to_substract
+        
+        if not plus_delta:
+            within_parenthesis = time_char + to_substract
+        else:
+            within_parenthesis = time_char + to_substract + '+ \\Delta ' + time_char
         
         output += '\\left( {} \\right)'.format(within_parenthesis)
 
-#        if self.local_fit:
-#            output += '\\ [window: {}]'.format(self.time_window)
+        if self.local_fit and as_description:
+            output += '\\ [window: {}]'.format(self.time_window)
         output += '$'
         return output
+
+    @property
+    def as_latex_string(self):
+        """Export as LaTeX string. Old format, replaced by latexify
+        """
+        return self.latexify(as_description=False, plus_delta=False, prime_time=False)
 
     def __str__(self):
         return self.label
