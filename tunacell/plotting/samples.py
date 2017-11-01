@@ -25,8 +25,8 @@ from tunacell.base.lineage import Lineage
 from tunacell.base.observable import set_observable_list
 from tunacell.base.datatools import Coordinates
 
-
 from tunacell.plotting.timeseries import add_timeseries, add_data_statistics
+from .helpers import _set_time_axis_ticks
 
 try:
     from StringIO import StringIO  # python2
@@ -580,8 +580,10 @@ def plot_samples(samples, obs, parser=None, conditions=[],
 
     # ticks
     # locator
+    locator = _set_time_axis_ticks(axes[0], obs, bounds=(left, right))
     for ax in axes:
-        ax.xaxis.set_major_locator(ticker.MultipleLocator(60))
+#        ax.xaxis.set_major_locator(ticker.MultipleLocator(60))
+        ax.xaxis.set_major_locator(locator)
 
     # erase labels for intermediate layers
     for ax in axes[1:-1]:
