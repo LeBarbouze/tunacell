@@ -26,7 +26,7 @@ from tunacell.base.observable import set_observable_list
 from tunacell.base.datatools import Coordinates
 
 from tunacell.plotting.timeseries import add_timeseries, add_data_statistics
-from .helpers import _set_time_axis_ticks
+from .helpers import _set_time_axis_ticks, _unroll_samples
 
 try:
     from StringIO import StringIO  # python2
@@ -46,55 +46,47 @@ class SamplePlot(object):
         timeseries from these samples will be plotted
     parser : :class:`Parser` instance
     conditions : list of :class:`FilterSet` instances
-
+    label : str (default None)
+        title for file saving; when None, current date and time are used
     """
 
-    def __init__(self, obs, samples, parser=None, conditions=[]):
-        self.obs = obs
+    def __init__(self, samples, parser=None, conditions=[], label=None):
         self.parser = parser
         self.cset = conditions
         all_filters = [parser.experiment.fset, ] + conditions
-        raw_obs, func_obs = set_observable_list(obs, filters=all_filters)
-        self._raw_obs = raw_obs
-        self._func_obs = func_obs
-
-        # building sample list
-        self._samples = []
-        if isinstance(samples, collections.Iterable):
-            for sample in samples:
-                if isinstance(sample, Colony):
-                    for lin in sample.iter_lineages():
-                        self._add_atomic_sample(lin)
-                elif isinstance(sample, Lineage):
-                    self._add_atomic_sample(sample)
-        elif isinstance(samples, Colony):
-            for lin in samples.iter_lineages():
-                self._add_atomic_sample(lin)
-        elif isinstance(samples, Lineage):
-            self._add_atomic_sample(samples)
-
+        self._all_filters = all_filters  # used later to get all raw, func obs
+        self._input_samples = list(samples)
+        self._samples = []  # will be filled at make_plot call
+        self.obs = None  # will be filled at make_plot call
         today = datetime.datetime.today()
-        self.label = 's{}-{}'.format(today.strftime('%Y%m%d%H%M%S'), str(obs))
+        if label is not None:
+            self.label= label
+        else:
+            self.label = 's{}'.format(today.strftime('%Y%m%d%H%M%S'))
 
         self.fig = None  # Figure instance
 
         return
 
-    def make_plot(self, **kwargs):
+    def make_plot(self, obs, **kwargs):
         """Produce Figure and save plotted data.
 
         Look at plot_samples doctring for parameters (too long to repeat here)
         """
-        fig = plot_samples(self._samples, self.obs,
+        self.obs = obs
+        raw_obs, func_obs = set_observable_list(obs, filters=self._all_filters)
+        raw_obs = raw_obs
+        func_obs = func_obs
+        samples = []
+        for lin in _unroll_samples(self._input_samples):
+            ts = lin.get_timeseries(obs, raw_obs, func_obs, self.cset)
+            samples.append((lin, ts))
+        self._samples = samples
+        fig = plot_samples(samples, obs,
                            conditions=self.cset,
                            parser=self.parser,
                            **kwargs)
         self.fig = fig
-        return
-
-    def _add_atomic_sample(self, lineage):
-        ts = lineage.get_timeseries(self.obs, self._raw_obs, self._func_obs, self.cset)
-        self._samples.append((lineage, ts))
         return
 
     def data_as_text(self, sep='\t', cell_sep='\n',
@@ -119,9 +111,12 @@ class SamplePlot(object):
         str
         """
         experiment_path = self.parser.experiment.abspath
+        if self.obs is None:
+            raise ValueError('observable is not defined')
 
         printout = '# Data of plot {}\n#\n'.format(self.label)
-        info = ('# experiment:{}{}'.format(sep, experiment_path) + '\n'
+        info = ('# observable:{}{}'.format(sep, self.obs.name) + '\n'
+                '# experiment:{}{}'.format(sep, experiment_path) + '\n'
                 '# filterset:{}{}'.format(sep, repr(self.parser.fset)) + '\n'
                 '# condition set:{}{}'.format(sep, repr(self.cset)) + '\n')
         printout += info + '#\n'
@@ -156,7 +151,13 @@ class SamplePlot(object):
             whether to export a formatted text file with data
         kwargs : keyword arguments
             keyword arguments of self.data_as_text() method
+
+        Note
+        ----
+        Call to save must succede to a make_plot call that defines obs.
         """
+        if self.obs is None:
+            raise ValueError('observable is not defined')
         exp = self.parser.experiment
         if user_directory is None:
             path = os.path.join(exp.abspath, 'sampleplots')
@@ -168,8 +169,8 @@ class SamplePlot(object):
             bname = self.label
         else:
             bname = user_bname
-            if add_obs:
-                bname += '-' + str(self.obs)
+        if add_obs:
+            bname += '-' + self.obs.name
         figname = os.path.join(path, bname + '-plot' + extension)
         self.fig.savefig(figname, bbox_inches='tight')
         if with_data_text:
@@ -219,7 +220,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
 
     Parameters
     ----------
-    samples : list of (Lineage instance, corresponding TimeSeries
+    samples : list of (Lineage instance, TimeSeries instance)
         samples to be plotted
     obs : Observable instance
         observable to be plotted

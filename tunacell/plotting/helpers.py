@@ -3,10 +3,12 @@
 """
 Helper functions for plotting modules
 """
+import collections
 
 import numpy as np
 from matplotlib import ticker
 
+from tunacell.base import Colony, Lineage
 
 MIN_SEP = 20
 MAX_XTICKS = 6
@@ -105,3 +107,16 @@ def _set_timelabel(obs):
     else:
         timelabel = 'Time (minutes)'
     return timelabel
+
+
+def _unroll_samples(arg):
+    """Iterator over Lineage instances"""
+    if isinstance(arg, Lineage):
+        yield arg
+    elif isinstance(arg, Colony):
+        for lin in arg.iter_lineages():
+            yield lin
+    elif isinstance(arg, collections.Iterable):
+        for item in arg:
+            for elem in _unroll_samples(item):
+                yield elem
