@@ -474,35 +474,46 @@ def _cycle_log(coords):
 
 
 def logarithm(coords):
-    if len(coords.valid) < 2:
-        raise ValueError('Not enough valid coordinates')
+#    if len(coords.valid) < 2:
+#        raise ValueError('Not enough valid coordinates')
     return Coordinates(coords.x, np.log(coords.y))
 
 
 def derivative(coords):
-    delta_x = additive_increments(coords.clear_x)
-    delta_y = additive_increments(coords.clear_y)
-    new_x = (coords.clear_x[1:] + coords.clear_x[:-1])/2.
+    """Returns the derivative of coordinates evaluated by at original timings
+    
+    Derivartives are computed by taking successive non-nan values and
+    computing finite differences. They are evaluated at half time between
+    points.
+    
+    Parameters
+    ----------
+    coords : Coordinates instance
+    
+    Returns
+    -------
+    Coordinates instance
+        finite differences interpolated at original times where values are
+        non nans.
+    """
+    out_y = np.array(len(coords.x) * [np.nan, ])
+    clears = coords.clear
+    # one need at least two valid values to get estimates (1 is such a case)
+    if len(clears) < 2:
+        return Coordinates(coords.x, out_y)  # return only nans, deal with it
+    delta_x = additive_increments(clears.x)
+    delta_y = additive_increments(clears.y)
+    new_x = (clears.x[1:] + clears.x[:-1])/2.
     new_y = delta_y/delta_x
     # interpolate to associate to initial times
     f = interp1d(new_x, new_y, kind='linear', assume_sorted=True, bounds_error=False)
-    out_y = np.array(len(coords.x) * [np.nan, ])
-    if len(coords.valid) > 0:
-        out_y[coords.valid] = f(coords.clear_x)
+    out_y[coords.valid] = f(coords.clear_x)
     return Coordinates(coords.x, out_y)
 
 
 def logderivative(coords):
-    delta_x = additive_increments(coords.clear_x)
-    delta_y = multiplicative_increments(coords.clear_y)
-    new_x = (coords.clear_x[1:] + coords.clear_x[:-1])/2.
-    new_y = np.log(delta_y)/delta_x
-    # interpolate to associate to initial times
-    f = interp1d(new_x, new_y, kind='linear', assume_sorted=True, bounds_error=False)
-    out_y = np.array(len(coords.x) * [np.nan, ])
-    if len(coords.valid) > 0:
-        out_y[coords.valid] = f(coords.clear_x)
-    return Coordinates(coords.x, out_y)
+    logcoords = Coordinates(coords.x, np.log(coords.y))
+    return derivative(logcoords)
 
 
 # %% list of operators acting on 1-D arrays
