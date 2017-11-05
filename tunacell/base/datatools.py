@@ -498,14 +498,14 @@ def derivative(coords):
     """
     out_y = np.array(len(coords.x) * [np.nan, ])
     clears = coords.clear
-    # one need at least two valid values to get estimates (1 is such a case)
-    if len(clears) < 2:
+    # one need at least three valid values to get estimates of 2 points
+    if len(clears) < 3:
         return Coordinates(coords.x, out_y)  # return only nans, deal with it
     delta_x = additive_increments(clears.x)
     delta_y = additive_increments(clears.y)
     new_x = (clears.x[1:] + clears.x[:-1])/2.
     new_y = delta_y/delta_x
-    # interpolate to associate to initial times
+    # interpolate to associate to initial times : at least 2 valid points
     f = interp1d(new_x, new_y, kind='linear', assume_sorted=True, bounds_error=False)
     out_y[coords.valid] = f(coords.clear_x)
     return Coordinates(coords.x, out_y)
