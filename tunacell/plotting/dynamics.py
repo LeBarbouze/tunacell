@@ -20,7 +20,7 @@ from tunacell.stats.single import Univariate, StationaryUnivariate
 from tunacell.stats.two import StationaryBivariate
 from tunacell.io import text
 
-from .helpers import _set_axis_limits, _set_timelabel
+from .helpers import _set_axis_limits, _set_timelabel, _set_time_axis_ticks
 
 
 # few variables that will be used through all functions
@@ -313,9 +313,12 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
     # ## limits and ticks ##
     # xaxis
     for ax in axs:
-        _set_axis_limits(ax, all_times, which='x', pad=time_fractional_pad,
-                         force_range=time_range)
-        ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        left, right = _set_axis_limits(ax, all_times, which='x', pad=time_fractional_pad,
+                                       force_range=time_range)
+    # locator
+    locator = _set_time_axis_ticks(axs[0], obs, bounds=(left, right))
+    for ax in axs:
+        ax.xaxis.set_major_locator(locator)
 
     # yaxis limits
     _set_axis_limits(axs[0], all_counts, which='y', pad=counts_fractional_pad,

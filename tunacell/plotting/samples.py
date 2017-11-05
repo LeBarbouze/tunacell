@@ -610,7 +610,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
                             labelbottom='off')
     
     yfmt = ticker.ScalarFormatter()
-    yfmt.set_powerlimits((-1, 2))
+    yfmt.set_powerlimits((-1, 3))
     
     ax = axes[0]
     loc = ticker.MaxNLocator(nbins=2)
