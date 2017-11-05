@@ -482,7 +482,7 @@ def logarithm(coords):
 def derivative(coords):
     delta_x = additive_increments(coords.clear_x)
     delta_y = additive_increments(coords.clear_y)
-    new_x = (coords.clear_x[1:] + coords.clear_y[:-1])/2.
+    new_x = (coords.clear_x[1:] + coords.clear_x[:-1])/2.
     new_y = delta_y/delta_x
     # interpolate to associate to initial times
     f = interp1d(new_x, new_y, kind='linear', assume_sorted=True, bounds_error=False)
@@ -495,7 +495,7 @@ def derivative(coords):
 def logderivative(coords):
     delta_x = additive_increments(coords.clear_x)
     delta_y = multiplicative_increments(coords.clear_y)
-    new_x = (coords.clear_x[1:] + coords.clear_y[:-1])/2.
+    new_x = (coords.clear_x[1:] + coords.clear_x[:-1])/2.
     new_y = np.log(delta_y)/delta_x
     # interpolate to associate to initial times
     f = interp1d(new_x, new_y, kind='linear', assume_sorted=True, bounds_error=False)
