@@ -232,7 +232,7 @@ class Regions(object):
                     writer.writerow(item)
         return
 
-    def add(self, region=None, name=None, tmin=None, tmax=None, verbose=True):
+    def add(self, region=None, name=None, tmin=None, tmax=None, verbose=False):
         """Add a new region to existing frame.
 
         Parameters
@@ -253,25 +253,24 @@ class Regions(object):
             # check that name is not used yet
             if region.name in self.names:
                 msg = ('name {} already exists.'.format(name) + '\n'
-                       'Change name to add this region.')
+                       'if region is not saved, a standard name will be assigned')
                 if verbose:
                     print(msg)
                 else:
                     warnings.warn(msg)
-                return
             item = region.as_dict()
         # otherwise use other keyword arguments
         else:
             # check that name is not used yet
             if name is not None and name in self.names:
                 msg = ('name {} already exists.'.format(name) + '\n'
-                       'Change name to add this region.')
+                       'will use existing name if region is found,\n'
+                       'or a new standardized name will be created')
                 if verbose:
                     print(msg)
                 else:
                     warnings.warn(msg)
-                return
-            item = {'name': name, 'tmin': tmin, 'tmax': tmax}
+            item = {'name': None, 'tmin': tmin, 'tmax': tmax}
         # check that these parameters do not correspond to a stored item
         for key, reg in self._regions.items():
             if (reg['tmin'] == item['tmin'] and reg['tmax'] == item['tmax']):
