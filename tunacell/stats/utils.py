@@ -247,6 +247,11 @@ class Regions(object):
             upper bound for acquisition time values
         verbose : bool {True, False}
             whether to display information on screen
+
+        Returns
+        -------
+        name : str
+            name of the region that has been added (or found)
         """
         item = {}  # dict of 3 items name, tmin, tmax
         if region is not None and isinstance(region, Region):
@@ -274,11 +279,13 @@ class Regions(object):
         # check that these parameters do not correspond to a stored item
         for key, reg in self._regions.items():
             if (reg['tmin'] == item['tmin'] and reg['tmax'] == item['tmax']):
+                item['name'] = reg.name
                 msg = 'Input params correspond to region {}'.format(reg.name)
                 msg += ' Use this name in .get()'
                 if verbose:
                     print(msg)
-                return
+                else:
+                    warnings.warn(msg)
         # okay we can add the region to the list of regions
         # find a name starting with 'A', 'B', ..., 'Z', then 'A1', 'B1', ...
         if item['name'] is None:
@@ -306,7 +313,7 @@ class Regions(object):
         self._regions[item['name']] = item
         # automatic saving
         self.save()
-        return
+        return item['name']
 
     def delete(self, name):
         """Delete name region
