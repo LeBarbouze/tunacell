@@ -879,10 +879,12 @@ def plot_stationary(stationary, show_cdts='all',
     # writting observable
     # case: obs is a single observable
     if isinstance(stationary, StationaryUnivariate):
-        msg = '{}:{}'.format(obs.latexify(), obs.latexify(plus_delta=True))
+        msg = '{}:{}'.format(obs.latexify(shorten_time_variable=True),
+                             obs.latexify(plus_delta=True, shorten_time_variable=True))
     # case: obs is a couple of observables
     else:
-        msg = '{}:{}'.format(obs[0].latexify(), obs[1].latexify(plus_delta=True))
+        msg = '{}:{}'.format(obs[0].latexify(shorten_time_variable=True),
+                             obs[1].latexify(plus_delta=True, shorten_time_variable=True))
 
     ax1.text(0.5, 1+.2/axe_ysize, r'{}'.format(msg),
              size='large',

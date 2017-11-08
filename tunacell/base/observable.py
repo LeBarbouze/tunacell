@@ -262,7 +262,8 @@ class Observable(object):
         msg += '\n'
         return msg
     
-    def latexify(self, as_description=False, plus_delta=False, prime_time=False):
+    def latexify(self, as_description=False, plus_delta=False,
+                 shorten_time_variable=False, prime_time=False):
         output = r'$'
         if self.name is not None and not as_description:
             output += '\\mathrm{{ {} }}'.format(self.name.replace('-', '\, ').replace('_', '\ '))
@@ -281,35 +282,42 @@ class Observable(object):
 
         # timing character
         time_char = ''
-        if self.timing == 't':
-            time_char += 't'
-        elif self.timing == 'b':
-            time_char += 't_{\\mathrm{birth}}'
-        elif self.timing == 'd':
-            time_char += 't_{\\mathrm{div}}'
-        elif self.timing == 'm':
-            time_char += ('\\frac{t_{\\mathrm{birth}} + t_{\\mathrm{div}}}'
-                          '{2}')
-        elif self.timing == 'g':
-            time_char += 'g'  # 'n_{\\mathrm{gen}}'
+        if shorten_time_variable:
+            if self.timing == 'g':
+                time_char = 'g'
+            else:
+                time_char = 't'
+        else:
+            if self.timing == 't':
+                time_char += 't'
+            elif self.timing == 'b':
+                time_char += 't_{\\mathrm{birth}}'
+            elif self.timing == 'd':
+                time_char += 't_{\\mathrm{div}}'
+            elif self.timing == 'm':
+                time_char += ('\\frac{t_{\\mathrm{birth}} + t_{\\mathrm{div}}}'
+                              '{2}')
+            elif self.timing == 'g':
+                time_char += 'g'  # 'n_{\\mathrm{gen}}'
         if prime_time:
             time_char += "^'"
-        
+
         # substract troot
         to_substract = ''
-        if self.tref is None:
-            to_substract += ''
-        elif self.tref == 'root':
-            if self.timing != 'g':
-                to_substract += '- t^{\\mathrm{root}}_{\mathrm{div}}'
+        if not shorten_time_variable:
+            if self.tref is None:
+                to_substract += ''
+            elif self.tref == 'root':
+                if self.timing != 'g':
+                    to_substract += '- t^{\\mathrm{root}}_{\mathrm{div}}'
+                else:
+                    to_substract += '- n^{\\mathrm{root}}_{\mathrm{gen}}'
             else:
-                to_substract += '- n^{\\mathrm{root}}_{\mathrm{gen}}'
-        else:
-            if self.timing != 'g':
-                to_substract += '- {:.2f}'.format(self.tref)
-            else:
-                to_substract += '- n_{{\mathrm{{gen}} }}({:.2f})'.format(self.tref)
-        
+                if self.timing != 'g':
+                    to_substract += '- {:.2f}'.format(self.tref)
+                else:
+                    to_substract += '- n_{{\mathrm{{gen}} }}({:.2f})'.format(self.tref)
+
         if not plus_delta:
             within_parenthesis = time_char + to_substract
         else:
