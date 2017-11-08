@@ -254,6 +254,13 @@ class Regions(object):
             name of the region that has been added (or found)
         """
         item = {}  # dict of 3 items name, tmin, tmax
+        if tmin is None or tmax is None:
+            left, right = _find_time_boundaries(self.exp)
+            if tmin is None:
+                tmin = left
+            if tmax is None:
+                tmax = right
+
         if region is not None and isinstance(region, Region):
             # check that name is not used yet
             if region.name in self.names:
@@ -279,8 +286,8 @@ class Regions(object):
         # check that these parameters do not correspond to a stored item
         for key, reg in self._regions.items():
             if (reg['tmin'] == item['tmin'] and reg['tmax'] == item['tmax']):
-                item['name'] = reg.name
-                msg = 'Input params correspond to region {}'.format(reg.name)
+                item['name'] = key
+                msg = 'Input params correspond to region {}'.format(key)
                 msg += ' Use this name in .get()'
                 if verbose:
                     print(msg)
