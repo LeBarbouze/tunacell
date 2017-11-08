@@ -99,7 +99,7 @@ def _default_eval_times(exp, obs, region):
         tmax = region.tmax
     else:
         period = 1
-        n_max = (region.tmax - region.tmin)/MIN_INTERDIVISION_TIME
+        n_max = int(np.ceil((region.tmax - region.tmin)/MIN_INTERDIVISION_TIME))
         tmin = - n_max
         tmax = n_max
     eval_times = np.arange(tmin, tmax + period, period)
