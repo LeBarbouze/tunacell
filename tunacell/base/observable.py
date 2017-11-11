@@ -39,6 +39,10 @@ class ObservableStringError(ObservableError):
     pass
 
 
+class ObservableNameError(ObservableError):
+    pass
+
+
 class Observable(object):
     """Defines how to retrieve observables.
 
