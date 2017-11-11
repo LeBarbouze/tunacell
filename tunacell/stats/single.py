@@ -26,13 +26,17 @@ StationaryUnivariate(obs, cset=[], exp=None)
 from __future__ import print_function
 
 import os
+import logging
 
 import numpy as np
 import pandas as pd
 import warnings
 from tunacell.io import text
-
+from tunacell.base.observable import ObservableNameError
 from tunacell.stats.utils import Region, Regions, CompuParams
+
+
+logger = logging.getLogger(__name__)
 
 
 class UnivariateConditioned(object):
@@ -378,13 +382,16 @@ class Univariate(object):
         This one can be applied after reading data so as to update eval_times
         """
         master = self.master
+        logger.debug('Reading evaluation times from master')
         try:
             master.read_text()
             self.eval_times = master.time
+            logger.debug('Evaluation times import successful')
         except (text.MissingFileError, text.MissingFolderError):
             msg = 'Nothing to read there. Think of computing instead'
             print(msg)
             self.eval_times = None
+            logger.debug('Evaluation times import failure')
         return
 
     def __getitem__(self, key):
@@ -455,11 +462,19 @@ class Univariate(object):
 
         """
         # read each condition
+        logger.debug('Trying to import from text files...')
         try:
             for key, val in self._items.items():
+                logger.debug('Reading {} ..'.format(key))
                 val.read_text(analysis_folder)
+                logger.debug('..successful')
         except (text.MissingFileError, text.MissingFolderError) as missing:
+            logger.debug('..failure: file is missing')
             raise UnivariateIOError(missing)
+        except text.MismatchFileError as err:
+            logger.debug('..failure: filename mismatch at level {}'.format(err.level))
+            if err.level == 'observable':
+                raise ObservableNameError('Obs name taken by a different observable')
         # update eval_times
         self._read_eval_times()
         return
