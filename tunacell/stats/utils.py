@@ -7,6 +7,7 @@ This module sets up:
     * defining computation options for stationary analysis
 """
 import os
+import logging
 import string
 import csv
 import warnings
@@ -16,6 +17,9 @@ from tunacell.base.parser import Parser
 from tunacell.base.experiment import Experiment
 from tunacell.io import text
 from tunacell.base.observable import set_observable_list
+
+
+logger = logging.getLogger(__name__)
 
 
 def iter_timeseries_(exp, observable, conditions, size=None):
@@ -185,11 +189,16 @@ class Regions(object):
         self._regions = {}  # dictionary name: region
         try:
             self.load()
+            _all = self.get('ALL')
+            self._tmin = _all.tmin  # experiment lower bound
+            self._tmax = _all.tmax  # experiment upper bound
         except RegionsIOError:
-            print('No regions have been saved yet. '
-                  'Looking for experiment boundaries...')
+            logger.debug('No regions have been saved yet. '
+                         'Looking for experiment boundaries...')
             tmin, tmax = _find_time_boundaries(self.exp)
-            self.add(name='ALL', tmin=tmin, tmax=tmax, verbose=True)
+            self.add(name='ALL', tmin=tmin, tmax=tmax)
+            self._tmin = tmin
+            self._tmax = tmax
         return
 
     @property
@@ -231,8 +240,39 @@ class Regions(object):
                     item = self._regions[name]
                     writer.writerow(item)
         return
+    
+    def _lookup_bounds(self, tmin=None, tmax=None):
+        """Look up in defined regions whether a region already exists
 
-    def add(self, region=None, name=None, tmin=None, tmax=None, verbose=False):
+        Parameters
+        ----------
+        tmin : float or int (default None)
+        tmax : float or int (default None)
+
+        Returns
+        -------
+        str
+            region name when found, else None
+        tmin : float (or int)
+            lower bound for time values
+        tmax : float (or int)
+            upper bound for time values
+        """
+        # convert to defined values
+        if tmin is None or tmax is None:
+            left, right = self._tmin, self._tmax
+            if tmin is None:
+                tmin = left
+            if tmax is None:
+                tmax = right
+        name = None
+        for key, item in self._regions.items():
+            if item['tmin'] == tmin and item['tmax'] == tmax:
+                name = item['name']
+                break
+        return name, tmin, tmax
+
+    def add(self, region=None, name=None, tmin=None, tmax=None):
         """Add a new region to existing frame.
 
         Parameters
@@ -245,82 +285,51 @@ class Regions(object):
             lower bound for acquisition time values
         tmax : float
             upper bound for acquisition time values
-        verbose : bool {True, False}
-            whether to display information on screen
 
         Returns
         -------
         name : str
             name of the region that has been added (or found)
-        """
-        item = {}  # dict of 3 items name, tmin, tmax
-        if tmin is None or tmax is None:
-            left, right = _find_time_boundaries(self.exp)
-            if tmin is None:
-                tmin = left
-            if tmax is None:
-                tmax = right
 
-        if region is not None and isinstance(region, Region):
-            # check that name is not used yet
-            if region.name in self.names:
-                msg = ('name {} already exists.'.format(name) + '\n'
-                       'if region is not saved, a standard name will be assigned')
-                if verbose:
-                    print(msg)
-                else:
-                    warnings.warn(msg)
-            item = region.as_dict()
+        Raises
+        ------
+        TypeError
+            when region is provided and not a Region
+        """
+        if region is not None:
+            if isinstance(region, Region):
+                # check that name is not used yet
+                _name, _tmin, _tmax = self._lookup_bounds(tmin=region.tmin, tmax=region.tmax)
+            else:
+                logger.error('"region" argument is not an instance of Region')
+                raise TypeError('Argument not a Region')
         # otherwise use other keyword arguments
         else:
-            # check that name is not used yet
-            if name is not None and name in self.names:
-                msg = ('name {} already exists.'.format(name) + '\n'
-                       'will use existing name if region is found,\n'
-                       'or a new standardized name will be created')
-                if verbose:
-                    print(msg)
-                else:
-                    warnings.warn(msg)
-            item = {'name': None, 'tmin': tmin, 'tmax': tmax}
-        # check that these parameters do not correspond to a stored item
-        for key, reg in self._regions.items():
-            if (reg['tmin'] == item['tmin'] and reg['tmax'] == item['tmax']):
-                item['name'] = key
-                msg = 'Input params correspond to region {}'.format(key)
-                msg += ' Use this name in .get()'
-                if verbose:
-                    print(msg)
-                else:
-                    warnings.warn(msg)
-        # okay we can add the region to the list of regions
-        # find a name starting with 'A', 'B', ..., 'Z', then 'A1', 'B1', ...
-        if item['name'] is None:
-            got_it = False
-            num = 0
-            while not got_it:
-                upper = string.ascii_uppercase
-                index = 0
-                while index < 26:
-                    if num == 0:
-                        letter = upper[index]
-                    else:
-                        letter = upper[index] + '{}'.format(num)
-                    if letter not in self.names:
-                        got_it = True
-                        break
-                    index += 1
-                num += 1
-            item['name'] = letter
-        if verbose:
-            msg = ('Adding region {} with parameters:'.format(item['name']) + '\n'
-                   'tmin: {}'.format(item['tmin']) + '\n'
+            _name, _tmin, _tmax = self._lookup_bounds(tmin=tmin, tmax=tmax)
+        # region already exists
+        if _name is not None:
+            if _name == name:
+                logger.debug('Region "{}" already exists and match parameters'.format(name))
+            else:
+                logger.warning('Region parameters match region "{}" which is used'.format(_name))
+            return self._regions[_name][_name]
+        # region does not exists yet
+        else:
+            # find a name starting with 'A', 'B', ..., 'Z', then 'A1', 'B1', ...
+            if name is None:
+                _name = _find_available_name(used_names=self.names)
+            else:
+                _name = name
+            item = {'name': _name, 'tmin': _tmin, 'tmax': _tmax}
+            # okay we can add the region to the list of regions
+            msg = ('Adding region {} with parameters: '.format(item['name']) + ''
+                   'tmin: {}'.format(item['tmin']) + ', '
                    'tmax: {}'.format(item['tmax']))
-            print(msg)
-        self._regions[item['name']] = item
-        # automatic saving
-        self.save()
-        return item['name']
+            logger.debug(msg)
+            self._regions[item['name']] = item
+            # automatic saving
+            self.save()
+            return item['name']
 
     def delete(self, name):
         """Delete name region
@@ -371,8 +380,16 @@ def _find_time_boundaries(exp):
     Parameters
     ----------
     exp : :class:`tunacell.base.experiment.Experiment` instance
+
+    Returns
+    -------
+    tleft : float (or int)
+        minimum time value in experiment
+    tright : float (or int)
+        maximum time value in experiment
     """
     tleft, tright = np.infty, -np.infty
+    logger.debug('Parsing experiment to get min, max values for registered times')
     for container in exp.iter_containers(read=True, build=False):
         tmin = np.nanmin(container.data['time'])
         tmax = np.nanmax(container.data['time'])
@@ -380,4 +397,35 @@ def _find_time_boundaries(exp):
             tleft = tmin
         if tmax > tright:
             tright = tmax
+    logger.debug('Boundaries found: min {} max {}'.format(tleft, tright))
     return tleft, tright
+
+
+def _find_available_name(used_names=[]):
+    """Find a new name by parsing alphabetical order
+
+    Parameters
+    ----------
+    used_names : list of str
+
+    Returns
+    -------
+    str
+        new name
+    """
+    got_it = False
+    num = 0
+    while not got_it:
+        upper = string.ascii_uppercase
+        index = 0
+        while index < 26:
+            if num == 0:
+                letter = upper[index]
+            else:
+                letter = upper[index] + '{}'.format(num)
+            if letter not in used_names:
+                got_it = True
+                break
+            index += 1
+        num += 1
+    return letter
