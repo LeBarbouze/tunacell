@@ -21,6 +21,9 @@ from tunacell.base.colony import Colony
 from tunacell.base.observable import Observable, set_observable_list
 
 
+logger = logging.getLogger(__name__)
+
+
 class ParsingContainerError(Exception):
     pass
 
@@ -488,7 +491,7 @@ def build_cells(arr, container=None, report_NaNs=True,
         except ValueError as ve:
             msg = ('Extend observable failed, keep original array.\n'
                    '{}'.format(ve))
-            logging.info(msg)
+            logger.debug(msg)
 
     # when arr has got more than 1 frame
     if len(arr.shape) > 0:
@@ -505,6 +508,8 @@ def build_cells(arr, container=None, report_NaNs=True,
 
     del arr
 
+    if report_NaNs:
+        nan_labels = {}
     for arr in arrs:
         # first check that identifiers are unique
         cids = np.unique(arr['cellID'])
@@ -528,18 +533,22 @@ def build_cells(arr, container=None, report_NaNs=True,
                 # NaNs are implemented as np.nan for float types,
                 if 'f' in dtype.kind:
                     if np.isnan(arr[label]).any():
-                        # row = arr[np.isnan(arr[label])]
-                        msg = ('NaN detected for {}'.format(label) + ' in:'
-                               'container {}, cell {}'.format(container, cid))
-                        logging.info(msg)
+                        if label not in nan_labels.keys():
+                            nan_labels[label] = [cid, ]
+                        else:
+                            nan_labels[label].append(cid)
                 # for integer types, they seem to be replaced by largest value
                 elif ('u' in dtype.kind) or ('i' in dtype.kind):
                     if np.amax(arr[label]) == np.iinfo(dtype).max:
-                        # row = arr[arr[label] == np.iinfo(dtype).max]
-                        msg = ('NaN detected for {}'.format(label) + ' in:'
-                               'container {}, cell {}'.format(container, cid))
-                        logging.info(msg)
+                        if label not in nan_labels.keys():
+                            nan_labels[label] = [cid, ]
+                        else:
+                            nan_labels[label].append(cid)
         # attach data to Cell instance
         cell.data = arr
         cells.append(cell)
+    if report_NaNs:
+        msg = ('In container {}, found NaNs in following columns '.format(container.label) + ''
+               '{}'.format(', '.join(nan_labels.keys())))
+        logger.debug(msg)
     return cells
