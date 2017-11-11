@@ -8,6 +8,7 @@ from __future__ import print_function
 import os
 import re
 import glob
+import logging
 import numpy as np
 
 from tunacell.base.observable import Observable, FunctionalObservable
@@ -41,6 +42,10 @@ from tunacell.filters.containers import (FilterContainerAny,
                                      FilterContainerMetadataEquals)
 
 
+
+logger = logging.getLogger(__name__)
+
+
 class TextParsingError(Exception):
     """General class for Errors while parsing text flat files."""
     pass
@@ -49,6 +54,19 @@ class TextParsingError(Exception):
 class MissingFileError(TextParsingError):
     """Class for missing file."""
     pass
+
+
+class MismatchFileError(TextParsingError):
+    """Class for mismatching filename
+
+    Parameters
+    ----------
+    args : tuple
+        arguments passed to Exception class init
+    """
+    def __init__(self, *args, level='none'):
+        super().__init(*args)
+        self.level = 'none'
 
 
 class TextFileSystem(TextParsingError):
@@ -363,6 +381,7 @@ def get_observable_path(filter_path, obs, write=True):
     basename = obs.name
     path = os.path.join(filter_path, basename)
     if write and not os.path.exists(path):
+        logger.debug('Creating path {}'.format(path))
         os.makedirs(path)
         text_file = os.path.join(path, basename + '.txt')
         with open(text_file, 'w') as f:
@@ -383,6 +402,20 @@ def get_observable_path(filter_path, obs, write=True):
                 source_file = os.path.join(path, basename + '_source.txt')
                 with open(source_file, 'w') as sf:
                     sf.write('{}'.format(obs.source_f))
+    # force write
+    elif write and os.path.exists(path):
+        logger.debug('May write existing file folders')
+    # read mode: check that Observable representations match
+    elif (not write) and os.path.exists(path):
+        text_file = os.path.join(path, basename + '.txt')
+        with open(text_file, 'r') as f:
+            read_repr = f.readline().strip()
+        if read_repr != repr(obs):
+            logger.debug('Obs path {} does not match argument {}'.format(path, obs))
+            logger.debug('Changing name by appending a letter')
+            raise MismatchFileError(level='observable')
+        else:
+            logger.debug('Reading matching observable path {}'.format(path))
     return path
 
 
