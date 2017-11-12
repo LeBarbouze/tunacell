@@ -10,7 +10,6 @@ import os
 import logging
 import string
 import csv
-import warnings
 import numpy as np
 
 from tunacell.base.parser import Parser
@@ -429,3 +428,26 @@ def _find_available_name(used_names=[]):
             index += 1
         num += 1
     return letter
+
+
+def _dtype_converter(col_name):
+    """Use to convert dtype of column name in pandas import
+
+    As boolean arrays are exported for FilterSet objects (conditions), they
+    should be imported as such dtype.
+
+    Parameters
+    ----------
+    col_name : str
+
+    Returns
+    -------
+    dtype : np.dtype
+        returns None when dtype is not recognized (pandas parser will deal with it)
+    """
+    dtype = None
+    if 'FilterSet' in col_name:
+        dtype = np.bool
+    elif col_name == 'cellID':
+        dtype = np.int64
+    return dtype

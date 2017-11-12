@@ -33,7 +33,7 @@ import pandas as pd
 import warnings
 from tunacell.io import text
 from tunacell.base.observable import ObservableNameError
-from tunacell.stats.utils import Region, Regions, CompuParams
+from tunacell.stats.utils import Region, Regions, CompuParams, _dtype_converter
 
 
 logger = logging.getLogger(__name__)
@@ -760,7 +760,13 @@ class StationaryUnivariate(object):
             index_filter, filter_path = res
             basename = 'data_{}_{}'.format(self.label, self.obs.name)
             text_file = os.path.join(filter_path, basename + '.csv')
-            self.dataframe = pd.read_csv(text_file, index_col=False)
+            df = pd.read_csv(text_file, index_col=False)
+            # convert column dtypes
+            for col_name in df.columns:
+                dtype = _dtype_converter(col_name)
+                if dtype is not None:
+                    df[col_name] = df[col_name].astype(dtype)
+            self.dataframe = df
         except (text.MissingFileError, text.MissingFolderError):
             raise StationaryUnivariateIOError
         return
