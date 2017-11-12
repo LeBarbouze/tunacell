@@ -8,13 +8,98 @@ from __future__ import print_function
 import numpy as np
 
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 
 from scipy import stats
 from scipy.stats import spearmanr
 from matplotlib.patches import Polygon
 
-from tunacell.plotting.defs import params, colors
 from tunacell.base.datatools import gaussian_smooth
+
+def scatter_plot(bivariate, xsize=2.3, ysize=2.1,
+                 xrange=(None, None), yrange=(None, None),
+                 bins='auto', xunits='', yunits=''):
+    """Draw a scatter plot and empirical distributions
+    
+    Parameters
+    ----------
+    bivariate : StationaryBivariate instance
+    xsize : float
+        horizontal size of plots (inches)
+    ysize : float
+        vertical size of plots(inches)
+    xrange : tuple (float, float)
+    yrange : tuple (float, float)
+    bins : int, or str
+        see numpy.histogram
+    xunits : str
+    yunits : str
+    
+    Returns
+    -------
+    fig : Figure instance
+    ax0 : Axes
+        scatter plot axes
+    ax1 : Axes
+        x-distribution axes
+    ax2 : Axes
+        y-distribution axes
+    """
+    fig = plt.figure(figsize=(xsize, ysize))
+    gs = gridspec.GridSpec(3, 3)
+    gs.update(wspace=0.0, hspace=0.0)
+    ax1 = fig.add_subplot(gs[0, :2])  # x distribution
+    ax0 = fig.add_subplot(gs[1:, :2])  # scatter plot
+    ax2 = fig.add_subplot(gs[1:, 2])  # y distribution
+    ax1.tick_params(axis='x', labelbottom='off', top='on', labeltop='on')
+    ax1.tick_params(axis='y', labelleft='off', left='off')
+    ax2.tick_params(axis='y', labelleft='off', labelright='on', right='on')
+    ax2.tick_params(axis='x', labelbottom='off', bottom='off')
+    ax0.tick_params(axis='x', top='on', direction='in')
+
+    u1, u2 = bivariate.univariates
+    o1, o2 = u1.obs, u2.obs
+
+    df = bivariate.dataframe
+    x_ = df[o1.name].values
+    y_ = df[o2.name].values
+
+    ax0.scatter(x_, y_, alpha=.3)
+
+    if xrange[0] is not None:
+        for ax in [ax0, ax1]:
+            ax.set_xlim(left=xrange[0])
+    if xrange[1] is not None:
+        for ax in [ax0, ax1]:
+            ax.set_xlim(right=xrange[1])
+    if yrange[0] is not None:
+        for ax in [ax0, ax2]:
+            ax.set_ylim(bottom=yrange[0])
+    if yrange[1] is not None:
+        for ax in [ax0, ax2]:
+            ax.set_ylim(top=yrange[1])
+    # x distribution
+    left, right = ax0.get_xlim()
+    xh, xbins = np.histogram(x_, bins=bins, range=(left, right), density=True)
+    xcoords = (xbins[:len(xbins)-1] + xbins[1:])/2.
+    ax1.plot(xcoords, xh)
+
+    # y distribution
+    bottom, top = ax0.get_ylim()
+    yh, ybins = np.histogram(y_, bins=bins, range=(bottom, top), density=True)
+    ycoords = (ybins[:len(ybins)-1] + ybins[1:])/2.
+    ax2.plot(yh, ycoords)
+
+    # labels
+    xlabel = r'{}'.format(o1.latexify(show_variable=False))
+    if xunits:
+        xlabel += ' ({})'.format(xunits)
+    ylabel = r'{}'.format(o2.latexify(show_variable=False))
+    if yunits:
+        ylabel += ' ({})'.format(yunits)
+    ax0.set_xlabel(xlabel, size='large')
+    ax0.set_ylabel(ylabel, size='large')
+    return fig, ax0, ax1, ax2
 
 
 def scatter(dat, xkey=None, ykey=None, delta=1000, xlim=[], ylim=[],
