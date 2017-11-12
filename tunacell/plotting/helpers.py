@@ -98,11 +98,22 @@ def _set_time_axis_ticks(ax, obs, bounds=(None, None)):
     return locator
 
 
-def _set_timelabel(obs):
-    """For a given observable, returns the timelabel to be used in plots"""
+def _set_timelabel(obs, use_tref=True):
+    """For a given observable, returns the timelabel to be used in plots
+
+    Parameters
+    ----------
+    obs : Observable instance
+    use_tref : bool
+        whether to use tref (set False for stationary plotting)
+
+    Returns
+    -------
+    timelabel : str
+    """
     if obs.mode != 'dynamics' and obs.timing == 'g':
         timelabel = 'Generations'
-        if obs.tref is not None:
+        if obs.tref is not None and use_tref:
             timelabel += ' (since tref {})'.format(obs.tref)
     else:
         timelabel = 'Time (minutes)'

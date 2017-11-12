@@ -155,9 +155,6 @@ def _append_cdt(univariate, this_cdt, cdt_list):
     return
 
 
-
-
-
 def plot_onepoint(univariate, show_cdts='all', show_ci=False,
                   mean_ref=None, var_ref=None,
                   axe_xsize=6., axe_ysize=2.,
@@ -363,20 +360,21 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
     # C.I.
     if ci_handles:
         ci = ci_handles[0]
-        ci.set_color('C7')
+#        ci.set_color('C7')
         ci.set_label('.99 C.I.')
         main_handles.append(ci)
 
     handles = main_handles[:]
     labels = [h.get_label() for h in handles]
-    axs[-1].legend(handles=handles, labels=labels, loc='upper left',
-                   bbox_to_anchor=(0, -.6/axe_ysize))
+    if show_legend:
+        axs[-1].legend(handles=handles, labels=labels, loc='upper left',
+                       bbox_to_anchor=(0, -.6/axe_ysize))
 
     # title
     latex_obs = obs.as_latex_string
     axs[0].text(0.5, 1+.2/axe_ysize,
                 r'Statistics: {}'.format(latex_obs),
-                size='x-large',
+                size='large',
                 horizontalalignment='center',
                 verticalalignment='bottom',
                 transform=axs[0].transAxes)
@@ -637,7 +635,7 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
     latex_obs = obs.as_latex_string
     axs[0].text(0.5, 1+.2/axe_ysize,
                 r' Autocorrelation: {}'.format(latex_obs),
-                size='x-large',
+                size='large',
                 horizontalalignment='center',
                 verticalalignment='bottom',
                 transform=axs[0].transAxes)
@@ -664,32 +662,28 @@ def plot_stationary(stationary, show_cdts='all',
                     axe_xsize=6., axe_ysize=2.,
                     time_range=(None, None),
                     time_fractional_pad=.1,
+                    time_guides=[0., ],
                     counts_range=(None, None),
                     counts_fractional_pad=.1,
                     corr_range=(None, None),  # auto
                     counts_logscale=False,
                     corr_fractional_pad=.1,
                     corr_logscale=False,
+                    corr_guides=[0., ],
                     show_exp_decay=None,
-                    show_legend=True,show_cdt_details_in_legend=False,
+                    show_legend=True, show_cdt_details_in_legend=False,
                     save=False, ext='.png'):
     """Plot stationary autocorrelation.
 
     Parameters
     ----------
     stationary : StationaryUnivariate or StationaryBivariate instance
-    fitlog : bool {False, True}
-        whether to fit initial decay with an exponential decay
-    epsilon : float (default 0.1)
-        threshold to ensure 'close to zero' in the fitting procedure, tries
-        to perform the fit on autocorrelation values larger than epsilon.
-        Default value makes the fit over one decade.
-    fitting_time_max : float (default None)
-        maximum time range to make fit when provided. Fit will be performed
-        over the smaller region defined by both epsilon and fitting_time_max
+    
     show_exp_decay : float (default None)
         whether to plot an exponential decay with corresponding rate
         exp(-rate * t)
+    corr_guides : list of float
+        values where to plot shaded grey horizontal lines
     save : bool {False, True}
         whether to save plot at canonical path
     ext : str {'.png', '.pdf'}
@@ -707,10 +701,10 @@ def plot_stationary(stationary, show_cdts='all',
         raise TypeError(msg)
     if isinstance(stationary, StationaryUnivariate):
         obs = stationary.obs
-        timelabel = _set_timelabel(obs)
+        timelabel = _set_timelabel(obs, use_tref=False)
     elif isinstance(stationary, StationaryBivariate):
         obs = [uni.obs for uni in stationary.univariates]
-        timelabel = _set_timelabel(obs[0])
+        timelabel = _set_timelabel(obs[0], use_tref=False)
     if 'minutes' in timelabel:
         units = 'mins'
         prefix = 't'
@@ -805,16 +799,18 @@ def plot_stationary(stationary, show_cdts='all',
             all_corrs.extend((corr-se)/norm)
             all_corrs.extend((corr+se)/norm)
 
-    ax2.axhline(0, ls=':', color='C7', alpha=.5)
-    ax2.axvline(0, ls=':', color='C7', alpha=.5)
-
+    # vertical lines for timing
+    for val in time_guides:
+        ax2.axvline(val, ls=':', color='C7', alpha=.5)
+    # horizontal lines for correlation ref
+    for val in corr_guides:
+        ax2.axhline(val, ls=':', color='C7', alpha=.5)
     # ## limits and ticks ##
     # xaxis
     for ax in [ax1, ax2]:
         left, right = _set_axis_limits(ax, all_times, which='x',
                                        pad=time_fractional_pad,
                                        force_range=time_range)
-        hrange = right - left
         ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
 
     if show_exp_decay is not None:
@@ -845,9 +841,14 @@ def plot_stationary(stationary, show_cdts='all',
     # corr
     
     if not corr_logscale:
-        _set_axis_limits(ax2, all_corrs, which='y', pad=corr_fractional_pad,
-                         force_range=corr_range)
-        ax2.yaxis.set_major_locator(ticker.MaxNLocator(nbins=3))
+        bottom, top = _set_axis_limits(ax2, all_corrs, which='y',
+                                       pad=corr_fractional_pad,
+                                       force_range=corr_range)
+        if top > 2 or bottom < -2:
+            locator = ticker.MaxNLocator(nbins=5, integer=True)
+        else:
+            locator = ticker.FixedLocator([-1, -.5, 0., .5, 1])
+        ax2.yaxis.set_major_locator(locator)
         ax2.yaxis.set_major_formatter(formatter)
         t = ax.yaxis.get_offset_text()
         plt.draw()
@@ -902,8 +903,9 @@ def plot_stationary(stationary, show_cdts='all',
 
     handles = main_handles[:]
     labels = [h.get_label() for h in handles]
-    ax2.legend(handles=handles, labels=labels, loc='upper left',
-                   bbox_to_anchor=(0, -.3/axe_ysize), labelspacing=.2)
+    if show_legend:
+        ax2.legend(handles=handles, labels=labels, loc='upper left',
+                       bbox_to_anchor=(0, -.3/axe_ysize), labelspacing=.2)
 
     fig.subplots_adjust(hspace=0)
     if save:
