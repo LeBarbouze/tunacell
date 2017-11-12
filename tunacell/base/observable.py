@@ -266,8 +266,18 @@ class Observable(object):
         msg += '\n'
         return msg
     
-    def latexify(self, as_description=False, plus_delta=False,
-                 shorten_time_variable=False, prime_time=False):
+    def latexify(self, show_variable=True,
+                 plus_delta=False,
+                 shorten_time_variable=False,
+                 prime_time=False,
+                 as_description=False):
+        """Returns a latexified string for observable
+        
+        Parameters
+        ----------
+        Returns
+        -------
+        """
         output = r'$'
         if self.name is not None and not as_description:
             output += '\\mathrm{{ {} }}'.format(self.name.replace('-', '\, ').replace('_', '\ '))
@@ -327,7 +337,8 @@ class Observable(object):
         else:
             within_parenthesis = time_char + to_substract + '+ \\Delta ' + time_char
         
-        output += '\\left( {} \\right)'.format(within_parenthesis)
+        if show_variable:
+            output += '\\left( {} \\right)'.format(within_parenthesis)
 
         if self.local_fit and as_description:
             output += '\\ [window: {}]'.format(self.time_window)
