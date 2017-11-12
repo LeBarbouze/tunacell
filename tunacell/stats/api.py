@@ -146,9 +146,9 @@ def load_univariate(exp, obs, region='ALL', cset=[]):
     eval_times = _default_eval_times(exp, obs, reg)
     logger.debug('Instantiating univariate object for "{}"'.format(obs.name))
     univ = Univariate(exp, obs, eval_times, reg, cset)
-    logger.debug('Trying to import results from files')
+    logger.debug('Trying to import results from files...')
     univ.import_from_text()
-    logger.debug('Import successful')
+    logger.info('Import univariate statistics for "{}" successful'.format(obs.name))
     return univ
 
 
@@ -182,8 +182,11 @@ def load_stationary(univ, region, options):
         set up with empty arrays
     """
     _check_params(region, options)
+    logger.debug('Instantiating stationary univariate object for "{}"'.format(univ.obs.name))
     stat = StationaryUnivariate(univ, region, options)
+    logger.debug('Trying to import results from files...')
     stat.import_from_text()
+    logger.info('Import stationary univariate statistics for "{}" successful'.format(univ.obs.name))
     _update_univariate_from_stationary(univ, stat)
     return stat
 
