@@ -24,6 +24,7 @@ from .helpers import _set_axis_limits, _set_timelabel, _set_time_axis_ticks
 
 
 # few variables that will be used through all functions
+default_fontsize = mpl.rcParams['font.size']
 default_lw = mpl.rcParams['lines.linewidth']
 
 
@@ -168,6 +169,7 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
                   variance_fractional_pad=.1,
                   show_legend=True,
                   show_cdt_details_in_legend=False,
+                  use_obs_name=None,
                   save=False, user_path=None, ext='.png'):
     """Plot one point statistics: counts, average, abd variance.
     
@@ -211,6 +213,9 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
         print out legend
     show_cdt_details_in_legend : bool {False, True}
         show details about filters
+    use_obs_name : str (default None)
+        when filled, the plot title will use this observable name instead
+        of looking for the observable registered name
     save : bool {False, True}
         whether to save plot
     user_path : str (default None)
@@ -324,11 +329,11 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
     # average
     _set_axis_limits(axs[1], all_average, which='y', pad=average_fractional_pad,
                      force_range=average_range)
-    axs[1].yaxis.set_major_locator(ticker.MaxNLocator(nbins=2))
+    axs[1].yaxis.set_major_locator(ticker.MaxNLocator(nbins=3))
     # variance
     _set_axis_limits(axs[2], all_variance, which='y', pad=variance_fractional_pad,
                      force_range=variance_range)
-    axs[2].yaxis.set_major_locator(ticker.MaxNLocator(nbins=2))
+    axs[2].yaxis.set_major_locator(ticker.MaxNLocator(nbins=3))
     # tick formatter
     formatter = ticker.ScalarFormatter(useMathText=True, useOffset=False)
     formatter.set_powerlimits((-2, 4))
@@ -343,7 +348,7 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
     axs[0].tick_params(axis='x', direction='in', bottom='on', labelbottom='on', pad=-10)
     axs[1].tick_params(axis='x', direction='in', bottom='on', labelbottom='on', pad=-10)
     axs[2].set_xlabel(timelabel, x=.95, horizontalalignment='right',
-                      fontsize='large')
+                      fontsize='medium')
 
     # hide intermediate x axis
     for ax in axs[:2]:
@@ -352,9 +357,9 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
     for ax in axs[1:]:
         ax.spines['top'].set_color('C7')
 
-    axs[0].set_ylabel('Counts', fontsize='large')
-    axs[1].set_ylabel('Average', fontsize='large')
-    axs[2].set_ylabel('Variance', fontsize='large')
+    axs[0].set_ylabel('Counts', fontsize='medium')
+    axs[1].set_ylabel('Average', fontsize='medium')
+    axs[2].set_ylabel('Variance', fontsize='medium')
     
     # ## legend ##
     # C.I.
@@ -368,12 +373,12 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
     labels = [h.get_label() for h in handles]
     if show_legend:
         axs[-1].legend(handles=handles, labels=labels, loc='upper left',
-                       bbox_to_anchor=(0, -.6/axe_ysize))
+                       bbox_to_anchor=(0, -.5/axe_ysize))
 
     # title
-    latex_obs = obs.as_latex_string
+    latex_obs = obs.latexify(use_name=use_obs_name)
     axs[0].text(0.5, 1+.2/axe_ysize,
-                r'Statistics: {}'.format(latex_obs),
+                r'{}'.format(latex_obs),
                 size='large',
                 horizontalalignment='center',
                 verticalalignment='bottom',
@@ -407,6 +412,7 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
                    show_exp_decay=None,
                    show_legend=True,
                    show_cdt_details_in_legend=False,
+                   use_obs_name=None,
                    save=False, ext='.png'):
     """Plot two-point functions: counts and autocorrelation functions.
     
@@ -450,6 +456,9 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
         print out legend
     show_cdt_details_in_legend : bool {False, True}
         show details about filters
+    use_obs_name : str (default None)
+        when filled, the plot title will use this observable name instead
+        of looking for the observable registered name
     save : bool {False, True}
         whether to save figure at canonical path
     ext : str {'.png', '.pdf'}
@@ -599,7 +608,7 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
     # legend
     labels = [h.get_label() for h in handles]
     axs[-1].legend(handles=handles, labels=labels, loc='upper left',
-                   bbox_to_anchor=(0, -.6/axe_ysize), labelspacing=0.2)  # reduce labelspacing because of LaTeX
+                   bbox_to_anchor=(0, -.5/axe_ysize), labelspacing=0.2)  # reduce labelspacing because of LaTeX
 
     formatter = ticker.ScalarFormatter(useMathText=True, useOffset=False)
     formatter.set_powerlimits((-2, 4))
@@ -614,7 +623,7 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
     axs[0].tick_params(axis='x', direction='in', bottom='on', labelbottom='on', pad=-10)
     axs[1].tick_params(axis='x', direction='in', bottom='on', labelbottom='on', pad=-10)
     axs[2].set_xlabel(timelabel, x=.95, horizontalalignment='right',
-                      fontsize='large')
+                      fontsize='medium')
     
     # hide intermediate x axis
     for ax in axs[:1]:
@@ -625,16 +634,16 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
 
     # ylabels
     axs[0].set_ylabel(r'# $\langle t_{\mathrm{ref}} | t \rangle$',
-                      fontsize='large')
+                      fontsize='medium')
     axs[1].set_ylabel(r'$a(t_{\mathrm{ref}}, t)$',
-                      fontsize='large')
+                      fontsize='medium')
     axs[2].set_ylabel(r'$a(t_{\mathrm{ref}}, t- t_{\mathrm{ref}})$',
-                      fontsize='large')
+                      fontsize='medium')
 
     # title
-    latex_obs = obs.as_latex_string
+    latex_obs = obs.latexify(use_name=use_obs_name)
     axs[0].text(0.5, 1+.2/axe_ysize,
-                r' Autocorrelation: {}'.format(latex_obs),
+                r'{}'.format(latex_obs),
                 size='large',
                 horizontalalignment='center',
                 verticalalignment='bottom',
@@ -672,6 +681,7 @@ def plot_stationary(stationary, show_cdts='all',
                     corr_guides=[0., ],
                     show_exp_decay=None,
                     show_legend=True, show_cdt_details_in_legend=False,
+                    use_obs_name=None,
                     save=False, ext='.png'):
     """Plot stationary autocorrelation.
 
@@ -686,6 +696,9 @@ def plot_stationary(stationary, show_cdts='all',
         values where to plot shaded grey horizontal lines
     save : bool {False, True}
         whether to save plot at canonical path
+    use_obs_name : str (default None)
+        when filled, the plot title will use this observable name instead
+        of looking for the observable registered name
     ext : str {'.png', '.pdf'}
         extension used for file
 
@@ -863,7 +876,7 @@ def plot_stationary(stationary, show_cdts='all',
 
     ax1.tick_params(axis='x', direction='in', bottom='on', labelbottom='on', pad=-10)
     ax2.set_xlabel(timelabel, x=.95, horizontalalignment='right',
-                   fontsize='large')
+                   fontsize='medium')
 
     # hide intermediate x axis
     ax1.spines['bottom'].set_visible(False)
@@ -871,21 +884,34 @@ def plot_stationary(stationary, show_cdts='all',
     ax2.spines['top'].set_color('C7')
 
     # ylabels
-    ax1.set_ylabel(r'Counts', fontsize='large')
+    ax1.set_ylabel(r'Counts', fontsize='medium')
     if isinstance(stationary, StationaryUnivariate):
-        ax2.set_ylabel(r'$\tilde{{a}}(\Delta {})$'.format(prefix), fontsize='large')
+        ax2.set_ylabel(r'$\tilde{{a}}(\Delta {})$'.format(prefix), fontsize='medium')
     elif isinstance(stationary, StationaryBivariate):
-        ax2.set_ylabel(r'$\tilde{{c}}(\Delta {})$'.format(prefix), fontsize='large')
+        ax2.set_ylabel(r'$\tilde{{c}}(\Delta {})$'.format(prefix), fontsize='medium')
 
     # writting observable
     # case: obs is a single observable
     if isinstance(stationary, StationaryUnivariate):
-        msg = '{}:{}'.format(obs.latexify(shorten_time_variable=True),
-                             obs.latexify(plus_delta=True, shorten_time_variable=True))
+        msg = '{}:{}'.format(obs.latexify(shorten_time_variable=True, use_name=use_obs_name),
+                             obs.latexify(plus_delta=True, shorten_time_variable=True, use_name=use_obs_name))
     # case: obs is a couple of observables
     else:
-        msg = '{}:{}'.format(obs[0].latexify(shorten_time_variable=True),
-                             obs[1].latexify(plus_delta=True, shorten_time_variable=True))
+        if use_obs_name is not None:
+            if isinstance(use_obs_name, str):
+                use_name_0 = use_obs_name
+                use_name_1 = None
+            else:
+                if len(use_obs_name) == 1:
+                    use_name_0 = use_obs_name[0]
+                    use_name_1 = None
+                else:
+                    use_name_0 = use_obs_name[0]
+                    use_name_1 = use_obs_name[1]
+        msg = '{}:{}'.format(obs[0].latexify(shorten_time_variable=True,
+                                             use_name=use_name_0),
+                             obs[1].latexify(plus_delta=True, shorten_time_variable=True,
+                                             use_name=use_name_1))
 
     ax1.text(0.5, 1+.2/axe_ysize, r'{}'.format(msg),
              size='large',
@@ -905,7 +931,7 @@ def plot_stationary(stationary, show_cdts='all',
     labels = [h.get_label() for h in handles]
     if show_legend:
         ax2.legend(handles=handles, labels=labels, loc='upper left',
-                       bbox_to_anchor=(0, -.3/axe_ysize), labelspacing=.2)
+                       bbox_to_anchor=(0, -.25/axe_ysize), labelspacing=.2)
 
     fig.subplots_adjust(hspace=0)
     if save:

@@ -204,6 +204,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
                  axe_ysize=1.6,
                  yrange_fractional_pad=.2,
                  axe_yrange=(None, None),  # auto
+                 yrange_nticks=2,
                  report_cids=True,
                  report_cids_yposAxes=.8,
                  report_divisions=True,
@@ -292,8 +293,8 @@ def plot_samples(samples, obs, parser=None, conditions=[],
         padding to bottom, top as a fraction of max-min range
     axe_yrange : couple of floats (default (None, None))
         user can force values for the bottom, top bounds here
-    fontsize : float
-        basis of fontsizes,in points
+    yrange_nticks : int (default 2)
+        number of ticks on the y-axis
     report_cids : {False, True}
         whether to report for cell identifiers on top of axes
     report_cids_yposAxes : float (between 0 and 1, default .8)
@@ -613,7 +614,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
     yfmt.set_powerlimits((-1, 3))
     
     ax = axes[0]
-    loc = ticker.MaxNLocator(nbins=2)
+    loc = ticker.MaxNLocator(nbins=yrange_nticks)
     ax.yaxis.set_major_locator(loc)
     # call loc to set up
     _ = loc()
@@ -629,7 +630,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
         ax.yaxis.set_ticklabels(yticklabels)
 
     axes[-1].set_xlabel('Time (mins)', x=.95, horizontalalignment='right',
-                        fontsize='large')
+                        fontsize='medium')
     
     # now that limits have been set : report for divisions
     if report_divisions:
@@ -683,7 +684,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
         labels += data_stat_labs
         ax.legend(handles=handles, labels=labels,
                   loc='upper left',
-                  bbox_to_anchor=(0, -.6/axe_ysize),
+                  bbox_to_anchor=(0, -.5/axe_ysize),
                   borderaxespad=0.)
         
     # add title
@@ -691,7 +692,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
     if units:
         titling += ' ({})'.format(units)
     axes[0].text(0.5, 1 + .2/axe_ysize, titling,
-                size='x-large',
+                size='large',
                 horizontalalignment='center',
                 verticalalignment='bottom',
                 transform=axes[0].transAxes)
