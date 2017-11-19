@@ -270,17 +270,36 @@ class Observable(object):
                  plus_delta=False,
                  shorten_time_variable=False,
                  prime_time=False,
-                 as_description=False):
+                 as_description=False,
+                 use_name=None):
         """Returns a latexified string for observable
         
         Parameters
         ----------
+        show_variable : bool
+            whether to print out time/generation variable
+        plus_delta : bool
+            whether to add a $\Delta$ to time/generation variable; used for
+            auto- and cross-correlation labeling
+        shorten_time_variable : bool
+            when active, will display only $t$/$g$
+        prime_time : bool
+            whether to set a prime on the time/generation variable
+        as_description : bool (default False)
+            sets up the description of the observable from rules to compute it
+            (derivatives, log, and raw label)
+        use_name : str (default None)
+            when the observable name is too cumbersome to be printed, and the
+            user wants to choose a specific name for such a printout
         Returns
         -------
         """
         output = r'$'
         if self.name is not None and not as_description:
-            output += '\\mathrm{{ {} }}'.format(self.name.replace('-', '\, ').replace('_', '\ '))
+            if use_name is None:
+                output += '\\mathrm{{ {} }}'.format(self.name.replace('-', '\, ').replace('_', '\ '))
+            else:
+                output += use_name
         else:
             # give all details using raw and operations on it
             if self.differentiate:
