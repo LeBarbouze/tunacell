@@ -396,7 +396,7 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
             obs_path = univ._get_obs_path(user_root=user_path, write=False)
         bname = 'plot_onepoint_' + univ.obs.name + '_' + univ.region.name + ext
         fname = os.path.join(obs_path, bname)
-        fig.savefig(fname, bbox_to_inches='tight', pad_inches=0)
+        fig.savefig(fname, bbox_inches='tight', pad_inches=0)
     return fig
 
 
