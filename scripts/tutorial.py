@@ -76,8 +76,8 @@ if __name__ == '__main__':
     # %% plotting timeseries of our colony
     
     from tunacell.plotting.samples import SamplePlot
-    myplot = SamplePlot(obs, colony, parser=parser)
-    myplot.make_plot()
+    myplot = SamplePlot([colony, ], parser=parser)
+    myplot.make_plot(obs)
     press_enter(myplot.fig)
     myplot.save(user_bname='tutorial_sample', add_obs=False, extension='.png')
     
