@@ -10,6 +10,7 @@ import os
 import pandas as pd
 
 from tunacell.io import text
+from tunacell.stats.utils import _dtype_converter
 
 
 class BivariateConditioned(object):
@@ -443,7 +444,13 @@ class StationaryBivariate(object):
             text_file = os.path.join(filter_path, basename + '.csv')
             if not os.path.exists(text_file):
                 raise text.MissingFileError
-            self.dataframe = pd.read_csv(text_file, index_col=False)
+            df = pd.read_csv(text_file, index_col=False)
+            # convert column dtypes
+            for col_name in df.columns:
+                dtype = _dtype_converter(col_name)
+                if dtype is not None:
+                    df[col_name] = df[col_name].astype(dtype)
+            self.dataframe = df
         except (text.MissingFileError, text.MissingFolderError):
             raise StationaryBivariateIOError
         return

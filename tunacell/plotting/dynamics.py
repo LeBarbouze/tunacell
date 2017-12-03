@@ -6,23 +6,26 @@ This module defines plotting functions for the statistics of the dynamics.
 from __future__ import print_function
 
 import os
-import warnings
 import numpy as np
-import string
 import collections
+import logging
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator, ScalarFormatter
-import matplotlib.transforms as transforms
-import matplotlib.lines as mlines
+from matplotlib import ticker
 import matplotlib.gridspec as gridspec
-import matplotlib.ticker as ticker
 
 from tunacell.filters.main import FilterSet
 from tunacell.stats.single import Univariate, StationaryUnivariate
 from tunacell.stats.two import StationaryBivariate
 from tunacell.io import text
+
+from .helpers import _set_axis_limits, _set_timelabel, _set_time_axis_ticks
+
+
+# few variables that will be used through all functions
+default_fontsize = mpl.rcParams['font.size']
+default_lw = mpl.rcParams['lines.linewidth']
 
 
 class UnivariatePlot(object):
@@ -97,6 +100,33 @@ class UnivariatePlot(object):
         return
 
 
+def _set_condition_list(univariate, show_cdts='master'):
+    """Set the list of conditions to show
+
+    Parameters
+    ----------
+    show_cdts : str or FilterSet or iterable on these (default 'master')
+        the conditions to plot, use 'all' for all conditions in univariate
+    univariate : Univariate instance
+        conditions will be matched against conditions stored in univariate
+
+    Returns
+    -------
+    list of FilterSet (conditions) to show
+    """
+    conditions = ['master', ]  # list of conditions to be plotted
+    if show_cdts == 'all':
+        conditions = ['master', ] + univariate.cset
+    elif show_cdts == 'master':
+        pass
+    elif isinstance(show_cdts, collections.Iterable):
+        for item in show_cdts:
+            _append_cdt(univariate, item, conditions)
+    else:
+        _append_cdt(univariate, show_cdts, conditions)
+    return conditions
+    
+
 def _append_cdt(univariate, this_cdt, cdt_list):
     """Append condition associated to this_cdt in univariate object to cdt_list
 
@@ -112,6 +142,7 @@ def _append_cdt(univariate, this_cdt, cdt_list):
     if isinstance(this_cdt, str):
         # find which
         for cdt in univariate.cset:
+            # TODO : compare also cdt.label
             if repr(cdt) == this_cdt:
                 found = True
                 break
@@ -138,8 +169,13 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
                   variance_fractional_pad=.1,
                   show_legend=True,
                   show_cdt_details_in_legend=False,
+                  use_obs_name=None,
                   save=False, user_path=None, ext='.png'):
-    """Plot one point statistics.
+    """Plot one point statistics: counts, average, abd variance.
+    
+    One point functions are plotted for each condition set up in *show_cdts*
+    argument: 'all' for all conditions, or the string representation (or label)
+    of a particuler condition (or a list thereof).
 
     Parameters
     ----------
@@ -177,6 +213,9 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
         print out legend
     show_cdt_details_in_legend : bool {False, True}
         show details about filters
+    use_obs_name : str (default None)
+        when filled, the plot title will use this observable name instead
+        of looking for the observable registered name
     save : bool {False, True}
         whether to save plot
     user_path : str (default None)
@@ -191,20 +230,10 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
     fig, axs = plt.subplots(3, 1, figsize=(axe_xsize, 3*axe_ysize))
 
     obs = univariate.obs
+    timelabel = _set_timelabel(obs)  # define time label
 
-    # define time label
-    if obs.mode != 'dynamics' and obs.timing == 'g':
-        timelabel = 'Generations'
-        if univariate.obs.tref is not None:
-            timelabel += ' (since tref {})'.format(univariate.obs.tref)
-        # force ticks to be integers
-        for ax in axs:
-            ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-    else:
-        timelabel = 'Time (mins)'
-
-    main_handles = []
-    additional_handles = []
+    main_handles = []  # main legend
+    ci_handles = []  # additional legend (TODO: check if necessary)
 
     all_times = []
     all_counts = []
@@ -212,18 +241,8 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
     all_variance = []
 
     # build condition list
-    conditions = ['master', ]  # list of conditions to be plotted
-    if show_cdts == 'all':
-        conditions = ['master', ] + univariate.cset
-    elif show_cdts == 'master':
-        pass
-    elif isinstance(show_cdts, collections.Iterable):
-        for item in show_cdts:
-            _append_cdt(univariate, item, conditions)
-    else:
-        _append_cdt(univariate, show_cdts, conditions)
+    conditions = _set_condition_list(univariate, show_cdts)
 
-    default_lw = mpl.rcParams['lines.linewidth']
     for index, cdt in enumerate(conditions):
 
         if cdt == 'master':
@@ -253,11 +272,10 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
         var = univariate[c_repr].var[ok]
         all_variance.extend(var)
         std = univariate[c_repr].std[ok]
-        se = 2.58 * std / np.sqrt(counts)
+        se = 2.58 * std / np.sqrt(counts)  # standard error 99% CI Gaussian
 #        var = np.diagonal(univariate[c_repr].autocorr)
 
-        ax = axs[0]
-        line_counts, = ax.plot(times, counts, alpha=alpha, lw=lw,
+        line_counts, = axs[0].plot(times, counts, alpha=alpha, lw=lw,
                                label='{}'.format(c_label))
         main_handles.append(line_counts)
         color = line_counts.get_color()
@@ -265,9 +283,8 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
         average, = axs[1].plot(times, mean, color=color, alpha=0.8, lw=lw, label=c_label)
         if show_ci:
             fill_std = axs[1].fill_between(times, mean-se, mean+se,
-                                       facecolor=color, alpha=alpha_fill)
-            # add onbly if empty (no need to repeat on conditions)
-            additional_handles.append(fill_std)
+                                           facecolor=color, alpha=alpha_fill)
+            ci_handles.append(fill_std)
             all_average.extend(mean-se)
             all_average.extend(mean+se)
 
@@ -275,66 +292,50 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
 
     # adding reference lines
     if mean_ref is not None:
-        axs[1].axhline(mean_ref, ls='--', color='C7', alpha=.7)
+        mref = axs[1].axhline(mean_ref, ls='-.', color='C7', alpha=.7,
+                               label='reference value')
+        main_handles.append(mref)
         all_average.append(mean_ref)
     if var_ref is not None:
-        axs[2].axhline(var_ref, ls='--', color='C7', alpha=.7)
+        vref = axs[2].axhline(var_ref, ls='-.', color='C7', alpha=.7,
+                              label='reference value')
+        # check last label if meanèref has been saved
+        last_lab = main_handles[-1].get_label()
+        if last_lab != vref.get_label():
+            main_handles.append(vref)
         all_variance.append(var_ref)
 
-    # xaxis limits
-    left, right = np.nanmin(all_times), np.nanmax(all_times)
-    if time_range[0] is not None:
-        left = time_range[0]
-    if time_range[1] is not None:
-        right = time_range[1]
-    hrange = right - left
+    # print vertical line at tref
+    if obs.timing != 'g' and isinstance(obs.tref, float):
+        for ax in axs:
+            vtref = ax.axvline(univariate.obs.tref, color='C7', ls='--',
+                                alpha=.5, label='reference time in obs')
+        main_handles.append(vtref)  # only the last one
+
+    # ## limits and ticks ##
+    # xaxis
     for ax in axs:
-        ax.set_xlim(left=left - time_fractional_pad*hrange,
-                    right=right + time_fractional_pad*hrange)
+        left, right = _set_axis_limits(ax, all_times, which='x', pad=time_fractional_pad,
+                                       force_range=time_range)
+    # locator
+    locator = _set_time_axis_ticks(axs[0], obs, bounds=(left, right))
+    for ax in axs:
+        ax.xaxis.set_major_locator(locator)
 
     # yaxis limits
-    max_count = np.nanmax(all_counts)
-    axs[0].set_ylim(bottom=0, top=max_count*(1. + counts_fractional_pad))  # counts
-
+    _set_axis_limits(axs[0], all_counts, which='y', pad=counts_fractional_pad,
+                     force_range=counts_range)
+    axs[0].yaxis.set_major_locator(ticker.MaxNLocator(nbins=3, integer=True))
     # average
-    bottom, top = np.nanmin(all_average), np.nanmax(all_average)
-    if average_range[0] is not None:
-        bottom = average_range[0]
-    if average_range[1] is not None:
-        top = average_range[1]
-    vrange = top - bottom
-    axs[1].set_ylim(bottom=bottom - average_fractional_pad*vrange,
-                    top=top + average_fractional_pad*vrange)
-    
+    _set_axis_limits(axs[1], all_average, which='y', pad=average_fractional_pad,
+                     force_range=average_range)
+    axs[1].yaxis.set_major_locator(ticker.MaxNLocator(nbins=3))
     # variance
-    bottom, top = np.nanmin(all_variance), np.nanmax(all_variance)
-    if variance_range[0] is not None:
-        bottom = variance_range[0]
-    if average_range[1] is not None:
-        top = variance_range[1]
-    vrange = top - bottom
-    axs[2].set_ylim(bottom=bottom - variance_fractional_pad*vrange,
-                    top=top + variance_fractional_pad*vrange)
-
-    # print vertical line at tref
-    if univariate.obs.timing != 'g' and isinstance(univariate.obs.tref, float):
-        for ax in axs:
-            ax.axvline(univariate.obs.tref, color='C7', ls='--', alpha=.5)
-
-    # ticks and labels
-    if hrange < 20:
-        spacing = 5
-    elif hrange < 120:
-        spacing = 20
-    elif hrange < 601:
-        spacing = 60
-    else:
-        spacing = 300
-    for ax in axs:
-        ax.xaxis.set_major_locator(ticker.MultipleLocator(spacing))
-    # counts
-    axs[0].yaxis.set_major_locator(MaxNLocator(nbins=4, integer=True))
-    formatter = ScalarFormatter(useMathText=True, useOffset=False)
+    _set_axis_limits(axs[2], all_variance, which='y', pad=variance_fractional_pad,
+                     force_range=variance_range)
+    axs[2].yaxis.set_major_locator(ticker.MaxNLocator(nbins=3))
+    # tick formatter
+    formatter = ticker.ScalarFormatter(useMathText=True, useOffset=False)
     formatter.set_powerlimits((-2, 4))
     for ax in axs:
         ax.yaxis.set_major_formatter(formatter)
@@ -343,46 +344,46 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
         msg = t.get_text()
         ax.text(0, .95, msg, ha='left', va='top', transform=ax.transAxes)
         t.set_visible(False)
-    axs[0].tick_params(axis='x', direction='out', top='on',
-                       labeltop='off')
-    axs[0].tick_params(axis='x', direction='in', bottom='on',
-                       labelbottom='off')
-    axs[1].tick_params(axis='x', direction='in')
-    axs[1].set_xticklabels([])
-    axs[2].set_xlabel(timelabel, x=.95, horizontalalignment='right',
-                      fontsize='large')
-#    axs[0].xaxis.set_label_position('top')
-#    axs[0].set_xlabel(timelabel, x=.95, horizontalalignment='right',
-#                      fontsize='large')
 
-    axs[0].set_ylabel('Counts', fontsize='large')
-    axs[1].set_ylabel('Average', fontsize='large')
-    axs[2].set_ylabel('Variance', fontsize='large')
-    # legend
+    axs[0].tick_params(axis='x', direction='in', bottom='on', labelbottom='on', pad=-10)
+    axs[1].tick_params(axis='x', direction='in', bottom='on', labelbottom='on', pad=-10)
+    axs[2].set_xlabel(timelabel, x=.95, horizontalalignment='right',
+                      fontsize='medium')
+
+    # hide intermediate x axis
+    for ax in axs[:2]:
+        ax.spines['bottom'].set_visible(False)
+        ax.tick_params(axis='x', colors='C7')
+    for ax in axs[1:]:
+        ax.spines['top'].set_color('C7')
+
+    axs[0].set_ylabel('Counts', fontsize='medium')
+    axs[1].set_ylabel('Average', fontsize='medium')
+    axs[2].set_ylabel('Variance', fontsize='medium')
+    
+    # ## legend ##
+    # C.I.
+    if ci_handles:
+        ci = ci_handles[0]
+#        ci.set_color('C7')
+        ci.set_label('.99 C.I.')
+        main_handles.append(ci)
+
     handles = main_handles[:]
     labels = [h.get_label() for h in handles]
-    axs[-1].legend(handles=handles, labels=labels, loc='upper left',
-                   bbox_to_anchor=(0, -.6/axe_ysize))
-    # C.I.
-    if additional_handles:
-        ci = additional_handles[0]
-        ci.set_color('C7')
-        ci.set_label('.99 C.I.')
-        labels = [item.get_label() for item in additional_handles]
-        axs[1].legend(handles=[ci, ], labels=[ci.get_label(), ], loc=0)
-
-    # add info above first ax
-#    info = '(binning interval {})'.format(univariate.indexify.binsize)
-#    axs[2].text(0., -.2, info, va='top', transform=axs[2].transAxes)
+    if show_legend:
+        axs[-1].legend(handles=handles, labels=labels, loc='upper left',
+                       bbox_to_anchor=(0, -.5/axe_ysize))
 
     # title
-    latex_obs = obs.as_latex_string
+    latex_obs = obs.latexify(use_name=use_obs_name)
     axs[0].text(0.5, 1+.2/axe_ysize,
-                r'Statistics: {}'.format(latex_obs),
-                size='x-large',
+                r'{}'.format(latex_obs),
+                size='large',
                 horizontalalignment='center',
                 verticalalignment='bottom',
                 transform=axs[0].transAxes)
+
     fig.subplots_adjust(hspace=0)
     if save:
         univ = univariate
@@ -400,9 +401,23 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
 
 
 def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
-                   delta_t_max=None, show_exp_decay=None,
+                   axe_xsize=6., axe_ysize=2.,
+                   time_range=(None, None),
+                   time_fractional_pad=.1,
+                   counts_range=(None, None),
+                   counts_fractional_pad=.1,
+                   corr_range=(None, None),  # auto
+                   corr_fractional_pad=.1,
+                   delta_t_max=None,
+                   show_exp_decay=None,
+                   show_legend=True,
+                   show_cdt_details_in_legend=False,
+                   use_obs_name=None,
                    save=False, ext='.png'):
-    """Plot two-point functions.
+    """Plot two-point functions: counts and autocorrelation functions.
+    
+    These plots are able to show only one extra condition with 'master', and
+    are plotted for a set of time of references.
 
     Parameters
     ----------
@@ -414,6 +429,22 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
         if left empty, reference times will be computed automatically
     ntrefs : int
         if trefs is empty, number of times of reference to display
+    axe_xsize : float (default 6)
+        size of the x-axis (inches)
+    axe_ysize : float (default 2.)
+        size if a single ax y-axis (inches)
+    time_range : couple of floats (default (None, None))
+        specifies (left, right) bounds
+    time_fractional_pad : float (default .1)
+        fraction of x-range to add as padding
+    counts_range : couple of floats (default (None, None))
+        specifies range for the Counts y-axis
+    counts_fractional_pad : float (default .2)
+        fractional amount of y-range to add as padding
+    corr_range : couple of floats (default (None, None))
+        sepcifies range for the Average y-axis
+    corr_fractional_pad : couple of floats (default .2)
+        fractional amounts of range to padding
     delta_t_max : float (default None)
         when given, bottom plot will be using this max range symmetrically;
         otherwise, will use the largest intervals found in data (often too
@@ -421,63 +452,80 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
     show_exp_decay : float (default None)
         when a floating point number is passed, a light exponential decay
         curve is plotted for each tref
+     show_legend : bool {True, False}
+        print out legend
+    show_cdt_details_in_legend : bool {False, True}
+        show details about filters
+    use_obs_name : str (default None)
+        when filled, the plot title will use this observable name instead
+        of looking for the observable registered name
     save : bool {False, True}
         whether to save figure at canonical path
     ext : str {'.png', '.pdf'}
         extension to be used when saving figure
     """
     obs = univariate.obs
+    timelabel = _set_timelabel(obs)  # define time label
     # get priod from eval times
     if len(univariate.eval_times) > 0:
         period = univariate.eval_times[1] - univariate.eval_times[0]
     # or from experiment metadata
     else:
         period = univariate.exp.period
-    fig, axs = plt.subplots(3, 1, figsize=(6, 9))
-
-    # define time label
-    if univariate.obs.mode != 'dynamics' and univariate.obs.timing == 'g':
-        timelabel = 'Generations'
-        if univariate.obs.tref is not None:
-            timelabel += ' (since tref {})'.format(univariate.obs.tref)
-    else:
-        timelabel = 'Time (minutes)'
+    fig, axs = plt.subplots(3, 1, figsize=(axe_xsize, 3*axe_ysize))
 
     # choice of index/indices for time of reference
     times = univariate['master'].time
     npoints = len(times)
     if not trefs:
-        print('Determining trefs...')
+        logging.info('Determining trefs...')
         di = npoints // ntrefs + 1
         indices = np.arange(0, npoints, di, dtype=int)
         trefs = times[indices]
-        print(trefs)
+        logging.info(trefs)
+    
+    all_times = []
+    all_counts = []
+    all_corr = []
 
-    ax01_mins = []
-    ax01_maxs = []
+    handles = []
 
-    if condition_label is None or condition_label == 'master':
-        labels = ['master', ]
+    # prep work for latex printing
+    latex_ref = '{{\mathrm{{ref}}}}'
+    if obs.timing == 'g':
+        prefix = 'g'
+        units = ''
     else:
-        labels = ['master', condition_label]
+        prefix = 't'
+        units = 'mins'
 
-    for c_label in labels:
-        if c_label is None:
-            continue
-        if c_label == 'master':
+    conditions = ['master', ] + univariate.cset
+    for index, cdt in enumerate(conditions):
+        if cdt == 'master':
+            c_repr = 'master'
+            c_label = 'all samples'
+            lw = default_lw + 1
             lt = '-'
-        else:
+            alpha = .8
+        elif cdt.label == condition_label or str(cdt) == condition_label or repr(cdt) == condition_label:
+            c_repr = repr(cdt)
+            if show_cdt_details_in_legend:
+                c_label = str(cdt)
+            else:
+                c_label = cdt.label
+            lw = default_lw
             lt = '--'
+            alpha = .6
+        # we plot master and one condition if given, not more...
+        else:
+            continue
 
-        times = univariate[c_label].time
-        counts = univariate[c_label].count_two
-        corr = univariate[c_label].autocorr
+        times = univariate[c_repr].time
+        counts = univariate[c_repr].count_two
+        corr = univariate[c_repr].autocorr
         var = np.diagonal(corr)
 
         valid = counts != 0
-        
-        tref_latex_label = 't_{{\mathrm{{ref}}}}'
-        gref_latex_label = 'g_{{\mathrm{{ref}}}}'
 
         for tref in trefs:
             # this tref may not be in conditioned data (who knows)
@@ -486,131 +534,121 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
             index = np.argmin(np.abs(times - tref))
             if obs.timing == 'g':
                 lab = '{:d}'.format(tref)
-                line_label = r'$' + gref_latex_label + '=' + lab +'$'
             else:
-                lab = '{:.0f} mins'.format(tref)
-                line_label = r'$' + tref_latex_label + '=' + lab + '$'
+                lab = '{:.0f}'.format(tref)
+            line_label = r'$ {}_{} = {}$ {} ({})'.format(prefix, latex_ref, lab, units, c_label)
 
-            ax = axs[0]
             ok = np.where(counts[index, :] > 0)
 #            if len(ok[0]) == 0:
 #                continue
             # time limits
-            xmin, xmax = np.nanmin(times[ok]), np.nanmax(times[ok])
-            ax01_mins.append(xmin)
-            ax01_maxs.append(xmax)
-            dat, = ax.plot(times[ok], counts[index, :][ok], ls=lt, label=line_label)
+            all_times.extend(times[ok])
+            dat, = axs[0].plot(times[ok], counts[index, :][ok],
+                      ls=lt, lw=lw, alpha=alpha, label=line_label)
+            handles.append(dat)
+            all_counts.extend(counts[index, :][ok])
             color = dat.get_color()
-            ax.plot((tref, tref), (0, counts[index, index]),
-                    ls=':', color=color)
+            axs[0].plot((tref, tref), (0, counts[index, index]),
+                        ls=':', color=color)
 
-            ax = axs[1]
-            dat, = ax.plot(times[valid[index, :]],
+            axs[1].axhline(0, ls='-', color='C7', alpha=.3)  # thin line at 0
+            dat, = axs[1].plot(times[valid[index, :]],
                            corr[index, :][valid[index, :]]/var[index],
-                           ls=lt)
+                           ls=lt, lw=lw, alpha=alpha)
+            all_corr.extend(corr[index, :][valid[index, :]]/var[index])
             color = dat.get_color()
-            
-            ax.axvline(tref, ymin=0.1, ymax=0.9, ls=':', color=color)
-            ax.axhline(0, ls='--', color='k')
-            
-            # add text to point to tref
-            # figure out where
-            if obs.timing == 'g':
-                pos = times[index] + 0.1
-            elif index < len(times) - 1:
-                pos = times[index + 1]
-            else:
-                pos = times[index - 2]
-            for ax in axs[:2]:
-                # define heterogeneous transform
-                # the x coords of this transformation are data, and the
-                # y coord are axes
-                trans = transforms.blended_transform_factory(ax.transData,
-                                                             ax.transAxes)
-                ax.text(pos, 0.05, lab, color=color, transform=trans)
-            # xmin, xmax = ax.xaxis.get_data_interval()
 
-            ax = axs[2]
-            ax.plot(times[valid[index, :]] - tref,
-                    corr[index, :][valid[index, :]]/var[index], ls=lt)
-            ax.axhline(0, ls='--', color='k')
-    
-    # axes limits
-    if ax01_mins:
-        left = np.amin(ax01_mins)
-    else:
-        left = None
-    if ax01_maxs:
-        right = np.amax(ax01_maxs)
-    else:
-        right = None
+            axs[1].axvline(tref, ymin=0.1, ymax=0.9, ls=':', color=color)
+
+            axs[2].axhline(0, ls='-', color='C7', alpha=.3)  # thin line at 0
+            axs[2].plot(times[valid[index, :]] - tref,
+                    corr[index, :][valid[index, :]]/var[index], ls=lt, lw=lw, alpha=alpha)
+
+    # ## limits and ticks ##
+    # xaxis
     for ax in axs[:2]:
-        ax.set_xlim(left=left, right=right)
+        left, right = _set_axis_limits(ax, all_times, which='x',
+                                       pad=time_fractional_pad,
+                                       force_range=time_range)
+        hrange = right - left
+        ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
     # bottom plot : try to zoom over provided range
     if delta_t_max is not None:
         axs[2].set_xlim(left=-delta_t_max, right=delta_t_max)
     # if not provided, compute automatic ranges (not pretty usually)
-    elif left is not None and right is not None:
-        delta_left, delta_right = left-right, right-left
-        axs[2].set_xlim(left=delta_left, right=delta_right)
+    else:
+        axs[2].set_xlim(left=-hrange, right=hrange)
+    axs[2].xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
 
-    axs[0].set_ylim(bottom=0)  # counts
-    
     # add exponential decay
     if show_exp_decay is not None:
         tt = np.linspace(left, right, 100)
-        dd = np.linspace(delta_left, delta_right, 100)
+        dd = np.linspace(-hrange, hrange, 100)
+        lab = r'$t_{{\mathrm{{decay}}}} = {:.1f}$ {}'.format(1./show_exp_decay, units)
         for tref in trefs:
             axs[1].plot(tt, np.exp(-show_exp_decay * np.abs(tt - tref)),
                         ls='-.', color='C7', alpha=.7)
-        axs[2].plot(dd, np.exp(-show_exp_decay * np.abs(dd)),
-                    ls='-.', color='C7', alpha=.7)
+        dec, = axs[2].plot(dd, np.exp(-show_exp_decay * np.abs(dd)),
+                    ls='-.', color='C7', alpha=.7, label=lab)
+        all_corr.extend(np.exp(-show_exp_decay * np.abs(dd)))
+        handles.append(dec)
 
-    # legends
-    axs[0].legend(loc=2)
+    # ## yaxis limits ##
+    # counts
+    _set_axis_limits(axs[0], all_counts, which='y', pad=counts_fractional_pad,
+                     force_range=counts_range)
+    axs[0].yaxis.set_major_locator(ticker.MaxNLocator(nbins=3, integer=True))
 
-    master_line = mlines.Line2D([], [], color='C7', ls='-',
-                                label='master (color: see top)')
-    handles = [master_line, ]
-    if condition_label is not None and condition_label != 'master':
-        c_line = mlines.Line2D([], [], color='C7', ls='--',
-                               label=condition_label)
-        handles.append(c_line)
-    if show_exp_decay is not None:
-        exp_line = mlines.Line2D([], [], color='C7', ls='-.', label='exp decay')
-        handles.append(exp_line)
-    axs[2].legend(handles=handles, loc=2)
+    # corr
+    for ax in axs[1:]:
+        _set_axis_limits(ax, all_corr, which='y', pad=corr_fractional_pad,
+                         force_range=corr_range)
+        ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=3))
 
-    # ticks and labels
-    # first axes locators are integers
-    axs[0].yaxis.set_major_locator(MaxNLocator(integer=True))
-    axs[0].tick_params(axis='x', direction='out', top='on',
-                       labeltop='on')
-    axs[0].tick_params(axis='x', direction='in', bottom='on',
-                       labelbottom='off')
-    axs[1].tick_params(axis='x', direction='in')
+    # legend
+    labels = [h.get_label() for h in handles]
+    axs[-1].legend(handles=handles, labels=labels, loc='upper left',
+                   bbox_to_anchor=(0, -.5/axe_ysize), labelspacing=0.2)  # reduce labelspacing because of LaTeX
 
-    axs[2].set_xlabel('Delta' + timelabel, x=.95, horizontalalignment='right',
-                      fontsize='large')
-    axs[0].xaxis.set_label_position('top')
-    axs[0].set_xlabel(timelabel, x=.95, horizontalalignment='right',
-                      fontsize='large')
+    formatter = ticker.ScalarFormatter(useMathText=True, useOffset=False)
+    formatter.set_powerlimits((-2, 4))
+    for ax in axs:
+        ax.yaxis.set_major_formatter(formatter)
+        t = ax.yaxis.get_offset_text()
+        plt.draw()
+        msg = t.get_text()
+        ax.text(0, .95, msg, ha='left', va='top', transform=ax.transAxes)
+        t.set_visible(False)
+
+    axs[0].tick_params(axis='x', direction='in', bottom='on', labelbottom='on', pad=-10)
+    axs[1].tick_params(axis='x', direction='in', bottom='on', labelbottom='on', pad=-10)
+    axs[2].set_xlabel(timelabel, x=.95, horizontalalignment='right',
+                      fontsize='medium')
+    
+    # hide intermediate x axis
+    for ax in axs[:1]:
+        ax.spines['bottom'].set_visible(False)
+        ax.tick_params(axis='x', colors='C7')
+    for ax in axs[1:2]:
+        ax.spines['top'].set_color('C7')
 
     # ylabels
-    axs[0].set_ylabel(r'Samples $\langle t_{\mathrm{ref}} | t \rangle$',
-                      fontsize='large')
-    axs[1].set_ylabel(r'Autocorr. $g(t_{\mathrm{ref}}, t)$',
-                      fontsize='large')
-    axs[2].set_ylabel(r'Shifted $g(t_{\mathrm{ref}}, t- t_{\mathrm{ref}})$',
-                      fontsize='large')
+    axs[0].set_ylabel(r'# $\langle t_{\mathrm{ref}} | t \rangle$',
+                      fontsize='medium')
+    axs[1].set_ylabel(r'$a(t_{\mathrm{ref}}, t)$',
+                      fontsize='medium')
+    axs[2].set_ylabel(r'$a(t_{\mathrm{ref}}, t- t_{\mathrm{ref}})$',
+                      fontsize='medium')
 
-    latex_obs = obs.as_latex_string
-    axs[0].text(0.5, 1.3, r' Autocorrelation fcts for {}'.format(latex_obs),
+    # title
+    latex_obs = obs.latexify(use_name=use_obs_name)
+    axs[0].text(0.5, 1+.2/axe_ysize,
+                r'{}'.format(latex_obs),
                 size='large',
                 horizontalalignment='center',
                 verticalalignment='bottom',
                 transform=axs[0].transAxes)
-    fig.subplots_adjust(hspace=.1)
+    fig.subplots_adjust(hspace=0.)
     # save fig at canonical path
     if save:
         # export data files if not existing yet
@@ -623,37 +661,44 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
         else:
             univc = univariate[condition_label]
         cdt_path = univc._get_path()
-        bname = 'plot_twopoints_' + univariate.obs.name + '_' + univariate.region.name + ext
+        bname = 'plot_twopoints_' + obs.name + '_' + univariate.region.name + ext
         fname = os.path.join(cdt_path, bname)
         fig.savefig(fname, bbox_inches='tight', pad_inches=0)
     return fig
 
 
 def plot_stationary(stationary, show_cdts='all',
-                    fitlog=False, epsilon=0.1, fitting_time_max=None,
-                    ref_decay=None,
-                    interval_max=None, save=False, ext='.png'):
+                    axe_xsize=6., axe_ysize=2.,
+                    time_range=(None, None),
+                    time_fractional_pad=.1,
+                    time_guides=[0., ],
+                    counts_range=(None, None),
+                    counts_fractional_pad=.1,
+                    corr_range=(None, None),  # auto
+                    counts_logscale=False,
+                    corr_fractional_pad=.1,
+                    corr_logscale=False,
+                    corr_guides=[0., ],
+                    show_exp_decay=None,
+                    show_legend=True, show_cdt_details_in_legend=False,
+                    use_obs_name=None,
+                    save=False, ext='.png'):
     """Plot stationary autocorrelation.
 
     Parameters
     ----------
     stationary : StationaryUnivariate or StationaryBivariate instance
-    fitlog : bool {False, True}
-        whether to fit initial decay with an exponential decay
-    epsilon : float (default 0.1)
-        threshold to ensure 'close to zero' in the fitting procedure, tries
-        to perform the fit on autocorrelation values larger than epsilon.
-        Default value makes the fit over one decade.
-    fitting_time_max : float (default None)
-        maximum time range to make fit when provided. Fit will be performed
-        over the smaller region defined by both epsilon and fitting_time_max
-    ref_decay : float (default None)
+    
+    show_exp_decay : float (default None)
         whether to plot an exponential decay with corresponding rate
         exp(-rate * t)
-    interval_max : float (default None)
-        fixes the largest interval (instead of largest interval found in data)
+    corr_guides : list of float
+        values where to plot shaded grey horizontal lines
     save : bool {False, True}
         whether to save plot at canonical path
+    use_obs_name : str (default None)
+        when filled, the plot title will use this observable name instead
+        of looking for the observable registered name
     ext : str {'.png', '.pdf'}
         extension used for file
 
@@ -669,57 +714,67 @@ def plot_stationary(stationary, show_cdts='all',
         raise TypeError(msg)
     if isinstance(stationary, StationaryUnivariate):
         obs = stationary.obs
+        timelabel = _set_timelabel(obs, use_tref=False)
     elif isinstance(stationary, StationaryBivariate):
         obs = [uni.obs for uni in stationary.univariates]
-    if fitlog and isinstance(stationary, StationaryUnivariate):
-        nplots = 3
+        timelabel = _set_timelabel(obs[0], use_tref=False)
+    if 'minutes' in timelabel:
+        units = 'mins'
+        prefix = 't'
     else:
-        nplots = 2
+        units =''  # generations are used
+        prefix = 'g'
+    timelabel = r'$\Delta$'+timelabel
 
-    fig = plt.figure(figsize=(6, 2 * (nplots + 1)))
+    nplots = 2
+    fig = plt.figure(figsize=(axe_xsize, (nplots + 1)*axe_ysize))
     gs = gridspec.GridSpec(nplots + 1, 1)
     ax1 = fig.add_subplot(gs[0])
-    if nplots == 2:
-        ax2 = fig.add_subplot(gs[1:])
-    elif nplots == 3:
-        ax2 = fig.add_subplot(gs[1:-1])
-        ax3 = fig.add_subplot(gs[-1:])
-
-    additional_handles = []
+    ax2 = fig.add_subplot(gs[1:])
 
     # build condition list
-    conditions = ['master', ]  # list of conditions to be plotted
-    if show_cdts == 'all':
-        conditions = ['master', ] + stationary.cset
-    elif show_cdts == 'master':
-        pass
-    elif isinstance(show_cdts, collections.Iterable):
-        for item in show_cdts:
-            _append_cdt(stationary.univariate, item, conditions)
-    else:
-        _append_cdt(stationary.univariate, show_cdts, conditions)
+    if isinstance(stationary, StationaryUnivariate):
+        conditions = _set_condition_list(stationary.univariate, show_cdts=show_cdts)
+    elif isinstance(stationary, StationaryBivariate):
+        conditions = []
+        conditions_0 = _set_condition_list(stationary.univariates[0], show_cdts=show_cdts)
+        conditions_1 = _set_condition_list(stationary.univariates[1], show_cdts=show_cdts)
+        # intersect
+        for cdt in conditions_0:
+            if cdt in conditions_1:
+                conditions.append(cdt)
 
-    tleft = np.infty
-    tright = - np.infty
-    xleft = np.infty
-    xright = - np.infty
-    for index, condition in enumerate(conditions):
-        letter = string.ascii_lowercase[index]
+    all_times = []
+    all_counts = []
+    all_corrs = []
 
-        if condition == 'master':
-            cdt_repr = 'master'
-            cdt_str = 'all samples'
+    main_handles = []  # for legend
+    ci_handles = []
+
+    for index, cdt in enumerate(conditions):
+        
+        if cdt == 'master':
+            c_repr = 'master'
+            c_label = 'all samples'
+            lw = default_lw + 1
+            alpha = 1
+            alpha_fill = .5
         else:
-            cdt_repr = repr(condition)
-            cdt_str = str(condition)
-        array = stationary[cdt_repr].array
+            c_repr = repr(cdt)
+            if show_cdt_details_in_legend:
+                c_label = str(cdt)
+            else:
+                c_label = cdt.label
+            lw = default_lw
+            alpha = .8
+            alpha_fill = 0.3
+
+        array = stationary[c_repr].array
         nonzero = np.where(array['counts'] > 1)  # 1 sample does not have std
         dts = array['time_interval'][nonzero]
-        if np.nanmax(dts) > tright:
-            tright = np.nanmax(dts)
-        if np.nanmin(dts) < tleft:
-            tleft = np.nanmin(dts)
+        all_times.extend(dts)
         counts = array['counts'][nonzero]
+        all_counts.extend(counts)
 
         if isinstance(stationary, StationaryUnivariate):
             corr = array['auto_correlation'][nonzero]
@@ -731,8 +786,9 @@ def plot_stationary(stationary, show_cdts='all',
             dev = None
 
         # counts
-        label = '({}) {}'.format(letter, cdt_str)
-        line, = ax1.plot(dts, counts, label=label)
+        label = '{}'.format(c_label)
+        line, = ax1.plot(dts, counts, lw=lw, alpha=alpha, label=label)
+        main_handles.append(line)
         col = line.get_color()  # usefule for later stage
 
         # autocorrelation: divide by variance
@@ -742,129 +798,142 @@ def plot_stationary(stationary, show_cdts='all',
         elif isinstance(stationary, StationaryBivariate):
             prod = 1.
             for single in stationary.univariates:
-                prod *= np.sqrt(single[cdt_repr].stationary.autocorr[0])
+                prod *= np.sqrt(single[c_repr].stationary.autocorr[0])
             norm = prod
         dat, = ax2.plot(dts, corr/norm, color=col,
-                        label=label)
+                       lw=lw, alpha=alpha, label=label)
+        all_corrs.extend(corr/norm)
         if dev is not None:
             se = 2.58 * dev / np.sqrt(counts)
             ci = ax2.fill_between(dts, (corr-se)/norm, (corr+se)/norm,
-                                  facecolor=col, alpha=.5,
-                                  label='.99 C.I. for ({})'.format(letter))
-            additional_handles.append(ci)
+                                      facecolor=col, alpha=alpha_fill,
+                                      label='.99 C.I.')
+            ci_handles.append(ci)
+            all_corrs.extend((corr-se)/norm)
+            all_corrs.extend((corr+se)/norm)
 
-        ax2.axhline(0, ls='--', color='k', alpha=.5)
-        ax2.axvline(0, ls=':', color='k', alpha=.5)
+    # vertical lines for timing
+    for val in time_guides:
+        ax2.axvline(val, ls=':', color='C7', alpha=.5)
+    # horizontal lines for correlation ref
+    for val in corr_guides:
+        ax2.axhline(val, ls=':', color='C7', alpha=.5)
+    # ## limits and ticks ##
+    # xaxis
+    for ax in [ax1, ax2]:
+        left, right = _set_axis_limits(ax, all_times, which='x',
+                                       pad=time_fractional_pad,
+                                       force_range=time_range)
+        ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
 
-        # plot exponential fit for autocorrelation
-        if fitlog and isinstance(stationary, StationaryUnivariate):
-            # go though positive values larger than epsilon
-            for arg, val in enumerate(corr[:]/corr[0]):
-                if val < epsilon:
-                    break
-            argmax = arg
-            if fitting_time_max is not None:
-                argmax = np.nanargmin(np.abs(dts - fitting_time_max))
-            # choose minimum between arg and argmax
-            if argmax > arg:
-                argmax = arg
-            if argmax < 2:
-                warnings.warn('Not enough points to perform fitlog')
-            else:
-                xdata = dts[:argmax]
-                if np.nanmax(xdata) > xright:
-                    xright = np.nanmax(xdata)
-                if np.nanmin(xdata) < xleft:
-                    xleft = np.nanmin(xdata)
-                ydata = corr[:argmax]/corr[0]
-                ci = se[:argmax]/norm
-                slope, intercept = np.polyfit(xdata, np.log(ydata), 1)
-                tt = np.linspace(0, xdata[argmax-1])
-                ax3.plot(xdata, ydata, ls='none', marker='o', ms=8,
-                        markerfacecolor='none',
-                        markeredgecolor=col)
-                ax3.fill_between(xdata, ydata-ci, ydata+ci, facecolor=col,
-                                 alpha=.5)
-                ax3.plot(tt, np.exp(slope * tt + intercept), color=col,
-                         label=r'$\tau = {:.1f}$ mins'.format(-1./slope))
+    if show_exp_decay is not None:
+        tt = np.linspace(left, right, 100)
+        yy = np.exp(-show_exp_decay*np.abs(tt))
+        lab = r'${}_{{\mathrm{{decay}}}} = {:.1f}$ {}'.format(prefix, 1./show_exp_decay, units)
+        ref, = ax2.plot(tt, yy, '-.', color='C7', alpha=1,
+                        label=lab)
+        main_handles.append(ref)
 
-    if ref_decay is not None:
-        tt = np.linspace(tleft, tright, 50)
-        yy = np.exp(-ref_decay*np.abs(tt))
-        ref, = ax2.plot(tt, yy, '--', color='k', alpha=.5,
-                        label=r'$\tau = {:.1f}$ mins'.format(1./ref_decay))
-        additional_handles.append(ref)
-        if fitlog:
-            tt = np.linspace(xleft, xright, 20)
-            yy = np.exp(-ref_decay*tt)
-            ax3.plot(tt, yy, '--', color='k', alpha=.5,
-                     label=r'$\tau = {:.1f}$ mins'.format(1./ref_decay))
+    # ## yaxis limits ##
+    # counts
+    formatter = ticker.ScalarFormatter(useMathText=True, useOffset=False)
+    formatter.set_powerlimits((-2, 4))
+    if not counts_logscale:
+        _set_axis_limits(ax1, all_counts, which='y', pad=counts_fractional_pad,
+                         force_range=counts_range)
+        ax1.yaxis.set_major_locator(ticker.MaxNLocator(nbins=3, integer=True))
+        ax1.yaxis.set_major_formatter(formatter)
+        t = ax.yaxis.get_offset_text()
+        plt.draw()
+        msg = t.get_text()
+        ax1.text(0, .95, msg, ha='left', va='top', transform=ax.transAxes)
+        t.set_visible(False)
+    else:
+        ax1.set_yscale('symlog', linthresh=1)
+
+    # corr
     
-    if interval_max is not None and interval_max < tright:
-        _right = interval_max
-        if isinstance(stationary, StationaryUnivariate):
-            _left = 0.
+    if not corr_logscale:
+        bottom, top = _set_axis_limits(ax2, all_corrs, which='y',
+                                       pad=corr_fractional_pad,
+                                       force_range=corr_range)
+        if top > 2 or bottom < -2:
+            locator = ticker.MaxNLocator(nbins=5, integer=True)
         else:
-            _left = -interval_max
-        ax1.set_xlim(left=_left, right=_right)
-        ax2.set_xlim(left=_left, right=_right)
-        if fitlog:
-            ax3.set_xlim(left=_left, right=_right)
+            locator = ticker.FixedLocator([-1, -.5, 0., .5, 1])
+        ax2.yaxis.set_major_locator(locator)
+        ax2.yaxis.set_major_formatter(formatter)
+        t = ax.yaxis.get_offset_text()
+        plt.draw()
+        msg = t.get_text()
+        ax2.text(0, .95, msg, ha='left', va='top', transform=ax.transAxes)
+        t.set_visible(False)
+    else:
+        ax2.set_yscale('symlog', linthreshy=0.1, linscaley=0.2,
+                       subsy=[2, 3, 4, 5, 6, 7, 8, 9])
+        if corr_range[0] is not None and corr_range[0] > 0.:
+            ax2.set_ylim(bottom=corr_range[0])
 
-    formatter = ScalarFormatter(useMathText=True, useOffset=False)
-    formatter.set_powerlimits((-2, 3))
-    ax1.yaxis.set_major_formatter(formatter)
+    ax1.tick_params(axis='x', direction='in', bottom='on', labelbottom='on', pad=-10)
+    ax2.set_xlabel(timelabel, x=.95, horizontalalignment='right',
+                   fontsize='medium')
+
+    # hide intermediate x axis
+    ax1.spines['bottom'].set_visible(False)
+    ax1.tick_params(axis='x', colors='C7')
+    ax2.spines['top'].set_color('C7')
+
     # ylabels
-    ax1.set_ylabel(r'Samples', fontsize='large')
-    ax2.set_ylabel(r'Autocorr. $g_s(\Delta t)$', fontsize='large')
-
-    ax2.set_ylim(bottom=-1.2, top=1.2)
-    if len(conditions) > 2:
-        ax1.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-    else:
-        ax1.legend(loc=0)
-    if nplots == 2:
-        ax = ax2
-    elif nplots == 3:
-        ax = ax3
+    ax1.set_ylabel(r'Counts', fontsize='medium')
     if isinstance(stationary, StationaryUnivariate):
-        ob = obs
+        ax2.set_ylabel(r'$\tilde{{a}}(\Delta {})$'.format(prefix), fontsize='medium')
     elif isinstance(stationary, StationaryBivariate):
-        ob = obs[0]
-    if ob.timing == 'g':
-        units = 'generations'
-    else:
-        units = 'mins'
-    ax.set_xlabel(r'$\Delta t$ ({})'.format(units), fontsize='large')
+        ax2.set_ylabel(r'$\tilde{{c}}(\Delta {})$'.format(prefix), fontsize='medium')
 
-    # confidence interval legend
-    if additional_handles:
-        labels = [item.get_label() for item in additional_handles]
-        if len(conditions) > 2:
-            ax2.legend(handles=additional_handles, labels=labels,
-                       bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-        else:
-            ax2.legend(handles=additional_handles, labels=labels, loc=0)
-
-    if fitlog and isinstance(stationary, StationaryUnivariate):
-        ax3.set_yscale('log')
-        ax3.set_xlim(ax2.get_xlim())
-        ax3.legend(loc=0)
     # writting observable
     # case: obs is a single observable
     if isinstance(stationary, StationaryUnivariate):
-        latex_obs = obs.as_latex_string
-        msg = 'autocorrelation'
+        msg = '{}:{}'.format(obs.latexify(shorten_time_variable=True, use_name=use_obs_name),
+                             obs.latexify(plus_delta=True, shorten_time_variable=True, use_name=use_obs_name))
     # case: obs is a couple of observables
     else:
-        latex_obs = ', '.join([ob.as_latex_string for ob in obs])
-        msg = 'covariance'
+        if use_obs_name is not None:
+            if isinstance(use_obs_name, str):
+                use_name_0 = use_obs_name
+                use_name_1 = None
+            else:
+                if len(use_obs_name) == 1:
+                    use_name_0 = use_obs_name[0]
+                    use_name_1 = None
+                else:
+                    use_name_0 = use_obs_name[0]
+                    use_name_1 = use_obs_name[1]
+        msg = '{}:{}'.format(obs[0].latexify(shorten_time_variable=True,
+                                             use_name=use_name_0),
+                             obs[1].latexify(plus_delta=True, shorten_time_variable=True,
+                                             use_name=use_name_1))
 
-    ax1.text(0.5, 1.1, r' Stationary {} for {}'.format(msg, latex_obs),
+    ax1.text(0.5, 1+.2/axe_ysize, r'{}'.format(msg),
              size='large',
              horizontalalignment='center',
              verticalalignment='bottom',
              transform=ax1.transAxes)
+
+    # ## legend ##
+    # C.I.
+    if ci_handles:
+        ci = ci_handles[0]
+        # ci.set_color('C7')
+        ci.set_label('.99 C.I.')
+        main_handles.append(ci)
+
+    handles = main_handles[:]
+    labels = [h.get_label() for h in handles]
+    if show_legend:
+        ax2.legend(handles=handles, labels=labels, loc='upper left',
+                       bbox_to_anchor=(0, -.25/axe_ysize), labelspacing=.2)
+
+    fig.subplots_adjust(hspace=0)
     if save:
         # get univariate instance to get path where to save figure
         bname = 'plot_stationary_'

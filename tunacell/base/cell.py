@@ -271,11 +271,10 @@ class Cell(tlib.Node):
         if not obs.local_fit:
             if obs.differentiate:
                 if obs.scale == 'linear':
-                    if len(self.data) > 1:
-                        new = derivative(coords)
+                    new = derivative(coords)
                 elif obs.scale == 'log':
-                    if len(self.data) > 1:
-                        new = logderivative(coords)
+                    new = logderivative(coords)
+                        
             else:
                 new = coords
             self._sdata[label] = new.y

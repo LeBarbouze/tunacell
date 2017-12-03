@@ -10,6 +10,7 @@ import random
 
 from tunacell.base.datatools import Coordinates
 from tunacell.base.timeseries import TimeSeries
+from tunacell.base.observable import Observable, FunctionalObservable
 
 
 class LineageError(Exception):
@@ -180,6 +181,16 @@ class Lineage(object):
             obs_name = obs.name  # simpler string if provided by user
         else:
             obs_name = label
+        
+        # obs must be either a member of raw_obs, or a member of func_obs
+        if isinstance(obs, Observable):
+            if obs not in raw_obs:
+                raw_obs.append(obs)
+        elif isinstance(obs, FunctionalObservable):
+            if obs not in func_obs:
+                func_obs.append(obs)
+        else:
+            raise TypeError('obs must be one of {Observable, FunctionalObservable}')
 
         # compute timelapsed raw obs for all cells in lineage
         for cell in self.cellseq:

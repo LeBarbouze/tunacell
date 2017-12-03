@@ -39,6 +39,10 @@ class ObservableStringError(ObservableError):
     pass
 
 
+class ObservableNameError(ObservableError):
+    pass
+
+
 class Observable(object):
     """Defines how to retrieve observables.
 
@@ -261,14 +265,41 @@ class Observable(object):
             msg += '\n' + formatting([key, val])
         msg += '\n'
         return msg
-
-    @property
-    def as_latex_string(self):
-        """Export as LaTeX string.
+    
+    def latexify(self, show_variable=True,
+                 plus_delta=False,
+                 shorten_time_variable=False,
+                 prime_time=False,
+                 as_description=False,
+                 use_name=None):
+        """Returns a latexified string for observable
+        
+        Parameters
+        ----------
+        show_variable : bool
+            whether to print out time/generation variable
+        plus_delta : bool
+            whether to add a $\Delta$ to time/generation variable; used for
+            auto- and cross-correlation labeling
+        shorten_time_variable : bool
+            when active, will display only $t$/$g$
+        prime_time : bool
+            whether to set a prime on the time/generation variable
+        as_description : bool (default False)
+            sets up the description of the observable from rules to compute it
+            (derivatives, log, and raw label)
+        use_name : str (default None)
+            when the observable name is too cumbersome to be printed, and the
+            user wants to choose a specific name for such a printout
+        Returns
+        -------
         """
         output = r'$'
-        if self.name is not None:
-            output += '\\mathrm{{ {} }}'.format(self.name.replace('-', '\, ').replace('_', '\ '))
+        if self.name is not None and not as_description:
+            if use_name is None:
+                output += '\\mathrm{{ {} }}'.format(self.name.replace('-', '\, ').replace('_', '\ '))
+            else:
+                output += use_name
         else:
             # give all details using raw and operations on it
             if self.differentiate:
@@ -284,39 +315,60 @@ class Observable(object):
 
         # timing character
         time_char = ''
-        if self.timing == 't':
-            time_char += 't'
-        elif self.timing == 'b':
-            time_char += 't_{\\mathrm{birth}}'
-        elif self.timing == 'd':
-            time_char += 't_{\\mathrm{div}}'
-        elif self.timing == 'm':
-            time_char += ('\\frac{t_{\\mathrm{birth}} + t_{\\mathrm{div}}}'
-                          '{2}')
-        elif self.timing == 'g':
-            time_char += 'n_{\\mathrm{gen}}'
+        if shorten_time_variable:
+            if self.timing == 'g':
+                time_char = 'g'
+            else:
+                time_char = 't'
+        else:
+            if self.timing == 't':
+                time_char += 't'
+            elif self.timing == 'b':
+                time_char += 't_{\\mathrm{birth}}'
+            elif self.timing == 'd':
+                time_char += 't_{\\mathrm{div}}'
+            elif self.timing == 'm':
+                time_char += ('\\frac{t_{\\mathrm{birth}} + t_{\\mathrm{div}}}'
+                              '{2}')
+            elif self.timing == 'g':
+                time_char += 'g'  # 'n_{\\mathrm{gen}}'
+        if prime_time:
+            time_char += "^'"
+
         # substract troot
         to_substract = ''
-        if self.tref is None:
-            to_substract += ''
-        elif self.tref == 'root':
-            if self.timing != 'g':
-                to_substract += '- t^{\\mathrm{root}}_{\mathrm{div}}'
+        if not shorten_time_variable:
+            if self.tref is None:
+                to_substract += ''
+            elif self.tref == 'root':
+                if self.timing != 'g':
+                    to_substract += '- t^{\\mathrm{root}}_{\mathrm{div}}'
+                else:
+                    to_substract += '- n^{\\mathrm{root}}_{\mathrm{gen}}'
             else:
-                to_substract += '- n^{\\mathrm{root}}_{\mathrm{gen}}'
-        else:
-            if self.timing != 'g':
-                to_substract += '- {:.2f}'.format(self.tref)
-            else:
-                to_substract += '- n_{{\mathrm{{gen}} }}({:.2f})'.format(self.tref)
-        within_parenthesis = time_char + to_substract
-        
-        output += '\\left( {} \\right)'.format(within_parenthesis)
+                if self.timing != 'g':
+                    to_substract += '- {:.2f}'.format(self.tref)
+                else:
+                    to_substract += '- n_{{\mathrm{{gen}} }}({:.2f})'.format(self.tref)
 
-        if self.local_fit:
+        if not plus_delta:
+            within_parenthesis = time_char + to_substract
+        else:
+            within_parenthesis = time_char + to_substract + '+ \\Delta ' + time_char
+        
+        if show_variable:
+            output += '\\left( {} \\right)'.format(within_parenthesis)
+
+        if self.local_fit and as_description:
             output += '\\ [window: {}]'.format(self.time_window)
         output += '$'
         return output
+
+    @property
+    def as_latex_string(self):
+        """Export as LaTeX string. Old format, replaced by latexify
+        """
+        return self.latexify(as_description=False, plus_delta=False, prime_time=False)
 
     def __str__(self):
         return self.label
