@@ -265,6 +265,7 @@ class Observable(object):
             msg += '\n' + formatting([key, val])
         msg += '\n'
         return msg
+        
     
     def latexify(self, show_variable=True,
                  plus_delta=False,
@@ -299,7 +300,7 @@ class Observable(object):
             if use_name is None:
                 output += '\\mathrm{{ {} }}'.format(self.name.replace('-', '\, ').replace('_', '\ '))
             else:
-                output += use_name
+                output += '\\mathrm{{ {} }}'.format(use_name)
         else:
             # give all details using raw and operations on it
             if self.differentiate:
@@ -313,51 +314,12 @@ class Observable(object):
             if self.mode != 'dynamics':
                 output += '_{{\mathrm{{ {} }} }}'.format(self.mode)
 
-        # timing character
-        time_char = ''
-        if shorten_time_variable:
-            if self.timing == 'g':
-                time_char = 'g'
-            else:
-                time_char = 't'
-        else:
-            if self.timing == 't':
-                time_char += 't'
-            elif self.timing == 'b':
-                time_char += 't_{\\mathrm{birth}}'
-            elif self.timing == 'd':
-                time_char += 't_{\\mathrm{div}}'
-            elif self.timing == 'm':
-                time_char += ('\\frac{t_{\\mathrm{birth}} + t_{\\mathrm{div}}}'
-                              '{2}')
-            elif self.timing == 'g':
-                time_char += 'g'  # 'n_{\\mathrm{gen}}'
-        if prime_time:
-            time_char += "^'"
-
-        # substract troot
-        to_substract = ''
-        if not shorten_time_variable:
-            if self.tref is None:
-                to_substract += ''
-            elif self.tref == 'root':
-                if self.timing != 'g':
-                    to_substract += '- t^{\\mathrm{root}}_{\mathrm{div}}'
-                else:
-                    to_substract += '- n^{\\mathrm{root}}_{\mathrm{gen}}'
-            else:
-                if self.timing != 'g':
-                    to_substract += '- {:.2f}'.format(self.tref)
-                else:
-                    to_substract += '- n_{{\mathrm{{gen}} }}({:.2f})'.format(self.tref)
-
-        if not plus_delta:
-            within_parenthesis = time_char + to_substract
-        else:
-            within_parenthesis = time_char + to_substract + '+ \\Delta ' + time_char
         
         if show_variable:
-            output += '\\left( {} \\right)'.format(within_parenthesis)
+            time_var = _latexify_time_var(self, prime_time=prime_time,
+                                           shorten_time_variable=shorten_time_variable,
+                                           plus_delta=plus_delta)
+            output += '\\left( {} \\right)'.format(time_var)
 
         if self.local_fit and as_description:
             output += '\\ [window: {}]'.format(self.time_window)
@@ -381,6 +343,73 @@ class Observable(object):
             chain += '{}={}, '.format(key, repr(val))
         chain += ')'
         return chain
+
+
+def _latexify_time_var(obs, prime_time=False,
+                                shorten_time_variable=False,
+                                plus_delta=False):
+        """Latexify time variable from obs Observable
+
+        No $ dollar sign in this expression.
+
+        Parameters
+        ----------
+        obs : Observable instance
+            this observable will be search for attributes timing and tref
+        prime_time : bool
+            whether to indicate a prime
+        shorten_time_variable : bool
+            whether to shorten time variable expression
+        plus_delta : bool
+            whether to add a '+ Delta'
+
+        Returns
+        -------
+        str
+        """
+        # timing character
+        time_char = ''
+        if shorten_time_variable:
+            if obs.timing == 'g':
+                time_char = 'g'
+            else:
+                time_char = 't'
+        else:
+            if obs.timing == 't':
+                time_char += 't'
+            elif obs.timing == 'b':
+                time_char += 't_{\\mathrm{birth}}'
+            elif obs.timing == 'd':
+                time_char += 't_{\\mathrm{div}}'
+            elif obs.timing == 'm':
+                time_char += ('\\frac{t_{\\mathrm{birth}} + t_{\\mathrm{div}}}'
+                              '{2}')
+            elif obs.timing == 'g':
+                time_char += 'g'  # 'n_{\\mathrm{gen}}'
+        if prime_time:
+            time_char += "^'"
+
+        # substract troot
+        to_substract = ''
+        if not shorten_time_variable:
+            if obs.tref is None:
+                to_substract += ''
+            elif obs.tref == 'root':
+                if obs.timing != 'g':
+                    to_substract += '- t^{\\mathrm{root}}_{\mathrm{div}}'
+                else:
+                    to_substract += '- n^{\\mathrm{root}}_{\mathrm{gen}}'
+            else:
+                if obs.timing != 'g':
+                    to_substract += '- {:.2f}'.format(obs.tref)
+                else:
+                    to_substract += '- n_{{\mathrm{{gen}} }}({:.2f})'.format(obs.tref)
+
+        if not plus_delta:
+            time_var = time_char + to_substract
+        else:
+            time_var = time_char + to_substract + '+ \\Delta ' + time_char
+        return time_var
 
 
 class FunctionalObservable(object):
@@ -467,12 +496,40 @@ class FunctionalObservable(object):
     
     @property
     def as_latex_string(self):
-        args = r''
-        for item in self.observables:
-            args += item.as_latex_string + ', '
-        args = args.replace('$', '').rstrip(',')
-        msg = r'$f( {} )$'.format(args)
+#        args = r''
+#        for item in self.observables:
+#            args += item.latexify(show_variable=False,
+#                 plus_delta=False,
+#                 shorten_time_variable=False,
+#                 prime_time=False,
+#                 as_description=False,
+#                 use_name=None) + ', '
+#        args = args.replace('$', '').rstrip(',')
+#        msg = r'$f( {} )$'.format(args)
+        msg = self.latexify(show_variable=True)
         return msg
+    
+    def latexify(self, show_variable=True,
+                 plus_delta=False,
+                 shorten_time_variable=False,
+                 prime_time=False,
+                 as_description=False,
+                 use_name=None):
+        """Latexify observable name"""
+        output = r'$'
+        if use_name is None:
+            output += '\\mathrm{{ {} }}'.format(self.name.replace('-', '\, ').replace('_', '\ '))
+        else:
+            output += '\\mathrm{{ {} }}'.format(use_name)
+
+        if show_variable:
+            time_var = _latexify_time_var(self, plus_delta=plus_delta,
+                                          shorten_time_variable=shorten_time_variable,
+                                          prime_time=prime_time)
+ 
+            output += '({})'.format(time_var)
+        output += '$'
+        return output
 
 
 def unroll_raw_obs(obs):
