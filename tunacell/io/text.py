@@ -9,6 +9,7 @@ import os
 import re
 import glob
 import logging
+import warnings
 import numpy as np
 
 from tunacell.base.observable import Observable, FunctionalObservable
@@ -65,7 +66,7 @@ class MismatchFileError(TextParsingError):
         arguments passed to Exception class init
     """
     def __init__(self, *args, level='none'):
-        super().__init(*args)
+        super().__init__(*args)
         self.level = 'none'
 
 
@@ -411,9 +412,15 @@ def get_observable_path(filter_path, obs, write=True):
         with open(text_file, 'r') as f:
             read_repr = f.readline().strip()
         if read_repr != repr(obs):
-            logger.debug('Obs path {} does not match argument {}'.format(path, obs))
-            logger.debug('Changing name by appending a letter')
-            raise MismatchFileError(level='observable')
+            if isinstance(obs, Observable):
+                logger.debug('Obs path {} does not match argument {}'.format(path, obs))
+                logger.debug('Changing name by appending a letter')
+                raise MismatchFileError(level='observable')
+            elif isinstance(obs, FunctionalObservable):
+                msg = ('Impossible to check whether FunctionalObservable '
+                       'matches since the export of its combining function is '
+                       'not set up.')
+                warnings.warn(msg)
         else:
             logger.debug('Reading matching observable path {}'.format(path))
     return path
