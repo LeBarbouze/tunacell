@@ -908,6 +908,9 @@ def plot_stationary(stationary, show_cdts='all',
                 else:
                     use_name_0 = use_obs_name[0]
                     use_name_1 = use_obs_name[1]
+        else:
+            use_name_0 = None
+            use_name_1 = None
         msg = '{}:{}'.format(obs[0].latexify(shorten_time_variable=True,
                                              use_name=use_name_0),
                              obs[1].latexify(plus_delta=True, shorten_time_variable=True,
