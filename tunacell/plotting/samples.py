@@ -1,7 +1,7 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-This module defines how samp
+This module defines plotting functions for samples (colonies, lineages)
 """
 from __future__ import print_function
 
@@ -9,21 +9,15 @@ import os
 import warnings
 import re
 import datetime
-import inspect
 import logging
 
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 import matplotlib.ticker as ticker
 
 import numpy as np
-import collections
 
-from tunacell.base.colony import Colony
-from tunacell.base.lineage import Lineage
 from tunacell.base.observable import set_observable_list
-from tunacell.base.datatools import Coordinates
 
 from tunacell.plotting.timeseries import add_timeseries, add_data_statistics
 from .helpers import _set_time_axis_ticks, _unroll_samples
@@ -39,8 +33,6 @@ class SamplePlot(object):
 
     Parameters
     ----------
-    obs : :class:`Observable` instance
-        observable to be plotted
     samples : {(list of) :class:`Colony` instance(s),
                (list of) :class:`Lineage` instance(s)}
         timeseries from these samples will be plotted
@@ -71,7 +63,12 @@ class SamplePlot(object):
     def make_plot(self, obs, **kwargs):
         """Produce Figure and save plotted data.
 
-        Look at plot_samples doctring for parameters (too long to repeat here)
+        Parameters
+        ----------
+        obs : :class:`Observable` isntance
+            observable to plot
+        kwargs : keyword arguments
+            check :fun:`plot_samples` doctring for valid keyword arguments
         """
         self.obs = obs
         raw_obs, func_obs = set_observable_list(obs, filters=self._all_filters)
