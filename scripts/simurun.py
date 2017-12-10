@@ -7,6 +7,7 @@ used to run numerical simulations from terminal. Command is:
 
     python simurun.py [[-p|--path <path>]
                        [-l|--label <exp-name>]
+                       [-f|--force]
                        [-s|--samples <number-of-samples>]
                        [--alpha <growth-rate-target>]
                        [--alpha_sd <standard-deviation-for-alpha]
@@ -48,6 +49,9 @@ parser.add_argument('-p', '--path', type=str,
 parser.add_argument('-l', '--label', type=str,
                     help='Label of the experiment/simulation',
                     default='simutest')
+parser.add_argument('-f', '--force',
+                    help='Force writting new data (erase old simulations)',
+                    action='store_true')
 parser.add_argument('-s', '--samples', type=int,
                     help='Number of simulated container samples',
                     default=100)
@@ -149,6 +153,8 @@ if __name__ == '__main__':
     ans = 'go'
     current_name = args.label
     exp_path = os.path.join(path, args.label)
+    if args.force:
+        shutil.rmtree(exp_path)
     while os.path.exists(exp_path) and ans != 'a':
         print('Experiment {} already exists.'.format(current_name))
         ans = input('Override [o], Change experiment name [c], Abort [a]: ')
