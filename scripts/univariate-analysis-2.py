@@ -186,10 +186,7 @@ for obs in continuous_obs + cycle_obs:
     print('Ok')
     # plotting features
     if obs in [ou, gr, ou2]:
-        kwargs = {'ref_decay': ref_decayrate, 'fitlog': True,
-                  'fitting_time_max': 45.}  # must be larger than expected decay time
-    else:
-        kwargs = {}
+        kwargs = {'show_exp_decay': ref_decayrate}
 
     if stat is not None:
         fig = plot_stationary(stat, save=True, **kwargs)
@@ -213,5 +210,5 @@ except StationaryUnivariateIOError:
     stat = compute_stationary(univ, reg, options)
     stat.export_text()
 
-fig = plot_stationary(stat, save=True, ref_decay=ref_decayrate, fitlog=True)
+fig = plot_stationary(stat, save=True, show_exp_decay=ref_decayrate)
 press_enter(fig)
