@@ -65,9 +65,9 @@ class MismatchFileError(TextParsingError):
     args : tuple
         arguments passed to Exception class init
     """
-    def __init__(self, *args, level='none'):
+    def __init__(self, level='none', *args):
         super().__init__(*args)
-        self.level = 'none'
+        self.level = level
 
 
 class TextFileSystem(TextParsingError):
