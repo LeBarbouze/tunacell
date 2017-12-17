@@ -6,7 +6,7 @@ virtualenv:
 	venv/bin/pip install flake8 pytest
 
 flake8:
-	venv/bin/flake8 tuna
+	venv/bin/flake8 tunacell
 
 test:
-	venv/bin/py.test -v tuna/tests/
+	venv/bin/py.test -v tunacell/tests/
