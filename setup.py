@@ -42,6 +42,7 @@ setup(name='tunacell',
       classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.6",
         #'Development Status :: 1 - Planning',
         #'Development Status :: 2 - Pre-Alpha',
         'Development Status :: 3 - Alpha',
@@ -60,5 +61,5 @@ setup(name='tunacell',
                         'matplotlib>=2',  # new color code...
                         'future',
                         'dill'],   
-      scripts=['scripts/simurun.py'],
+      scripts=['bin/simurun.py'],
       zip_safe=False)
