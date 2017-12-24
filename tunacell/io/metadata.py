@@ -6,9 +6,14 @@ given experiment and must contain at least one row, and 2 mandatory columns:
 'label', and 'period'.
 """
 import pandas as pd
+import warnings
 
 
 class MetadataError(Exception):
+    pass
+
+
+class MetadataMissingMainLabel(MetadataError):
     pass
 
 
@@ -19,6 +24,91 @@ class MissingEntry(MetadataError):
 class MissingPeriod(MissingEntry):
     pass
 
+
+class Metadata(object):
+    """Experiment metadata
+    
+    Parameters
+    ----------
+    ddict : dict of dict
+        keys are experiment and container labels, values are metadata content
+        as dict
+    exp : :class:`tunacell.base.experiment.Experiment` instance
+    """
+    
+    def __init__(self, ddict, exp_label):
+        if not isinstance(ddict, dict):
+            raise TypeError('Input file must be a dictionary')
+        # check experiment label
+        if exp_label not in ddict.keys():
+            raise MetadataMissingMainLabel('Missing experiment label')
+        self._ddict = ddict
+        # define experiment, top level metadata
+        self.top_level = {}
+        self._locals = {}
+        for key, dic in self._ddict.items():
+            if 'level' in dic and dic['level'] == 'experiment':
+                self.top_level = dic
+            self._locals[key] = LocalMetadata(self, key)
+    
+    @property
+    def loc(self):
+        """Kept for legacy with pandas.DataFrame.loc. Erase?"""
+        return self._locals
+    
+    @property
+    def period(self):
+        return self.top_level['period']
+    
+    def __getitem__(self, key):
+        try:
+            return self.top_level[key]
+        except KeyError:
+            warnings.warn('Metadata key error {}, value is assigned to None'.format(key))
+            return None
+    
+    def __str__(self):
+        msg = str(self._locals[self.top_level['label']])
+        return msg
+    
+    def __repr__(self):
+        return str(self)
+    
+
+class LocalMetadata(object):
+    """Container metadata"""
+
+    def __init__(self, meta, label):
+        self._top = meta
+        self._dict = meta._ddict[label]
+        keys = [key for key in meta.top_level.keys()]
+        for key in self._dict.keys():
+            if key not in keys:
+                keys.append(key)
+        self._keys = keys
+
+    def __getitem__(self, key):
+        try:
+            return self._dict[key]
+        except KeyError:
+            return self._top[key]
+    
+    @property
+    def loc(self):
+        return self
+    
+    def __str__(self):
+        msg = '{:<20s} {:<20s}\n'.format('Parameter', 'Value')
+        for key in self._keys:
+            if key == 'level':
+                continue
+            val = '{}'.format(self[key])
+            msg += '{:<20s} {:<20s}\n'.format(key, val)
+        return msg.strip()
+    
+    def __repr__(self):
+        return str(self)
+        
 
 def load_from_csv(filename, sep=','):
     """Gets pandas DataFrame from metadata file
@@ -103,3 +193,16 @@ def get_period(meta, label):
     float
     """
     return meta.loc[label, 'period']
+
+
+if __name__ == '__main__':
+    md = Metadata({'simutest': {'level': 'experiment', 
+                                'label': 'simutest',
+                                'period': 12.,
+                                'medium': 'M9'},
+                   'container_01': {'label': 'container_01',
+                                    'species': 'e.coli'},
+                   'container_02': {'label': 'container_02',
+                                    'species': 'b.subtilis',
+                                    'medium': 'RDM'}
+                                    }, 'simutest')
