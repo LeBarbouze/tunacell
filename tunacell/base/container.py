@@ -443,7 +443,7 @@ class Container(object):
         return
 
 
-# %% READING
+# READING
 class ContainerArrayParsingError(Exception):
     pass
 

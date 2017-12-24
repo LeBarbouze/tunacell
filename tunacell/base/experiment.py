@@ -1,17 +1,18 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 This module implements the first core class: Experiment,
 and functions to parse containers, retrieve and build data.
 
 Each experiment consists of multiple containers where
-data has been stored under container folders. A container may
+data is stored under container folders. A container may
 correspond to a single field of view, to a subset thereof (e.g. a single
-channel).
+channel in microfluidic experiments).
 
-Such container must meet two requirements:
-    1. Cell identifiers are unique within this container;
-    2. Lineage reconstruction is defined within a single container.
+Such containers must meet two requirements:
+    1. Cell identifiers are unique within a container;
+    2. Lineage reconstruction is defined and performed within a single
+       container.
 
 This module stores classes and functions that allow to:
     * explore data structure (and metadata if provided)
