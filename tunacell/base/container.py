@@ -105,10 +105,11 @@ class Container(object):
         self.label = label  # to be read
         self.datatype = exp.datatype
         self.data = None  # Table read from file
-        try:
-            self.metadata = exp.metadata.loc[label]
-        except KeyError:
-            self.metadata = exp.metadata.loc[exp.label]
+#        try:
+#            self.metadata = exp.metadata.loc[label]
+#        except KeyError:
+#            self.metadata = exp.metadata.loc[exp.label]
+        self.metadata = exp.metadata.from_container(self.label)
 
         # these attributes are set to empty lists, will be loaded by .read_data
         self.cells = []

@@ -31,8 +31,8 @@ def test_attributes(container):
     assert container.period == 3.14
     # metadata
     md = container.metadata
-    assert md.author == 'Joachim Rambeau'
-    assert md.strain == 'Thunnus alalunga'
+    assert md['author'] == 'Joachim Rambeau'
+    assert md['strain'] == 'Thunnus alalunga'
     
 
 

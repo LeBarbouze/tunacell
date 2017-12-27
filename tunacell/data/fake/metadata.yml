@@ -1,0 +1,12 @@
+level    : experiment
+author   : Joachim Rambeau
+label    : fake
+period   : 3.14
+strain   : Thunnus alalunga
+---
+label    : container_02
+strain   : Thunnus thynnus
+---
+label    : container_03
+strain   : Thunnus atlanticus
+---

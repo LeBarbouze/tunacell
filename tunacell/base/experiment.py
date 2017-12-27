@@ -149,11 +149,14 @@ class Experiment(object):
         # extract only container labels
         self.containers = bns
         # get metadata
-        fn = text._check_up('metadata.csv', self.abspath, level=2)
-        df = metadata.load_from_csv(fn, sep=',')
-        meta = metadata.fill_rows(df, self.label, self.containers)
+#        fn = text._check_up('metadata.csv', self.abspath, level=2)
+        fn = text._check_up('metadata.yml', self.abspath, level=2)
+#        df = metadata.load_from_csv(fn, sep=',')
+#        meta = metadata.fill_rows(df, self.label, self.containers)
+        meta = metadata.load_metadata(fn)
         self.metadata = meta
-        self.period = metadata.get_period(meta, self.label)
+        self.period = self.metadata.period
+#        self.period = metadata.get_period(meta, self.label)
         descriptor_file = text._check_up('descriptor.csv', self.abspath, 2)
         datatype = text.datatype_parser(descriptor_file)
         self.datatype = datatype
@@ -176,7 +179,7 @@ class Experiment(object):
         msg = 'Experiment root: {}\n'.format(self.abspath)
         msg += '({} containers)\n'.format(len(self.containers))
         msg += 'Filetype: {}\n'.format(self.filetype)
-        msg += repr(self.metadata.loc[self.label])
+        msg += repr(self.metadata)
         return msg
 
     def __repr__(self):
@@ -191,7 +194,7 @@ class Experiment(object):
             msg += '\t' + fn + '\n'
         msg += '({} containers)\n'.format(len(self.containers))
         msg += 'Filetype: {}\n'.format(self.filetype)
-        msg += repr(self.metadata.loc[self.label])
+        msg += repr(self.metadata)
         return msg
 
     def iter_containers(self, read=True, build=True, prefilt=None,

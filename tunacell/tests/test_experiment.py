@@ -46,7 +46,7 @@ def test_experiment_number_container(fake_exp):
 
 
 def test_experiment_metadata(fake_exp):
-    assert fake_exp.metadata.loc[fake_exp.label, 'author'] == 'Joachim Rambeau'
+    assert fake_exp.metadata['author'] == 'Joachim Rambeau'
 
 
 def test_experiment_datatype(fake_exp):

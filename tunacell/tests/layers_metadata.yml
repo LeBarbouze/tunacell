@@ -1,0 +1,14 @@
+level: top
+period-ch1: 5.0
+period-ch2: 20.0
+medium: M9Glu
+species: e.coli
+---
+label: container_007
+species: james bond
+---
+label:
+    - container_xy
+    - container_z
+medium: M9Fru
+species: jellyfish
