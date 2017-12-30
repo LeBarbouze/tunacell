@@ -9,7 +9,6 @@ from __future__ import print_function
 import logging
 
 import numpy as np
-import pandas as pd
 
 import datetime
 import uuid
@@ -17,6 +16,8 @@ import uuid
 from tunacell.base.experiment import Experiment
 from tunacell.base.container import Container
 from tunacell.base.colony import Colony
+
+from tunacell.io.metadata import Metadata
 
 from tunacell.simu.main import Ecoli, SimuParams, DivisionParams, SampleInitialSize
 
@@ -84,18 +85,24 @@ class OUSimulation(Experiment):
 
     def _set_metadata(self):
 
-        content = []
-        content += [('label', self.label)]
-        content += [('date', self.date.strftime('%Y-%m-%d'))]
+        dic = {'level': 'top',  # mandatory
+               'period' : self.simuParams.period,  # mandatory
+               'label': self.label,  # optional
+               'date': self.date.strftime('%Y-%m-%d'),  # optional
+               }
 
-        content += self.simuParams.content
-        content += self.divisionParams.content
-        content += self.ouParams.content
-        content += self.birthsizeParams.content
+        
+        # optional, but convenient: paramaters as sub-dicts
+        dic['simu_params'] = {k: v for k, v in self.simuParams.content}
+        dic['division_params'] = {k:v for k, v in self.divisionParams.content}
+        dic['ornstein_uhlenbeck_params'] = {k:v for k, v in self.ouParams.content}
+        dic['birth_size_params'] = {k:v for k, v in self.birthsizeParams.content}
 
-        dics = {key: {self.label: value} for key, value in content}
-
-        self.metadata = pd.DataFrame(dics)
+#        dics = {key: {self.label: value} for key, value in content}
+#        self.metadata = pd.DataFrame(dics)
+        
+        self.metadata = Metadata([dic, ])
+        
         return
 
     @property
@@ -179,7 +186,7 @@ class OUContainer(Container):
                                     count=count+1,
                                     tstart=simuParams.start,
                                     tstop=simuParams.stop,
-                                    dt=simuParams.interval)
+                                    dt=simuParams.period)
             colony.container = self
             trees.append(colony)
             for node in colony.all_nodes():
@@ -211,9 +218,9 @@ class OUParams(object):
         self.spring = spring
         self.noise = noise
         # metadata helper
-        self.content = [('target', target),
-                        ('spring', spring),
-                        ('noise', noise)]
+        self.content = [('target', float(target)),
+                        ('spring', float(spring)),
+                        ('noise', float(noise))]
         return
 
     def __repr__(self):

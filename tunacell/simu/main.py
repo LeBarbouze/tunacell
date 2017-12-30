@@ -37,7 +37,7 @@ class SimuParams(object):
     stop : float
         time at which simulation stops. Leaf cell division time is greater or
         equal to stop time.
-    interval : float
+    period : float
         time interval at which measurements are recorded (sampling).
 
     Notes
@@ -48,28 +48,28 @@ class SimuParams(object):
             - the average cell cycle time (set in DivisionParams)
         The number of evaluated values for an exaclty sampled process (e.g.
         the Ornstein Uhlenbeck process) is inversely proportional to the
-        period 'interval' at which data is recorded.
+        period at which data is recorded.
 
         The total number of operations depends:
             - exponentially on the difference 'stop - start'
-            - inversely proportionally to 'interval'
+            - inversely proportionally to 'period'
             - proportionally on nbr_container
             - proportionally on nbr_colony_per_container
     """
 
     def __init__(self, nbr_container=1, nbr_colony_per_container=1,
-                 start=0., stop=100., interval=5.):
+                 start=0., stop=100., period=5.):
         self.nbr_container = nbr_container
         self.nbr_colony_per_container = nbr_colony_per_container
         self.start = start
         self.stop = stop
-        self.interval = interval
+        self.period = period
         # metadata helper
         self.content = [('nbr_container', nbr_container),
                         ('nbr_colony_per_container', nbr_colony_per_container),
                         ('start', start),
                         ('stop', stop),
-                        ('interval', interval)]
+                        ('period', period)]
         return
 
     def __str__(self):
@@ -229,7 +229,7 @@ class SampleInitialSize(object):
         self.sigma = sigma
         self.content = [('size_cutoff', size_cutoff),
                         ('size_mode', mode),
-                        ('size_sigma', sigma)]
+                        ('size_sigma', float(sigma))]
         return
 
     def rv(self):
