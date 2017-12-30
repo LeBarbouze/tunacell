@@ -145,7 +145,7 @@ def main(args):
     
     simuParams = SimuParams(nbr_container=nsamples,
                             nbr_colony_per_container=tree_per_cont,
-                            start=tstart, stop=tstop, interval=dt)
+                            start=tstart, stop=tstop, period=dt)
     
     # OU parameters
     target_value = args.alpha  # average value of the random process
