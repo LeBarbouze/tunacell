@@ -15,11 +15,12 @@ import yaml
 
 import tunacell
 #from tunacell.base.experiment import Experiment
-from tunacell.io.metadata import Metadata, LocalMetadata
+from tunacell.io.metadata import Metadata, LocalMetadata, load_from_yaml, load_from_csv
 
 path_data = os.path.join(os.path.dirname(tunacell.__file__), 'data')
 path_fake_exp = os.path.join(path_data, 'fake')
 
+path_yaml_examples = os.path.dirname(os.path.abspath(__file__))
 
 #@pytest.fixture(scope='module')
 #def exp():
@@ -45,16 +46,28 @@ path_fake_exp = os.path.join(path_data, 'fake')
 
 @pytest.fixture
 def simple():
-    stream = open('simple_metadata.yml', 'r')
+    path = os.path.join(path_yaml_examples, 'simple_metadata.yml')
+    stream = open(path, 'r')
     yield yaml.load_all(stream)
     stream.close()
 
 
 @pytest.fixture
 def layers():
-    stream = open('layers_metadata.yml', 'r')
+    path = os.path.join(path_yaml_examples, 'layers_metadata.yml')
+    stream = open(path, 'r')
     yield yaml.load_all(stream)
     stream.close()
+
+
+@pytest.fixture
+def from_yaml():
+    return load_from_yaml(os.path.join(path_fake_exp, 'metadata.yml'))
+    
+
+@pytest.fixture
+def from_csv():
+    return load_from_csv(os.path.join(path_fake_exp, 'metadata.csv'), sep=',')
 
 
 def test_simple_load(simple):

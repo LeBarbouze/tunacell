@@ -4,10 +4,11 @@ period-ch2: 20.0
 medium: M9Glu
 species: e.coli
 ---
+level: container_007
 label: container_007
 species: james bond
 ---
-label:
+level:
     - container_xy
     - container_z
 medium: M9Fru
