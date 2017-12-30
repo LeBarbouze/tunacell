@@ -1,16 +1,53 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Metadata is imported as pandas DataFrame. There is only one such file for a
-given experiment and must contain at least one row, and 2 mandatory columns:
-'label', and 'period'.
+Metadata can be used to filter containers, or to use the 'period' parameter
+when computing local_rates by joining mother and daughter cells (specifically,
+the joining timepoint is set at the first registered timepoint in current
+daughter cell, minus half the acquisition period).
+
+Metadata can be loaded from two different types of file:
+    * csv, which can be exported from spreadsheet software, but is hardly
+      readable from a raw text file;
+    * yaml, which is readable and easily to fill in a raw text file format.
+    
+One entry must be given for the constructor to work properly: the ``level``
+entry that allows to distinguish 'top' experiment-level metadata, to
+lower-level container metadata.
+
+Minimal example for a csv file:
+    
+    level,label,author,strain
+    top,my_experiment,J. Rambeau,e.coli
+    container_12,weird_container,,weirdo.weirdus
+
+and the same for yaml file:
+    
+    level     : top
+    label     : my_experiment
+    author    : J. Rambeau
+    strain    : e.coli
+    # use 3 dashes to separate levels
+    ---
+    level     : container_12
+    label     : weird_container
+    strain    : weirdo.weirdus
+    
+These metadata files indicate that the author is the same for all containers,
+and that e.coli is used in all containers but container_12 which has been
+labeled 'weird_container' and contains the new species 'weirdo.weirdus'.
 """
-import pandas as pd
 import warnings
 import yaml
+import csv
+import os
 
 
 class MetadataError(Exception):
+    pass
+
+
+class MetadataNotFound(MetadataError):
     pass
 
 
@@ -26,12 +63,88 @@ class MissingPeriod(MissingEntry):
     pass
 
 
-def load_metadata(path_to_yaml_file):
-    """Use yaml parser and call Metadata constructor"""
-    stream = open(path_to_yaml_file, 'r')
-    docs = list(yaml.load_all(stream))
-    stream.close()
+def load_metadata(experiment_path):
+    """Loads metadata using experiment absolute path
+    
+    Parameters
+    ----------
+    experiment_path : str
+        absolute path to experiment root directory
+    
+    Returns
+    -------
+    :class:`Metadata` instance
+        metadata found in experiment root folder
+    
+    Raises
+    ------
+    MetadataNotFound
+        when file is not found
+    """
+    ls = os.listdir(experiment_path)
+    path = None
+    ext = None
+    for bn in ls:
+        fn = os.path.join(experiment_path, bn)
+        if os.path.isfile(fn):
+            if 'metadata' in os.path.basename(fn):
+                path = fn
+                _, ext = os.path.splitext(fn)
+                break
+    if path is None:
+        raise MetadataNotFound()
+    if ext in ['.yml', '.yaml']:
+        md = load_from_yaml(path)
+    elif ext == '.csv':
+        md = load_from_csv(path, sep=',')
+    elif ext == '.tsv':
+        md = load_from_csv(path, sep='\t')
+    return md
+
+
+def load_from_yaml(path_to_yaml_file):
+    """Builds metadata from yaml files
+    
+    Parameters
+    ----------
+    path_to_yaml_file : str
+        absolute path to yaml metadata file
+    
+    Returns
+    -------
+    :class:`Metadata` instance
+    """
+    with open(path_to_yaml_file, 'r') as f:
+        docs = list(yaml.load_all(f))
     md = Metadata(docs)
+    return md
+
+
+def load_from_csv(filename, sep=','):
+    """Builds metadata from csv files
+
+    Parameters
+    ----------
+    metadata_file : str
+        absolute path to metadata csv file
+    sep : str (default ',')
+        default separator for csv files
+
+    Returns
+    -------
+    :class:`Metadata` instance
+
+    Note
+    ----
+    There must be a column named 'label' that stores either the experiment
+    label, and/or container file labels.
+    """
+    list_dict = []
+    with open(filename, 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            list_dict.append({k: v for k, v in row.items() if v})
+    md = Metadata(list_dict)
     return md
 
 
@@ -44,6 +157,7 @@ def _update_local_dict(local_dict, new_items):
     ----------
     local_dict : dict
     new_items : dict
+        (must have an .items() method)
     """
     for key, value in new_items.items():
         if key in local_dict.keys():
@@ -91,7 +205,7 @@ class Metadata(object):
             if 'level' in dic and dic['level'] in ['experiment', 'top']:
                 self._ddict['top'] = dic
             else:
-                labs = dic['label']
+                labs = dic['level']
                 container_labs = []
                 if isinstance(labs, list):
                     container_labs = labs
@@ -104,7 +218,7 @@ class Metadata(object):
                         self._ddict[lab] = dic
         # check that top/experiment level has been found
         if 'top' not in self._ddict.keys():
-            raise MetadataMissingMainLabel('Missing "top"/"experiment" level')
+            raise MetadataMissingMainLabel('Missing "top" experiment level')
     
     def _setup_meta(self):
         self.top = LocalMetadata(self._ddict['top'], self._ddict['top'])
@@ -161,6 +275,11 @@ class Metadata(object):
         out = yaml.dump_all(self._iter_dict, stream=stream, default_flow_style=False)
         if stream is None:
             print(out)
+        
+    def to_csv(self, stream=None):
+        """Exports metadata to csv file"""
+        # TODO: write this method
+        pass
     
 
 class LocalMetadata(object):
@@ -215,95 +334,11 @@ class LocalMetadata(object):
     
     def __repr__(self):
         return str(self)
-        
 
-#def load_from_csv(filename, sep=','):
-#    """Gets pandas DataFrame from metadata file
-#
-#    Parameters
-#    ----------
-#    metadata_file : str
-#        absolute path to metadata csv file
-#    sep : str (default ',')
-#        default separator for csv files
-#
-#    Returns
-#    -------
-#    pandas.DataFrame
-#
-#    Note
-#    ----
-#    There must be a column named 'label' that stores either the experiment
-#    label, and/or container file labels.
-#    """
-#    possible_names = ['interval',
-#                      'time interval', 'time_interval', 'time-interval',
-#                      'dt',
-#                      'delta time', 'delta_time', 'delta-time',
-#                      'delta-t', 'delta_t', 'delta t',
-#                      'period']
-#    df = pd.read_csv(filename, sep=sep, index_col='label')
-#    boo = False
-#    for name in possible_names:
-#        if name in df.columns:
-#            boo = True
-#            break
-#    if not boo:
-#        msg = 'Period acquisition not found in metadata!'
-#        raise MissingPeriod(msg)
-#    # rename period column in case other name is used
-#    else:
-#        df = df.rename(columns={name: 'period'})
-#    return df
-#
-#
-#def fill_rows(df, exp_label, cont_labels):
-#    """Fill df rows for each container label.
-#
-#    NA values in such rows are filled with experiment row metadata.
-#
-#    Parameters
-#    ----------
-#    df : pandas.DataFrame
-#        There must be at least one row, indexed with the experiment label; and
-#        there must be at least one column that reports for the chosen
-#        acquisition period.
-#    exp_label : str
-#        experiment label
-#    cont_labels : list of str
-#        list of container labels
-#
-#    Returns
-#    -------
-#    pandas.DataFrame
-#    """
-#    #  reindex with exp label and each container label as row indices
-#    rows = [exp_label, ] + cont_labels
-#    df = df.reindex(rows)  # initially non-reported containers are set NaNs
-#    # fill na values with experiment values
-#    meta = df.fillna(df.loc[exp_label])
-#    del df
-#    return meta
-#
-#
-#def get_period(meta, label):
-#    """Gets the period acquisition for corresponding label.
-#
-#    Parameters
-#    ----------
-#    meta : pandas.DataFrame
-#        must have a 'period' column and label is a valid index
-#    label : str
-#
-#    Returns
-#    -------
-#    float
-#    """
-#    return meta.loc[label, 'period']
 
 
 if __name__ == '__main__':
-    md = load_metadata('/home/joachim/tmptunacell/test_yaml.yml')
+    md = load_from_yaml('/home/joachim/tmptunacell/test_yaml.yml')
 #    print(md)
     output_stream = open('/home/joachim/tmptunacell/myyaml.yml', 'w')
     print(md.to_yaml(output_stream))
