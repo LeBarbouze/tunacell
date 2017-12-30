@@ -150,10 +150,10 @@ class Experiment(object):
         self.containers = bns
         # get metadata
 #        fn = text._check_up('metadata.csv', self.abspath, level=2)
-        fn = text._check_up('metadata.yml', self.abspath, level=2)
+#        fn = text._check_up('metadata.yml', self.abspath, level=2)
 #        df = metadata.load_from_csv(fn, sep=',')
 #        meta = metadata.fill_rows(df, self.label, self.containers)
-        meta = metadata.load_metadata(fn)
+        meta = metadata.load_metadata(self.abspath)
         self.metadata = meta
         self.period = self.metadata.period
 #        self.period = metadata.get_period(meta, self.label)
@@ -398,12 +398,15 @@ class Experiment(object):
                     yield cell
         return
 
-    def raw_text_export(self, path='.'):
+    def raw_text_export(self, path='.', metadata_extension='.yml'):
         """Export raw data as text containers in correct directory structure.
 
         Parameters
         ----------
         path : str
+            path to experiment root directory
+        metadata_extension : str (default '.yml')
+            type of metadata file (now only yaml file works)
         """
         abspath = os.path.abspath(os.path.expanduser(path))
         # check that path is not self.abspath
@@ -414,8 +417,10 @@ class Experiment(object):
         if not os.path.exists(exp_path):
             os.makedirs(exp_path)
         # write metadata file
-        fn = os.path.join(exp_path, 'metadata.csv')
-        self.metadata.to_csv(fn, index=False)
+        if metadata_extension == '.yml':
+            fn = os.path.join(exp_path, 'metadata.yml')
+            with open(fn, 'w') as f:
+                self.metadata.to_yaml(f)
         # write descriptor file
         with open(os.path.join(exp_path, 'descriptor.csv'), 'w') as f:
             for key, value in self.datatype:
