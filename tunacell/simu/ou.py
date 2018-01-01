@@ -1,17 +1,21 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Created on Tue Oct 18 15:36:53 2016
-
-@author: rambeau
+The present module defines classes and functions needed to simulate an
+Ornstein-Uhlenbeck process as the instantaneous growth rate of cells.
 """
 from __future__ import print_function
+from builtins import input  # future package
 
+import os
+import shutil
 import logging
-
-import numpy as np
-
 import datetime
 import uuid
+
+from tqdm import tqdm
+
+import numpy as np
 
 from tunacell.base.experiment import Experiment
 from tunacell.base.container import Container
@@ -22,13 +26,60 @@ from tunacell.io.metadata import Metadata
 from tunacell.simu.main import Ecoli, SimuParams, DivisionParams, SampleInitialSize
 
 
+def run_ou_simulation(simuParams, divParams, bsParams, ouParams,
+                      where, label, force=False):
+    """API function to run and export OU numerical simulation
+    
+    Parameters
+    ----------
+    simuParams : :class:`tunacell.simu.main.SimuParams` instance
+        sets general simulation parameters
+    divParams : :class:`tunacell.simu.main.DivisionParams` instance
+        sets cell division process
+    bsParams : :class:`tunacell.simu.main.SampleInitialSize` instance
+        sets how initial cell size is sampled in simulation
+    ouParams : :class:`OUParams`
+        sets Ornstein-Uhlenbeck parameters for simulation of growth rate
+    where : str
+        parent directory where the experiment will be exported
+    label : str
+        name of the experiment to be exported
+    force : bool (default False)
+        whether to overide previous same-label experiment folder
+    """
+    exp = OUSimulation(label=label,
+                       simuParams=simuParams, divisionParams=divParams,
+                       ouParams=ouParams, birthsizeParams=bsParams)
+    
+    # check that experiment has been saved before
+    ans = 'go'
+    current_name = label
+    exp_path = os.path.join(where, label)
+    if force:
+        shutil.rmtree(exp_path)
+    while os.path.exists(exp_path) and ans != 'a':
+        print('Experiment {} already exists.'.format(current_name))
+        ans = input('Override [o], Change experiment name [c], Abort [a]: ')
+        if ans == 'c':
+            new_name = current_name
+            while new_name == current_name:
+                new_name = input('NEW NAME: ')
+            exp.label = new_name
+            exp_path = os.path.join(where, new_name)
+        # when overriding, need to erase everything first
+        elif ans == 'o':
+            shutil.rmtree(exp_path)
+    
+    # export except if process has been aborted
+    if ans != 'a':
+        exp.raw_text_export(path=where)
+
+
 class OUSimulation(Experiment):
     """Equivalent of Experiment class for simulation.
 
-    This class instances should be provided to Parser objects as well as
-    Experiment instances are. They must provide two essential things:
-        * .iter_containers() method
-        * .label
+    An instance of OUSimulation contains all information to simulate an
+    Ornstain-Uhlenbeck process in dividing cells.
 
     Parameters
     ----------
@@ -135,34 +186,43 @@ class OUSimulation(Experiment):
                        shuffle=False):  # idem
         if size is None:
             size = self.simuParams.nbr_container
-        start = datetime.datetime.now()
-        logging.info('Iterating over containers for simulation {}...'.format(self.label))
-        for index in range(size):
-            yield OUContainer(self, simuParams=self.simuParams,
+        # determine number of digits
+        ndigits = len('{:d}'.format(size))
+        # random seed
+        np.random.seed(self.simuParams.seed)
+        # start loop over containers
+        for index in tqdm(range(size), desc='simulation'):
+            label = 'container_{nbr:0{digits:d}d}'.format(digits=ndigits, nbr=index+1)
+            yield OUContainer(self, label=label,
+                              simuParams=self.simuParams,
                               divisionParams=self.divisionParams,
                               ouParams=self.ouParams,
                               birthsizeParams=self.birthsizeParams)
-        end = datetime.datetime.now()
-        logging.info('...completed in {} (H:MM:SS)'.format(end-start))
         return
 
 
 class OUContainer(Container):
-    "subclassed from Container to get all methods, only __init__ changes"
+    """Ornstein-Uhlenbeck simulation container.
+    
+    This is subclassed from :class:`tunacell.base.container.Container`,
+    only ``__init__`` changes.
+    
+    
+    Parameters
+    ----------
+    simu : OUSimulation instance
+    label : str
+        label for the container
+    simuParams : SimuParams instance
+    divisionParams : DivisionParams instance
+    ouParams : OUParams instance
+    birthsizeParams : SampleInitialSize instance
+    """
 
     def __init__(self, simu, label=None, simuParams=None,
                  divisionParams=None, ouParams=None, birthsizeParams=None):
         """Runs the simulation upon call.
 
-        Parameters
-        ----------
-        simu : OUSimulation instance
-        label : str
-            label for the container
-        simuParams : SimuParams instance
-        divisionParams : DivisionParams instance
-        ouParams : OUParams instance
-        birthsizeParams : SampleInitialSize instance
         """
         self.exp = simu  # Container compatibility
         self.abspath = '{}'.format(hex(id(self)))  # Container compatibility
