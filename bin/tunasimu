@@ -96,11 +96,13 @@ def setup_args():
                         default=.1)
     
     # initial birth size sampling
-    parser.add_argument('--initial_birth_size_mode', type=str,
+    parser.add_argument('--birth_size_mean', type=float,
+                        help='Initial mean birth size', default=1.)
+    parser.add_argument('--birth_size_mode', type=str,
                         help='[fixed, lognormal]', default='fixed')
-    parser.add_argument('--initial_birth_size_sigma', type=float,
-                        help='sigma param for the lognormal distribution',
-                        default=2.*np.log(2.))
+    parser.add_argument('--birth_size_relative_fluctuations', type=float,
+                        help='Relative fluctuations in the lognormal mode',
+                        default=0.1)
     
     # simulation parameters
     parser.add_argument('--start', type=float,
@@ -178,9 +180,9 @@ def main(args):
                                    use_growth_rate=args.div_use_alpha)
         
         # INITIAL BIRTH SIZE
-        birthsizeParams = SampleInitialSize(size_cutoff=args.div_size_cutoff,
-                                            size_mode=args.initial_birth_size_mode,
-                                            size_sigma=args.initial_birth_size_sigma)
+        birthsizeParams = SampleInitialSize(birth_size_mean=args.birth_size_mean,
+                                            birth_size_mode=args.birth_size_mode,
+                                            birth_size_sd_to_mean=args.birth_size_relative_fluctuations)
     
     run_ou_simulation(simuParams, divParams, birthsizeParams, ouParams,
                       path, args.label, force=args.force)
