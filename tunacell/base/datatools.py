@@ -124,7 +124,7 @@ class Coordinates(object):
 
 
 
-# %% NEW LOCAL FIT ESTIMATE USING ARRAYS
+# NEW LOCAL FIT ESTIMATE USING ARRAYS
 
 def compute_rates(x, y, x_break=None,
                   anterior_x=[], anterior_y=[],
@@ -458,8 +458,8 @@ def extrapolate_endpoints(x, y, x_target,
 
     return y_inv_operator(rate * x_target + intercept)
 
-# %% List of operator acting on Coordinates
 
+# List of operator acting on Coordinates
 
 def _cycle_linear(coords):
     if len(coords.valid) < 2:
@@ -516,7 +516,7 @@ def logderivative(coords):
     return derivative(logcoords)
 
 
-# %% list of operators acting on 1-D arrays
+#  list of operators acting on 1-D arrays
 
 def additive_increments(ar):
     """Computes step-wise additive increments.
@@ -550,7 +550,7 @@ def multiplicative_increments(ar):
     return a/b
 
 
-# %% functions acting on structured arrays
+# functions acting on structured arrays
 
 def compute_secondary_observables(data):
     """Computes secondary observables and extends matrix of observables.
@@ -599,7 +599,7 @@ def compute_secondary_observables(data):
 
 
 
-# %% specific functions
+# specific functions
 
 def spherocylinder_volume(length, width):
     """Returns volume of sphero-cylinder.
