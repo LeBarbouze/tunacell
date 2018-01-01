@@ -60,7 +60,8 @@ setup(name='tunacell',
                         'treelib',
                         'matplotlib>=2',  # new color code...
                         'future',
-                        'dill',
-                        'PyYAML'],   
-      scripts=['bin/simurun.py'],
+                        'dill',  # serialization
+                        'PyYAML',  # yaml parser
+                        'tqdm'],  # status bar
+      scripts=['bin/tunasimu'],
       zip_safe=False)
