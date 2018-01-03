@@ -147,7 +147,7 @@ class Experiment(object):
         fns = text.container_filename_parser(self.abspath)
         bns = [os.path.splitext(bn)[0] for bn in fns]
         # extract only container labels
-        self.containers = bns
+        self.containers = sorted(bns)
         # get metadata
 #        fn = text._check_up('metadata.csv', self.abspath, level=2)
 #        fn = text._check_up('metadata.yml', self.abspath, level=2)
@@ -192,8 +192,8 @@ class Experiment(object):
                 msg += '\t...\n'
                 break
             msg += '\t' + fn + '\n'
-        msg += '({} containers)\n'.format(len(self.containers))
-        msg += 'Filetype: {}\n'.format(self.filetype)
+        msg += '\t({} containers)\n'.format(len(self.containers))
+#        msg += 'Filetype: {}\n'.format(self.filetype)
         msg += repr(self.metadata)
         return msg
 
