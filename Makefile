@@ -10,3 +10,9 @@ flake8:
 
 test:
 	venv/bin/py.test -v tunacell/tests/
+
+simu:
+	python bin/tunasimu -s 42
+
+tuto: ~/tmptunacell/simutest
+	python scripts/tutorial.py
