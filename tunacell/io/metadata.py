@@ -259,8 +259,10 @@ class Metadata(object):
         return self.top[key]
     
     def __str__(self):
-        msg = str(self.top)
-        return msg
+        s = yaml.dump_all(self._iter_dict, default_flow_style=False)
+        return s
+#        msg = str(self.top)
+#        return msg
     
     def __repr__(self):
         return str(self)
@@ -324,13 +326,16 @@ class LocalMetadata(object):
             return self._top['period']
     
     def __str__(self):
-        msg = '{:<20s} {:<20s}\n'.format('Parameter', 'Value')
-        for key in self._keys:
-            if key == 'level':
-                continue
-            val = '{}'.format(self[key])
-            msg += '{:<20s} {:<20s}\n'.format(key, val)
-        return msg.strip()
+        """String output based on yaml.dump"""
+        s = yaml.dump(self._dict, default_flow_style=False)
+        return s
+#        msg = '{:<20s} {:<20s}\n'.format('Parameter', 'Value')
+#        for key in self._keys:
+#            if key == 'level':
+#                continue
+#            val = '{}'.format(self[key])
+#            msg += '{:<20s} {:<20s}\n'.format(key, val)
+#        return msg.strip()
     
     def __repr__(self):
         return str(self)
