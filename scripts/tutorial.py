@@ -8,19 +8,8 @@ documentation.
 from __future__ import print_function
 from builtins import input  # future package 
 import argparse
+import time
 
-
-def press_enter(*figs):
-    """Convenient function to print figures and press Enter"""
-    # when run from ipython, figure should automatically be plotted
-    try:
-        __IPYTHON__
-    # otherwise call .plot() and wait for pressing Enter
-    except NameError:
-        for fig in figs:
-            fig.show()
-        ans = input('Press Enter to proceed...')
-    return
 
 # Arguments
 argparser = argparse.ArgumentParser()
@@ -29,7 +18,6 @@ argparser.add_argument('-e', '--experiment', type=str,
                        default='~/tmptunacell/simutest')
 
 args = argparser.parse_args()
-
 
 
 if __name__ == '__main__':
@@ -45,8 +33,9 @@ if __name__ == '__main__':
     # %% To collect small samples, we use the Parser object
     parser = Parser(path_to_exp)
     
-    # Add a random sample
-    parser.add_sample(1)
+    # Add a known sample
+    parser.add_sample(('container_079', 4))  # this one works out on default settings
+    parser.add_sample(1)  # adds 1 random sample default settings have not been used
     print(parser)
     print('**')
     
@@ -78,8 +67,11 @@ if __name__ == '__main__':
     from tunacell.plotting.samples import SamplePlot
     myplot = SamplePlot([colony, ], parser=parser)
     myplot.make_plot(obs)
-    press_enter(myplot.fig)
     myplot.save(user_bname='tutorial_sample', add_obs=False, extension='.png')
+    print('Plotting timeseries')
+    myplot.fig.show()
+    time.sleep(2)
+    print('**')
     
     # %% Statistics of the dynamics
     
@@ -94,5 +86,11 @@ if __name__ == '__main__':
     
     from tunacell.plotting.dynamics import plot_onepoint, plot_twopoints
     fig = plot_onepoint(univariate, show_ci=True, save=True)
+    print('Plotting one-point functions')
+    fig.show()
+    print('**')
+    print('Plotting two-point functions')
     fig2 = plot_twopoints(univariate, save=True)
-    press_enter(fig, fig2)
+    fig2.show()
+    print('**')
+    ans = input('Press Enter to close all files')
