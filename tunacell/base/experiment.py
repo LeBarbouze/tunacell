@@ -28,7 +28,11 @@ import warnings
 import shutil
 
 from tunacell.base.container import Container
-from tunacell.filters.main import FilterSet
+from tunacell.filters.main import FilterSet, FilterTRUE
+from tunacell.filters.cells import FilterCell
+from tunacell.filters.containers import FilterContainer
+from tunacell.filters.trees import FilterTree
+from tunacell.filters.lineages import FilterLineage
 from tunacell.io import text, metadata
 
 
@@ -84,11 +88,11 @@ class Experiment(object):
     iter_containers(self, read=True, build=True, prefilt=None,
                     extend_observables=False, report_NaNs=True,
                     size=None, shuffle=False)
-        main API to browse containers. MUST BE DEFINED FOR USE IN HIGH LEVEL
-        PARSER API CLASS.
+        browse containers
     """
 
-    def __init__(self, path='.', filetype=None, filter_set=None):
+    def __init__(self, path='.', filetype=None, filter_set=None,
+                 count_stuff=True):
         self.abspath = None
         self.label = None
         self.datatype = None  # Will be updated for text filetype
@@ -109,14 +113,10 @@ class Experiment(object):
             self.filetype = filetype
         # different initialization depending on filetype
         if self.filetype == 'text':
-            self.load_from_text()
+            self._load_from_text(count_stuff)
         else:
             raise FiletypeError('Filetype not recognized')
-        if isinstance(filter_set, FilterSet):
-            self._fset = filter_set
-        else:
-            self._fset = FilterSet()  # default filter: all TRUE
-        return
+        self.fset = filter_set
 
     @property
     def fset(self):
@@ -132,7 +132,6 @@ class Experiment(object):
             self._fset = FilterSet()  # default filterset: all TRUE
         else:
             warnings.warn('{} is not a FilterSet'.format(value))
-        return
     
     @property
     def analysis_path(self):
@@ -141,26 +140,27 @@ class Experiment(object):
         index, filterset_path = text.get_filter_path(analysis_path, self.fset, write=True)
         return filterset_path
 
-    def load_from_text(self):
-        """Load parameters from text filetype"""
+    def _load_from_text(self, count_stuff=True):
+        """Load parameters from text filetype
+        
+        Parameters
+        ----------
+        count_stuff : bool {True, False}
+            whether to parse data to count stuff
+        """
         # get list of container files
         fns = text.container_filename_parser(self.abspath)
         bns = [os.path.splitext(bn)[0] for bn in fns]
         # extract only container labels
         self.containers = sorted(bns)
         # get metadata
-#        fn = text._check_up('metadata.csv', self.abspath, level=2)
-#        fn = text._check_up('metadata.yml', self.abspath, level=2)
-#        df = metadata.load_from_csv(fn, sep=',')
-#        meta = metadata.fill_rows(df, self.label, self.containers)
         meta = metadata.load_metadata(self.abspath)
         self.metadata = meta
         self.period = self.metadata.period
-#        self.period = metadata.get_period(meta, self.label)
         descriptor_file = text._check_up('descriptor.csv', self.abspath, 2)
         datatype = text.datatype_parser(descriptor_file)
         self.datatype = datatype
-        return
+        # parse files to count stuff
 
     @property
     def containers(self):
@@ -197,10 +197,12 @@ class Experiment(object):
         msg += repr(self.metadata)
         return msg
 
-    def iter_containers(self, read=True, build=True, prefilt=None,
-                       apply_container_filter=True,
-                       extend_observables=False, report_NaNs=True,
-                       size=None, shuffle=False):
+    def iter_containers(self, read=True, build=True,
+                        filter_for_cells='from_fset',
+                        filter_for_containers='from_fset',
+                        apply_container_filter=True,
+                        extend_observables=False, report_NaNs=True,
+                        size=None, shuffle=False):
         """Iterator over containers.
 
         Parameters
@@ -211,9 +213,10 @@ class Experiment(object):
             whether to read data and extract Cell instances
         build : bool (default True), called only if `read` is True
             whether to build colonies
-        prefilt : FilterCell instance (default None)
-        apply_container_filter : bool (default True)
-            whether to apply container filter defined in filter_set self.fset
+        filter_for_cells : FilterCell instance, or str {'from_fset', 'none'}
+            filter applied to cells when data files are parsed
+        filter_for_containers : FilterContainer instance or str {'from_fset', 'none'}
+            filter applied to containers when data files are parsed
         extend_observables : bool (default False)
             whether to construct secondary observables from raw data
         report_NaNs : bool (default True)
@@ -226,10 +229,20 @@ class Experiment(object):
         -------
         iterator iver Container instances of current Experiment instance.
         """
-        if prefilt is None:
-            init_cell_filter = self.fset.cell_filter
+        if filter_for_cells is 'from_fset':
+            cell_filter = self.fset.cell_filter
+        elif filter_for_cells is None or filter_for_cells is 'none':
+            cell_filter = FilterTRUE()
+        elif isinstance(filter_for_cells, FilterCell):
+            cell_filter = filter_for_cells
         else:
-            init_cell_filter = prefilt
+            raise ValueError('"filter_for_cells" parameter not recognized')
+        if filter_for_containers is 'from_fset':
+            container_filter = self.fset.container_filter
+        elif filter_for_containers is None or filter_for_containers is 'none':
+            container_filter = FilterTRUE()
+        elif isinstance(filter_for_containers, FilterContainer):
+            container_filter = filter_for_containers
         containers = self.containers[:]
         if shuffle:
             random.shuffle(containers)
@@ -240,11 +253,11 @@ class Experiment(object):
                 break
             container = Container(label, exp=self)
             if read:
-                container.read_data(build=build, prefilt=init_cell_filter,
+                container.read_data(build=build, prefilt=cell_filter,
                                     extend_observables=extend_observables,
                                     report_NaNs=report_NaNs)
             # apply filtering on containers
-            if apply_container_filter and self.fset.container_filter(container):
+            if container_filter(container):
                 yield container
         return
 
@@ -299,11 +312,13 @@ class Experiment(object):
             msg += ' but somehow container initialization failed'
             raise ParsingExperimentError(msg)
 
-    def iter_colonies(self, size=None, shuffle=False):
+    def iter_colonies(self, filter_for_colonies='from_fset',
+                      size=None, shuffle=False):
         """Iterate through valid colonies.
 
         Parameters
         ----------
+        filter_for_colonies : FilterTree instance or str {'from_fset', 'none'}
         size : int (default None)
             limit the number of colonies to size. Works only in mode='all'
         shuffle : bool (default False)
@@ -314,11 +329,19 @@ class Experiment(object):
         colony : :class:`Colony` instance
             filtering removed outlier cells, containers, and colonies
         """
-        colfilt = self.fset.colony_filter
+        if filter_for_colonies is 'from_fset':
+            colony_filter = self.fset.colony_filter
+        elif filter_for_colonies is None or filter_for_colonies is 'none':
+            colony_filter = FilterTRUE()
+        elif isinstance(filter_for_colonies, FilterTree):
+            colony_filter = filter_for_colonies
+        else:
+            raise ValueError('"filter_for_colonies" parameter not recognized')
+#        colfilt = self.fset.colony_filter
         if size is not None:
             count = 0  # count colonies
             for container in self.iter_containers(shuffle=shuffle):
-                for colony in container.iter_colonies(filt=colfilt,
+                for colony in container.iter_colonies(filt=colony_filter,
                                                       shuffle=shuffle):
                     yield colony
                     count += 1
@@ -328,16 +351,19 @@ class Experiment(object):
                     break
         else:
             for container in self.iter_containers(shuffle=shuffle):
-                for colony in container.iter_colonies(filt=colfilt,
+                for colony in container.iter_colonies(filt=colony_filter,
                                                       shuffle=shuffle):
                     yield colony
         return
 
-    def iter_lineages(self, size=None, shuffle=False):
+    def iter_lineages(self, filter_for_lineages='from_fset',
+                      size=None, shuffle=False):
         """Iterate through valid lineages.
 
         Parameters
         ----------
+        filter_for_lineages : FilterLineage instance or str {'from_fset', 'none'}
+            filter lineages
         size : int (default None)
             limit the number of lineages to size. Works only in mode='all'
         shuffle : bool (default False)
@@ -348,11 +374,19 @@ class Experiment(object):
         lineage : :class:`Lineage` instance
             filtering removed outlier cells, containers, colonies, and lineages
         """
-        lin_filt = self.fset.lineage_filter
+        if filter_for_lineages is 'from_fset':
+            lineage_filter = self.fset.lineage_filter
+        elif filter_for_lineages is None or filter_for_lineages is 'none':
+            lineage_filter = FilterTRUE()
+        elif isinstance(filter_for_lineages, FilterLineage):
+            lineage_filter = filter_for_lineages
+        else:
+            raise ValueError('"filter_for_lineages" parameter not recognized')
+#        lin_filt = self.fset.lineage_filter
         if size is not None:
             count = 0
             for colony in self.iter_colonies(shuffle=shuffle):
-                for lineage in colony.iter_lineages(filt=lin_filt,
+                for lineage in colony.iter_lineages(filt=lineage_filter,
                                                     shuffle=shuffle):
                     yield lineage
                     count += 1
@@ -362,13 +396,15 @@ class Experiment(object):
                     break
         else:
             for colony in self.iter_colonies(shuffle=shuffle):
-                for lineage in colony.iter_lineages(filt=lin_filt,
+                for lineage in colony.iter_lineages(filt=lineage_filter,
                                                     shuffle=shuffle):
                     yield lineage
         return
 
     def iter_cells(self, size=None, shuffle=False):
         """Iterate through valid cells.
+        
+        Applies all filters defined in fset.
 
         Parameters
         ----------
