@@ -1,14 +1,13 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 This module defines the :class:`Colony` class that handle the tree-like
 structure made by dividing cells.
 """
+import numpy as np
 import treelib
 
-import random
 
-from numpy.random import randint
 from tunacell.base.lineage import Lineage
 
 
@@ -46,7 +45,6 @@ class Colony(treelib.Tree):
         treelib.Tree.__init__(self, tree=tree, deep=deep)
         self.container = container
         self.idseqs = None
-        return
 
     def add_cell_recursive(self, cell):
         """Function to add nodes recursively to a tree.
@@ -64,9 +62,8 @@ class Colony(treelib.Tree):
                 # but link only if the backpointer still points to cell
                 # which may be changed by prefiltering method
                 self.add_cell_recursive(ch)
-        return
 
-    def decompose(self, independent=True):
+    def decompose(self, independent=True, seed=None):
         """Decompose tree onto lineages, i.e. sequences of cells
 
         Parameters
@@ -74,11 +71,14 @@ class Colony(treelib.Tree):
         independent : bool (default True)
            with this option, returns list of sequences, where each cid appears
            only once. It is thus suited to perform statistical analysis.
+        seed : int (default None)
+            use a specified seed to compare results
 
         Returns
         -------
         idseqs : list of sequences of cell identifiers composing each lineage
         """
+        np.random.seed(seed)
         if not independent:
             idseqs = self.paths_to_leaves()
         else:
@@ -90,21 +90,36 @@ class Colony(treelib.Tree):
                 if self.get_node(nid).is_leaf():
                     idseqs.append(seq)
                     seq = []
-#        if self.idseqs is None:
-#            self.idseqs = independent_cell_lineages(self, only_ids=True)
-#        # these may be used to build associated Lineage objects
         self.idseqs = idseqs
         return idseqs
 
-    def iter_lineages(self, filt=None, size=None, shuffle=False):
-        """Iterates through lineages.
+    def iter_lineages(self, filt=None, size=None, shuffle=False, seed=None):
+        """Iterates through lineages using tree decomposition
+        
+        Parameters
+        ----------
+        filt : FilterLineage instance
+        size : int
+            iterate up to that number of lineages
+        shuffle: bool {False, True}
+            shuffle the sequence of lineages
+        seed : int (default None)
+            use a specified seed to compare results
+        
+        Yields
+        ------
+        Lineage instance
+        
+        See also
+        --------
+        decompose : tree decomposition
         """
         if self.idseqs is None:
-            idseqs = self.decompose()
+            idseqs = self.decompose(seed)
         else:
             idseqs = self.idseqs[:]
         if shuffle:
-            random.shuffle(idseqs)
+            np.random.shuffle(idseqs)
         if filt is None:
             from tunacell.filters.lineages import FilterLineageAny
             filt = FilterLineageAny()
@@ -116,8 +131,7 @@ class Colony(treelib.Tree):
             if filt(lin):
                 count += 1
                 yield lin
-        return
 
 
 def _randomise(param):
-    return random.uniform(0, 1)
+    return np.random.uniform(0, 1)
