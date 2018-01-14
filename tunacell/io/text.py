@@ -11,6 +11,7 @@ import glob
 import logging
 import warnings
 import numpy as np
+import yaml
 
 from tunacell.base.observable import Observable, FunctionalObservable
 
@@ -68,6 +69,11 @@ class MismatchFileError(TextParsingError):
     def __init__(self, level='none', *args):
         super().__init__(*args)
         self.level = level
+
+
+class CorruptedFileError(TextParsingError):
+    """When a file does not contain what it should"""
+    pass
 
 
 class TextFileSystem(TextParsingError):
@@ -254,7 +260,7 @@ class MissingFolderError(TextParsingError):
         return msg
 
 
-# %% EXPORTING ANALYSIS FILES/FOLDERS
+# EXPORTING ANALYSIS FILES/FOLDERS
 
 def get_analysis_path(exp, user_abspath=None, write=True):
     """Returns path to analysis folder.
@@ -452,7 +458,42 @@ def get_biobservable_path(filter_path, obss, write=True):
     return path
 
 
-# %% PRINTING STUFF FROM ANALYSIS TEXT FILES
+def read_count_file(filter_path):
+    """Read yaml file for count
+    
+    Parameters
+    ----------
+    filter_path : str
+        path to a FilterSet folder
+    
+    Returns
+    -------
+    counts : dict
+        keys are cells, lineages, colonies, containers
+    """
+    count_file = os.path.join(filter_path, '.counts.yml')
+    if not os.path.exists(count_file):
+        raise MissingFileError
+    with open(count_file, 'r') as f:
+        counts = yaml.load(f)
+    # check that information is correctly stored
+    a = 'cells' in counts
+    b = 'lineages' in counts
+    c = 'colonies' in counts
+    d = 'containers' in counts
+    if not (a and b and c and d):
+        raise CorruptedFileError
+    return counts
+
+
+def write_count_file(filter_path, counts):
+    """Write yaml file"""
+    count_file = os.path.join(filter_path, '.counts.yml')
+    with open(count_file, 'w') as f:
+        yaml.dump(counts, stream=f, default_flow_style=False)
+    
+    
+# PRINTING STUFF FROM ANALYSIS TEXT FILES
 
 def _print_collections(parent_folder, kind='filterset'):
     """Print list of filtersets/conditions
@@ -557,7 +598,7 @@ def print_observables(exp, fset):
     return
 
 
-# %% LOADING STUFF FROM TEXT FILES
+# LOADING STUFF FROM TEXT FILES
 
 class ImpossibleToLoad(ValueError):
     pass
@@ -576,7 +617,7 @@ def load_item_from_path(path):
     return eval(rep)
 
 
-# %% other functions
+# other functions
 
 
 def _read_first_remaining(filename):

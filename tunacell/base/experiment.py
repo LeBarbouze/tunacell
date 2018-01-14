@@ -26,6 +26,7 @@ import os
 import random
 import warnings
 import shutil
+from tqdm import tqdm
 
 from tunacell.base.container import Container
 from tunacell.filters.main import FilterSet, FilterTRUE
@@ -92,11 +93,12 @@ class Experiment(object):
     """
 
     def __init__(self, path='.', filetype=None, filter_set=None,
-                 count_stuff=True):
+                 count_items=False):
         self.abspath = None
         self.label = None
         self.datatype = None  # Will be updated for text filetype
         self._containers = []
+        self._counts = None
         self.metadata = None
         self.period = None
         # let's go
@@ -113,10 +115,12 @@ class Experiment(object):
             self.filetype = filetype
         # different initialization depending on filetype
         if self.filetype == 'text':
-            self._load_from_text(count_stuff)
+            self._load_from_text()
         else:
             raise FiletypeError('Filetype not recognized')
         self.fset = filter_set
+        if count_items:
+            self.count_items()
 
     @property
     def fset(self):
@@ -139,14 +143,64 @@ class Experiment(object):
         analysis_path = text.get_analysis_path(self, write=True)
         index, filterset_path = text.get_filter_path(analysis_path, self.fset, write=True)
         return filterset_path
-
-    def _load_from_text(self, count_stuff=True):
-        """Load parameters from text filetype
+    
+    def count_items(self, independent=True, seed=None, read=True):
+        """Parse data to count items: cells, colonies, lineages, containers
         
         Parameters
         ----------
-        count_stuff : bool {True, False}
-            whether to parse data to count stuff
+        independent : bool {True, False}
+            lineage decomposition parameter
+        seed : int, or None
+            lineage decomposition parameter
+        read : bool {True, False}
+            try to read it in analysis folder
+        """
+        # 1. try to read
+        try:
+            if read:
+                # get analysis path
+                
+                analysis_path = text.get_analysis_path(self, write=False)
+                i, filter_path = text.get_filter_path(analysis_path, self.fset,
+                                                      write=False)
+                counts = text.read_count_file(filter_path)
+                self._counts = counts
+            else:
+                raise text.MissingFileError  # mock it to go to exception
+        except (text.MissingFileError, text.MissingFolderError, text.CorruptedFileError):
+            self._count_items(independent=independent, seed=seed, write=True)
+        print(self._count_summary())
+        
+    def _count_summary(self):
+        msg = ('\nCount summary:\n'
+               ' - cells : {}'.format(self._counts['cells']) + '\n'
+               ' - lineages : {}'.format(self._counts['lineages']) + '\n'
+               ' - colonies : {}'.format(self._counts['colonies']) + '\n'
+               ' - containers : {}'.format(self._counts['containers']))
+        return msg
+        
+    def _count_items(self, independent=True, seed=None, write=True):
+        """Hidden method, see above for parameters"""
+        counts = count_items(self, independent_decomposition=independent, seed=seed)
+        # save the counts
+        text.write_count_file(self.analysis_path, counts)
+        if write:
+            self._counts = counts
+            
+    def _erase_count_file(self):
+        try:
+            analysis_path = text.get_analysis_path(self, write=False)
+            i, filter_path = text.get_filter_path(analysis_path, self.fset,
+                                                      write=False)
+            filename = os.path.join(filter_path, '.counts.yml')
+            if os.path.exists(filename):
+                os.remove(filename)
+        except (text.MissingFileError, text.MissingFolderError):
+            pass
+
+    def _load_from_text(self):
+        """Load parameters from text filetype
         """
         # get list of container files
         fns = text.container_filename_parser(self.abspath)
@@ -160,7 +214,6 @@ class Experiment(object):
         descriptor_file = text._check_up('descriptor.csv', self.abspath, 2)
         datatype = text.datatype_parser(descriptor_file)
         self.datatype = datatype
-        # parse files to count stuff
 
     @property
     def containers(self):
@@ -188,13 +241,15 @@ class Experiment(object):
         count = 0
         for fn in self.containers:
             count += 1
-            if count > 10:
+            if count > 5:
                 msg += '\t...\n'
                 break
             msg += '\t' + fn + '\n'
         msg += '\t({} containers)\n'.format(len(self.containers))
 #        msg += 'Filetype: {}\n'.format(self.filetype)
         msg += repr(self.metadata)
+        if self._counts is not None:
+            msg += self._count_summary()
         return msg
 
     def iter_containers(self, read=True, build=True,
@@ -473,3 +528,28 @@ class Experiment(object):
         for container in self.iter_containers():
             container.write_raw_text(data_path)
         return
+
+
+def count_items(exp, independent_decomposition=True, seed=None):
+    """Parse the experiment, with associated FilterSet, and count items"""
+    cells = 0
+    colonies = 0
+    lineages = 0
+    containers = 0
+    for container in tqdm(exp.iter_containers(read=True, build=True,
+                                              filter_for_cells='from_fset',
+                                              filter_for_containers='from_fset',
+                                              apply_container_filter=True,),
+                         total=len(exp.containers), desc='counting items'):
+        containers += 1
+        for colony in container.iter_colonies(filter_for_colonies='from_fset'):
+            colonies += 1
+            for lineage in colony.iter_lineages(independent=independent_decomposition, seed=seed):
+                lineages += 1
+                for cid in lineage.idseq:
+                    cells += 1
+    counts = {'cells': cells,
+              'lineages': lineages,
+              'colonies': colonies,
+              'containers': containers}
+    return counts

@@ -7,6 +7,7 @@ from __future__ import print_function
 
 import pytest
 import os
+import shutil
 
 import tunacell
 from tunacell.base.experiment import Experiment
@@ -18,8 +19,11 @@ path_fake_exp = os.path.join(path_data, 'fake')
 
 @pytest.fixture(scope='module')
 def fake_exp():
-    exp = Experiment(path_fake_exp)
-    return exp
+    exp = Experiment(path_fake_exp, count_items=True)
+    yield exp
+    analysis_path = os.path.join(path_fake_exp, 'analysis')
+    if os.path.exists(analysis_path):
+        shutil.rmtree(analysis_path)
 
 
 def test_load_experiment(fake_exp):
@@ -64,3 +68,11 @@ def test_experiment_iter(fake_exp):
 def test_experiment_get_container(fake_exp):
     container = fake_exp.get_container('container_01')
     assert isinstance(container, Container)
+    
+
+def test_counts(fake_exp):
+    counts = fake_exp._counts
+    assert counts['containers'] == 3
+    assert counts['cells'] == 18
+    assert counts['colonies'] == 3
+    assert counts['lineages'] == 9  # number of leaves when no filter is applied
