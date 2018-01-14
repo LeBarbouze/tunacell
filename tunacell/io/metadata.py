@@ -9,7 +9,7 @@ daughter cell, minus half the acquisition period).
 Metadata can be loaded from two different types of file:
     * csv, which can be exported from spreadsheet software, but is hardly
       readable from a raw text file;
-    * yaml, which is readable and easily to fill in a raw text file format.
+    * yaml, which is both readable and easy to fill in as a raw text file.
     
 One entry must be given for the constructor to work properly: the ``level``
 entry that allows to distinguish 'top' experiment-level metadata, to
@@ -36,6 +36,9 @@ and the same for yaml file:
 These metadata files indicate that the author is the same for all containers,
 and that e.coli is used in all containers but container_12 which has been
 labeled 'weird_container' and contains the new species 'weirdo.weirdus'.
+
+A hidden file will be written when data is parsed for the first time, and
+will report for a certain number of 
 """
 import warnings
 import yaml
@@ -269,11 +272,6 @@ class Metadata(object):
     
     def to_yaml(self, stream=None):
         """Exports metadata to yaml file"""
-#        locs = [self.top, ] + [dic for k, dic in self.locals.items()]
-#        iter_dict = []
-#        for loc in locs:
-#            # print(loc)
-#            iter_dict.append(loc._dict)
         out = yaml.dump_all(self._iter_dict, stream=stream, default_flow_style=False)
         if stream is None:
             print(out)
@@ -329,16 +327,25 @@ class LocalMetadata(object):
         """String output based on yaml.dump"""
         s = yaml.dump(self._dict, default_flow_style=False)
         return s
-#        msg = '{:<20s} {:<20s}\n'.format('Parameter', 'Value')
-#        for key in self._keys:
-#            if key == 'level':
-#                continue
-#            val = '{}'.format(self[key])
-#            msg += '{:<20s} {:<20s}\n'.format(key, val)
-#        return msg.strip()
-    
+
     def __repr__(self):
         return str(self)
+
+
+def load_counts(experiment_abspath):
+    """Reads hidden file to load dict of counts (for any given filterset)
+    
+    Parameters
+    ----------
+    experiment_abspath : str
+    
+    Returns
+    -------
+    dict of dicts
+        primary key is the representation of a FilterSet, secondary key is one
+        from 'cells', 'colonies', 'lineages', 'containers'
+    """
+    pass
 
 
 

@@ -45,6 +45,7 @@ class Colony(treelib.Tree):
         treelib.Tree.__init__(self, tree=tree, deep=deep)
         self.container = container
         self.idseqs = None
+        self._decomposition = None
 
     def add_cell_recursive(self, cell):
         """Function to add nodes recursively to a tree.
@@ -78,6 +79,7 @@ class Colony(treelib.Tree):
         -------
         idseqs : list of sequences of cell identifiers composing each lineage
         """
+        self._decomposition = {'independent': independent, 'seed': seed}
         np.random.seed(seed)
         if not independent:
             idseqs = self.paths_to_leaves()
@@ -93,19 +95,29 @@ class Colony(treelib.Tree):
         self.idseqs = idseqs
         return idseqs
 
-    def iter_lineages(self, filt=None, size=None, shuffle=False, seed=None):
+    def iter_lineages(self, independent=True, seed=None, filt=None, size=None,
+                      shuffle=False):
         """Iterates through lineages using tree decomposition
+        
+        When a decomposition has already been performed, call to this method
+        will check decomposition parameters(`independent`, `seed`): if they
+        are the same, the previous cell sequences are used identically,
+        otherwise a new decomposition is computed.
         
         Parameters
         ----------
+        independent : bool {True, False}
+            whether to use independent decomposition or not (independent:
+                intersection of any couple of sequences of cell is empty, or
+                a given cell belongs to a unique sequence in the decomposition)
+        seed : int (default None)
+            use a specified seed to compare results
         filt : FilterLineage instance
         size : int
             iterate up to that number of lineages
         shuffle: bool {False, True}
             shuffle the sequence of lineages
-        seed : int (default None)
-            use a specified seed to compare results
-        
+
         Yields
         ------
         Lineage instance
@@ -114,12 +126,18 @@ class Colony(treelib.Tree):
         --------
         decompose : tree decomposition
         """
-        if self.idseqs is None:
-            idseqs = self.decompose(seed)
+        new = True  # new decomposition
+        if self._decomposition is not None:
+            a = self._decomposition['independent'] == independent
+            b = self._decomposition['seed'] == seed
+            if a and b:
+                new = False
+        if new:
+            idseqs = self.decompose(independent=independent, seed=seed)
         else:
             idseqs = self.idseqs[:]
         if shuffle:
-            np.random.shuffle(idseqs)
+            np.random.shuffle(idseqs)  # not sure it is useful...
         if filt is None:
             from tunacell.filters.lineages import FilterLineageAny
             filt = FilterLineageAny()
@@ -135,3 +153,23 @@ class Colony(treelib.Tree):
 
 def _randomise(param):
     return np.random.uniform(0, 1)
+
+
+def build_recursively_from_cells(cells, container=None):
+    """Build recursively a list of Colony instance from a list of Cells
+    
+    Parameters
+    ----------
+    cells : list of Cell instances
+    
+    Returns
+    -------
+    colonies: list of Colony instances
+    """
+    colonies = []
+    for cell in cells:
+        if cell.bpointer is None:  # test whether cell is root
+            colony = Colony(container=container)
+            colony.add_cell_recursive(cell)
+            colonies.append(colony)
+    return colonies

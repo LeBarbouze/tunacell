@@ -9,15 +9,14 @@ import os
 import re
 import random
 import numpy as np
-import collections
 
 import logging
 
 from tunacell.io import text
 
-from tunacell.base.cell import Cell
+from tunacell.base.cell import Cell, filiate_from_bpointer
 from tunacell.base.datatools import compute_secondary_observables
-from tunacell.base.colony import Colony
+from tunacell.base.colony import Colony, build_recursively_from_cells
 from tunacell.base.observable import Observable, set_observable_list
 
 
@@ -196,14 +195,15 @@ class Container(object):
         This method links cells objects.
         """
         if self.cells is not None:
-            for cell in self.cells:
-                childs = []
-                for cc in self.cells:
-                    if cc.bpointer == cell.identifier:
-                        childs.append(cc)
-                        cc.parent = cell
-                        cc.set_division_event()
-                cell.childs = childs
+            filiate_from_bpointer(self.cells)
+#            for cell in self.cells:
+#                childs = []
+#                for cc in self.cells:
+#                    if cc.bpointer == cell.identifier:
+#                        childs.append(cc)
+#                        cc.parent = cell
+#                        cc.set_division_event()
+#                cell.childs = childs
         return
 
     def prefilter(self, filt=None, verbose=False):
@@ -271,12 +271,13 @@ class Container(object):
 
     def make_trees(self):
         """Build trees from list of cells."""
-        self.trees = []
-        for cell in self.cells:
-            if cell.bpointer is None:  # test whether cell is root
-                tree = Colony(container=self)
-                tree.add_cell_recursive(cell)
-                self.trees.append(tree)
+        self.trees = build_recursively_from_cells(self.cells, container=self)
+#        self.trees = []
+#        for cell in self.cells:
+#            if cell.bpointer is None:  # test whether cell is root
+#                tree = Colony(container=self)
+#                tree.add_cell_recursive(cell)
+#                self.trees.append(tree)
         return
 
     # TODO : postfiltering does not work with filter involving observables

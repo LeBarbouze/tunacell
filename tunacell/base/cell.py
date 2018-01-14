@@ -389,3 +389,20 @@ def _disjoint_time_sets(ts1, ts2):
     min1, min2 = map(np.nanmin, [ts1, ts2])
     max1, max2 = map(np.nanmax, [ts1, ts2])
     return max1 < min2 or max2 < min1
+
+
+def filiate_from_bpointer(cells):
+    """Build in place parent/childs attributes in a set of filiated cells
+    
+    Parameters
+    ----------
+    cells : list of Cell instances
+    """
+    for cell in cells:
+        childs = []
+        for cc in cells:
+            if cc.bpointer == cell.identifier:
+                childs.append(cc)
+                cc.parent = cell
+                cc.set_division_event()
+        cell.childs = childs
