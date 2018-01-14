@@ -392,6 +392,8 @@ class Container(object):
             colony_filter = FilterTRUE()
         elif isinstance(filter_for_colonies, FilterTree):
             colony_filter = filter_for_colonies
+        elif isinstance(filter_for_colonies, FilterTRUE):
+            colony_filter = filter_for_colonies
         else:
             raise ValueError('"filter_for_colonies" parameter not recognized')
         trees = self.trees[:]

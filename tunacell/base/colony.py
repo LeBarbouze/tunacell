@@ -146,6 +146,8 @@ class Colony(treelib.Tree):
             lineage_filter = FilterTRUE()
         elif isinstance(filter_for_lineages, FilterLineage):
             lineage_filter = filter_for_lineages
+        elif isinstance(filter_for_lineages, FilterTRUE):
+            lineage_filter = filter_for_lineages
         else:
             raise ValueError('"filter_for_lineages" parameter not recognized')
 

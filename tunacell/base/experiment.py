@@ -390,13 +390,15 @@ class Experiment(object):
             colony_filter = FilterTRUE()
         elif isinstance(filter_for_colonies, FilterTree):
             colony_filter = filter_for_colonies
+        elif isinstance(filter_for_colonies, FilterTRUE):
+            colony_filter = filter_for_colonies
         else:
             raise ValueError('"filter_for_colonies" parameter not recognized')
 #        colfilt = self.fset.colony_filter
         if size is not None:
             count = 0  # count colonies
             for container in self.iter_containers(shuffle=shuffle):
-                for colony in container.iter_colonies(filt=colony_filter,
+                for colony in container.iter_colonies(filter_for_colonies=colony_filter,
                                                       shuffle=shuffle):
                     yield colony
                     count += 1
@@ -406,7 +408,7 @@ class Experiment(object):
                     break
         else:
             for container in self.iter_containers(shuffle=shuffle):
-                for colony in container.iter_colonies(filt=colony_filter,
+                for colony in container.iter_colonies(filter_for_colonies=colony_filter,
                                                       shuffle=shuffle):
                     yield colony
         return
@@ -435,13 +437,15 @@ class Experiment(object):
             lineage_filter = FilterTRUE()
         elif isinstance(filter_for_lineages, FilterLineage):
             lineage_filter = filter_for_lineages
+        elif isinstance(filter_for_lineages, FilterTRUE):
+            lineage_filter = filter_for_lineages
         else:
             raise ValueError('"filter_for_lineages" parameter not recognized')
 #        lin_filt = self.fset.lineage_filter
         if size is not None:
             count = 0
             for colony in self.iter_colonies(shuffle=shuffle):
-                for lineage in colony.iter_lineages(filt=lineage_filter,
+                for lineage in colony.iter_lineages(filter_for_lineages=lineage_filter,
                                                     shuffle=shuffle):
                     yield lineage
                     count += 1
@@ -451,7 +455,7 @@ class Experiment(object):
                     break
         else:
             for colony in self.iter_colonies(shuffle=shuffle):
-                for lineage in colony.iter_lineages(filt=lineage_filter,
+                for lineage in colony.iter_lineages(filter_for_lineages=lineage_filter,
                                                     shuffle=shuffle):
                     yield lineage
         return
