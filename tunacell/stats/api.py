@@ -30,7 +30,7 @@ MIN_INTERDIVISION_TIME = 5.  # World record is set by Vibrio natriegens
 # See R.G.Eagon, J. Bact. vol 83, pp 736-737 (1962)
 
 
-# %% SINGLE DYNAMIC ONBSERVABLE
+# SINGLE DYNAMIC ONBSERVABLE
 
 def compute_univariate(exp, obs, region='ALL', cset=[], times=None,
                        size=None):
@@ -152,7 +152,8 @@ def load_univariate(exp, obs, region='ALL', cset=[]):
     return univ
 
 
-# %% SINGLE STATIONARY OBSERVABLE
+# SINGLE STATIONARY OBSERVABLE
+    
 class ParamsError(ValueError):
     pass
 
@@ -236,7 +237,8 @@ def compute_stationary(univ, region, options, size=None):
     return stationary
 
 
-# %% CROSS CORRELATION
+# CROSS CORRELATION
+    
 def _update_univariate_from_bivariate(univs, two):
     for cdt_lab in two._condition_labels:
         cdt_two = two[cdt_lab]

@@ -11,6 +11,7 @@ import logging
 import string
 import csv
 import numpy as np
+from tqdm import tqdm
 
 from tunacell.base.parser import Parser
 from tunacell.base.experiment import Experiment
@@ -44,12 +45,14 @@ def iter_timeseries_(exp, observable, conditions, size=None):
     all_filters = [exp.fset, ] + conditions
     raw_obs, func_obs = set_observable_list(observable, filters=all_filters)
     # run the iterator
-    for lineage in exp.iter_lineages(size=size):
+    if exp._counts is None:
+        exp.count_items()
+    n_lineages = exp._counts['lineages']
+    for lineage in tqdm(exp.iter_lineages(size=size), total=n_lineages, desc='sample iteration'):
         ts = lineage.get_timeseries(observable,
                                     raw_obs=raw_obs, func_obs=func_obs,
                                     cset=conditions)
         yield ts
-    return
 
 
 def iter_timeseries_2(exp, obs1, obs2, conditions, size=None):
@@ -74,7 +77,10 @@ def iter_timeseries_2(exp, obs1, obs2, conditions, size=None):
     """
     all_filters = [exp.fset, ] + conditions
     raw_obs, func_obs = set_observable_list(obs1, obs2, filters=all_filters)
-    for lineage in exp.iter_lineages(size=size):
+    if exp._counts is None:
+        exp.count_items()
+    n_lineages = exp._counts['lineages']
+    for lineage in tqdm(exp.iter_lineages(size=size), total=n_lineages, desc='sample iteration'):
         ts1 = lineage.get_timeseries(obs1,
                                      raw_obs=raw_obs, func_obs=func_obs,
                                      cset=conditions)
@@ -82,7 +88,6 @@ def iter_timeseries_2(exp, obs1, obs2, conditions, size=None):
                                      raw_obs=raw_obs, func_obs=func_obs,
                                      cset=conditions)
         yield (ts1, ts2)
-    return
 
 
 class CompuParamsError(ValueError):
@@ -100,7 +105,6 @@ class CompuParams(object):
         if not isinstance(disjoint, bool):
             raise CompuParamsError('disjoint must be boolean: True, False')
         self.disjoint = disjoint
-        return
 
     def as_string_code(self):
         code = ''
@@ -124,7 +128,6 @@ class CompuParams(object):
                 self.disjoint = True
             else:
                 raise CompuParamsError('string {} not valid'.format(code))
-        return
 
 
 class RegionsIOError(IOError):
@@ -158,7 +161,6 @@ class Region(object):
             self.tmax = eval(tmax)
         else:
             self.tmax = tmax
-        return
     
     def as_dict(self):
         return {'name': self.name, 'tmin': self.tmin, 'tmax': self.tmax}
@@ -198,7 +200,6 @@ class Regions(object):
             self.add(name='ALL', tmin=tmin, tmax=tmax)
             self._tmin = tmin
             self._tmax = tmax
-        return
 
     @property
     def names(self):
@@ -224,7 +225,6 @@ class Regions(object):
             for item in items:  # item is a dict with keys name, tmin, tmax
                 name = item['name']
                 self._regions[name] = item
-        return
 
     def save(self):
         if self._regions is not None:
@@ -238,7 +238,6 @@ class Regions(object):
                 for name in names:
                     item = self._regions[name]
                     writer.writerow(item)
-        return
     
     def _lookup_bounds(self, tmin=None, tmax=None):
         """Look up in defined regions whether a region already exists
@@ -341,7 +340,6 @@ class Regions(object):
         if name in self.names:
             del self._regions[name]
         self.save()
-        return
 
     def reset(self):
         """Delete all regions except 'ALL'"""
@@ -349,7 +347,6 @@ class Regions(object):
         for name in names:
             if name != 'ALL':
                 self.delete(name)
-        return
 
     def get(self, name):
         """Get region parameters corresponding to name
