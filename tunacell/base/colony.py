@@ -9,6 +9,8 @@ import treelib
 
 
 from tunacell.base.lineage import Lineage
+from tunacell.filters.main import FilterTRUE
+from tunacell.filters.lineages import FilterLineage
 
 
 class ColonyError(Exception):
@@ -95,8 +97,8 @@ class Colony(treelib.Tree):
         self.idseqs = idseqs
         return idseqs
 
-    def iter_lineages(self, independent=True, seed=None, filt=None, size=None,
-                      shuffle=False):
+    def iter_lineages(self, independent=True, seed=None,
+                      filter_for_lineages='from_fset', size=None, shuffle=False):
         """Iterates through lineages using tree decomposition
         
         When a decomposition has already been performed, call to this method
@@ -112,7 +114,7 @@ class Colony(treelib.Tree):
                 a given cell belongs to a unique sequence in the decomposition)
         seed : int (default None)
             use a specified seed to compare results
-        filt : FilterLineage instance
+        filter_for_lineages : FilterLineage instance
         size : int
             iterate up to that number of lineages
         shuffle: bool {False, True}
@@ -138,15 +140,21 @@ class Colony(treelib.Tree):
             idseqs = self.idseqs[:]
         if shuffle:
             np.random.shuffle(idseqs)  # not sure it is useful...
-        if filt is None:
-            from tunacell.filters.lineages import FilterLineageAny
-            filt = FilterLineageAny()
+        if filter_for_lineages is 'from_fset':
+            lineage_filter = self.container.exp.fset.lineage_filter
+        elif filter_for_lineages is None or filter_for_lineages is 'none':
+            lineage_filter = FilterTRUE()
+        elif isinstance(filter_for_lineages, FilterLineage):
+            lineage_filter = filter_for_lineages
+        else:
+            raise ValueError('"filter_for_lineages" parameter not recognized')
+
         count = 0
         for idseq in idseqs:
             if size is not None and count > size - 1:
                 break
             lin = Lineage(self, idseq)
-            if filt(lin):
+            if lineage_filter(lin):
                 count += 1
                 yield lin
 

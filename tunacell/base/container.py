@@ -18,6 +18,8 @@ from tunacell.base.cell import Cell, filiate_from_bpointer
 from tunacell.base.datatools import compute_secondary_observables
 from tunacell.base.colony import Colony, build_recursively_from_cells
 from tunacell.base.observable import Observable, set_observable_list
+from tunacell.filters.main import FilterTRUE
+from tunacell.filters.trees import FilterTree
 
 
 logger = logging.getLogger(__name__)
@@ -373,7 +375,7 @@ class Container(object):
             msg += " in this container {}".format(self.label)
             raise ParsingContainerError(msg)
 
-    def iter_colonies(self, filt=None, size=None, shuffle=False):
+    def iter_colonies(self, filter_for_colonies='from_fset', size=None, shuffle=False):
         """Iterates through (already constructed colonies).
 
         Parameters
@@ -384,9 +386,14 @@ class Container(object):
            maximal number of colonies before stopping iteration
         shuffle : bool
         """
-        if filt is None:
-            from tunacell.filters.trees import FilterTreeAny
-            filt = FilterTreeAny()
+        if filter_for_colonies is 'from_fset':
+            colony_filter = self.exp.fset.colony_filter
+        elif filter_for_colonies is None or filter_for_colonies is 'none':
+            colony_filter = FilterTRUE()
+        elif isinstance(filter_for_colonies, FilterTree):
+            colony_filter = filter_for_colonies
+        else:
+            raise ValueError('"filter_for_colonies" parameter not recognized')
         trees = self.trees[:]
         if shuffle:
             random.shuffle(trees)
@@ -394,7 +401,7 @@ class Container(object):
         for colony in trees:
             if size is not None and count > size - 1:
                 break
-            if filt(colony):
+            if colony_filter(colony):
                 count += 1
                 yield colony
         return
