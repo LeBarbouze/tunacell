@@ -14,6 +14,7 @@ from builtins import input
 import argparse
 import time
 import subprocess
+from tqdm import tqdm
 
 import matplotlib.pyplot as plt
 
@@ -21,26 +22,62 @@ from tunacell import Experiment, Parser, Observable, FilterSet
 from tunacell.filters.cells import FilterCellIDparity
 from tunacell.plotting.samples import SamplePlot
 
+from tunacell.stats.api import compute_univariate
+
 
 plt.close('all')
 
 
+# =============================================================================
 # Arguments
+# We only set the presentation timing: the delay argument defines the time
+# delay between display of two consecutive figures.
+# =============================================================================
 argparser = argparse.ArgumentParser()
-argparser.add_argument('-t', '--delay', type=float,
-                       help='time-delay between two consecutive figures',
-                       default=2)
+
+argparser.add_argument('-i', '--interactive',
+                       help='Ask user to press Enter between parts',
+                       action='store_true')
+argparser.add_argument('--time', type=float,
+                      help='Time per figure when non-interactive mode is on',
+                      default=3)
 args = argparser.parse_args()
 
+single_plot_timing = args.time
 
-delay = args.delay
-long_delay = 4 * delay
 
-# call simurun to create simushort
+msg = ('==============tunacell=tutorial==============\n'
+       '==                                         ==\n'
+       '==             Plotting samples            ==\n'
+       '==                                         ==\n'
+       '== This tutorial presents an overview of   ==\n'
+       '== the basic plotting features of tunacell ==\n'
+       '==                                         ==\n'
+       '==============tunacell=tutorial==============\n')
+print(msg)
+
+
+# =============================================================================
+# We run a numerical simulation of growing and dividing cells with defaults
+# parameters except the following
+# -f : we force the experiment (to overide previously run simulations)
+# -l : we label the experiment 'simushort'
+# --stop : we change the time range upper bound to 120 minutes ; this is chosen
+# to make colonies with a lower number of leaves (compared to default 180 mins)
+# --seed : we chose the seed for the random generator to make comparable
+# results
+# =============================================================================
 name = 'simushort'
-subprocess.run(['tunasimu', '-f', '-l', name, '--stop', '120.'])
+subprocess.run(['tunasimu', '-f', '-l', name, '--stop', '120.', '--seed', '167389'])
 
-# define the Parser instance, no filter applied
+# =============================================================================
+# To choose samples from the experiment, we use the Parser class that takes
+# an Experiment instance as input. It provides methods to add random samples
+# to a buffer of samples that one wants to look at.
+# Then we define a filter on the parity of cell identifiers, in order to
+# test visually how conditions are handled by tunacell.
+# And we define two observables that will be plotted: length and growth rate.
+# =============================================================================
 path_to_exp = '~/tmptunacell/' + name
 exp = Experiment(path_to_exp)
 parser = Parser(exp)
@@ -57,7 +94,13 @@ condition = FilterSet(filtercell=even)
 length = Observable(name='length', raw='exp_ou_int')
 ou = Observable(name='growth-rate', raw='ou')
 
-## Starting to plot one colony with various options
+# =============================================================================
+# Now that the parser is defined and that some samples are stored in his buffer
+# we will call the plotting functions on particular structures, colonies and
+# lineages, from which time-series will be extracted by tunacell.
+# We show on following subplots the various options that the plotting module
+# provides to help identify patterns of the dynamics.
+# =============================================================================
 # get one colony
 colony = parser.get_colony(0)
 
@@ -75,9 +118,6 @@ colplt.save(user_bname='colony0', add_obs=False, with_data_text=False,
             extension='.png')
 figs.append(colplt.fig)
 figs[-1].show()
-time.sleep(delay)
-#plt.close(colplt.fig)
-
 
 print('* marking samples that verify or not a condition')
 colplt.make_plot(length, report_condition=repr(condition),)
@@ -85,8 +125,6 @@ colplt.save(user_bname='colony0-even', add_obs=False, with_data_text=False,
             extension='.png')
 figs.append(colplt.fig)
 figs[-1].show()
-time.sleep(delay)
-
 
 print('* changing color for each cell (colour corresponds to generation index)')
 colplt.make_plot(length, report_condition=repr(condition), change_cell_color=True)
@@ -94,7 +132,6 @@ colplt.save(user_bname='colony0-even-cell-color', add_obs=False, with_data_text=
             extension='.png')
 figs.append(colplt.fig)
 figs[-1].show()
-time.sleep(delay)
 
 print('* changing color for each lineage')
 colplt.make_plot(length, report_condition=repr(condition), change_lineage_color=True)
@@ -102,7 +139,6 @@ colplt.save(user_bname='colony0-even-lineage-color', add_obs=False, with_data_te
             extension='.png')
 figs.append(colplt.fig)
 figs[-1].show()
-time.sleep(delay)
 
 num_sup = 3
 print('* superimposing {} lineages'.format(num_sup))
@@ -112,14 +148,17 @@ colplt.save(user_bname='colony0-even-super3', add_obs=False,
             with_data_text=False, extension='.png')
 figs.append(colplt.fig)
 figs[-1].show()
-#time.sleep(long_delay)
 
-ans = input('Press Enter to close these figures and proceed to next figure batch')
+if args.interactive:
+    ans = input('Press Enter to close these figures and proceed to next figure batch')
+else:
+    for seconds in tqdm(range(10*len(figs)), desc='waiting'):
+        time.sleep(single_plot_timing/10)
 plt.close('all')
 
 figs = []
 
-## We change samples using iterators
+# We change samples using iterators
 plt.close('all')
 print()
 msg = ('Plotting timeseries obtained by iterating through samples\n'
@@ -133,7 +172,6 @@ splt.save(user_bname='colonies-even', add_obs=False, with_data_text=False,
            extension='.png')
 figs.append(splt.fig)
 figs[-1].show()
-time.sleep(delay)
 
 print('* Changing to {}'.format(ou.name))
 splt.make_plot(ou, report_condition=repr(condition), change_colony_color=True)
@@ -141,11 +179,14 @@ splt.save(user_bname='colonies-ou-even', add_obs=False, with_data_text=False,
            extension='.png')
 figs.append(splt.fig)
 figs[-1].show()
-#time.sleep(long_delay)
 
-ans = input('Press Enter to close these figures and proceed to next figure batch')
+if args.interactive:
+    ans = input('Press Enter to close these figures and proceed to next figure batch')
+else:
+    for seconds in tqdm(range(10*len(figs)), desc='waiting'):
+        time.sleep(single_plot_timing/10)
 plt.close('all')
-
+figs = []
 
 print('* First 5 colonies, superimposing 2 lineages per subplot')
 splt = SamplePlot(exp.iter_colonies(size=5), parser=parser,
@@ -156,7 +197,6 @@ splt.save(user_bname='colonies5-ou-even', add_obs=False, with_data_text=False,
            extension='.png')
 figs.append(splt.fig)
 figs[-1].show()
-time.sleep(delay)
 
 print('* Superimposing all timeseries on a single subplot')
 #splt5 = SamplePlot(ou, parser.iter_colonies(size=5), parser=parser,
@@ -167,10 +207,15 @@ splt.save(user_bname='lineages-from-colonies5', add_obs=False,
            with_data_text=False, extension='.png')
 figs.append(splt.fig)
 figs[-1].show()
-#time.sleep(long_delay)
 
-ans = input('Press Enter to close these figures and proceed to next figure batch')
+
+if args.interactive:
+    ans = input('Press Enter to close these figures and proceed to next figure batch')
+else:
+    for seconds in tqdm(range(10*len(figs)), desc='waiting'):
+        time.sleep(single_plot_timing/10)
 plt.close('all')
+figs = []
 
 print('* Iterating over 10 lineages, changing colour per lineage')
 splt = SamplePlot(exp.iter_lineages(size=10, shuffle=True),
@@ -181,7 +226,6 @@ splt.save(user_bname='lineages10', add_obs=False, with_data_text=False,
            extension='.png')
 figs.append(splt.fig)
 figs[-1].show()
-time.sleep(delay)
 
 print('* Adding reference values for average, variance')
 # metadata
@@ -198,8 +242,11 @@ splt.save(user_bname='lineages10-with-ref', add_obs=False,
            with_data_text=False, extension='.png')
 figs.append(splt.fig)
 figs[-1].show()
-time.sleep(delay)
 
+# we compute univariate statistics so that we can include results in plot
+univariate = compute_univariate(exp, ou, cset=[condition, ])
+univariate.export_text()
+# (this will be explained in univariate-analysis.py)
 
 print('* Adding statistic estimates (when they have been computed)')
 splt.make_plot(ou, report_condition=repr(condition), change_lineage_color=True,
@@ -209,13 +256,9 @@ splt.save(user_bname='lineages10-with-stats', add_obs=False,
            with_data_text=False, extension='.png')
 figs.append(splt.fig)
 figs[-1].show()
-#time.sleep(long_delay)
-
-ans = input('Press enter to close all figures and finish script')
+if args.interactive:
+    ans = input('Press enter to close all figures and finish script')
+else:
+    for seconds in tqdm(range(10*len(figs)), desc='waiting'):
+        time.sleep(single_plot_timing/10)
 plt.close('all')
-#
-#print('* A firework summart...')
-#for fig in figs:
-#    fig.show()
-#
-#ans = input('Press enter to close all figures and finish script')
