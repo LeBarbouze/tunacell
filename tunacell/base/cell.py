@@ -372,12 +372,14 @@ class Cell(tlib.Node):
             elif obs.mode == 'average':
                 value = np.nanmean(array)
             elif obs.mode == 'rate':
+                if len(array) < 2:
+                    value = np.nan  # not enough values to estimate rate
                 if obs.scale == 'log':
                     array = np.log(array)
                 value, intercept = np.polyfit(time, array, 1)
         except ExtrapolationError as err:
-            msg = '{}'.format(err)
-            warnings.warn(msg)
+#            msg = '{}'.format(err)
+#            warnings.warn(msg)
             value = np.nan  # missing information
         self._sdata[label] = value
         return
