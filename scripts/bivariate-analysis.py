@@ -11,6 +11,11 @@ type)
 """
 
 from __future__ import print_function
+from builtins import input
+import argparse
+import time
+
+from tqdm import tqdm
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -29,10 +34,42 @@ from tunacell.stats.two import BivariateIOError, StationaryBivariateIOError
 from tunacell.stats.utils import Regions, CompuParams
 from tunacell.plotting.dynamics import plot_stationary
 
-from tutorial import press_enter, args
+from tunacell.plotting.statics import scatter_plot
 
 # close all open plots
 plt.close('all')
+
+# Arguments
+argparser = argparse.ArgumentParser()
+argparser.add_argument('-e', '--experiment', type=str,
+                       help='Path to experiment root folder',
+                       default='~/tmptunacell/simutest')
+argparser.add_argument('-i', '--interactive',
+                       help='Ask user to press Enter between parts',
+                       action='store_true')
+argparser.add_argument('--time', type=float,
+                      help='Time per figure when non-interactive mode is on',
+                      default=3)
+
+args = argparser.parse_args()
+single_plot_timing = args.time
+
+msg = ('==============tunacell=tutorial==============\n'
+       '==                                         ==\n'
+       '==            Bivariate analysis           ==\n'
+       '==                                         ==\n'
+       '== This tutorial shows more details about  ==\n'
+       '== the bivariate analysis (statistics of a ==\n'
+       '== couple of observables):                 ==\n'
+       '==   * import/export of univariate results ==\n'
+       '==   * computation of bivariate statistics ==\n'
+       '==   * at stationary (cross-correlations)  ==\n'
+       '==  (refer to comments in code to get more ==\n'
+       '==   details)                              ==\n'
+       '==                                         ==\n'
+       '==============tunacell=tutorial==============\n')
+print(msg)
+print()
 
 # =============================================================================
 # We start with the same settings as in univariate-analysis-2.py.
@@ -48,10 +85,11 @@ even = FilterCellIDparity('even')
 condition = FilterSet(label='evenID', filtercell=even)
 
 # Reference values
-md = exp.metadata.loc[exp.label]
-ref_mean = md.target
-ref_var = md.noise / (2*md.spring)
-ref_decayrate = md.spring
+md = exp.metadata
+params = md['ornstein_uhlenbeck_params']
+ref_mean = params['target']
+ref_var = params['noise']/(2 * params['spring'])
+ref_decayrate = params['spring']
 
 # TIME-LAPSE OBSERVABLES (time-series per cell)
 
@@ -92,10 +130,13 @@ increase = Observable(name='added-size', raw='exp_ou_int',
 
 cycle_obs = [average_gr, division_size, increase]
 
+msg = 'Loading univariate results...'
+dashes = len(msg) * '*'
+print(msg + '\n' + dashes)
 
 univariates_store = {}
 for obs in continuous_obs + cycle_obs:
-    print('{} ...'.format(obs.name))
+    print('* {} ...'.format(obs.name))
     try:
         univ = load_univariate(exp, obs, cset=[condition, ])
     except UnivariateIOError:
@@ -126,7 +167,7 @@ for obs in continuous_obs + cycle_obs:
     else:
         kwargs = {}
         kwargs2 = {'trefs': grefs}
-    print('Ok')
+#    print('Ok')
 
 regions = Regions(exp)
 # regions.reset()  # eliminate all regions except 'ALL'
@@ -147,8 +188,12 @@ options = CompuParams()  # leaving to default is safe
 couples = [(ou, gr), (average_gr, division_size)]
 # note that ordering with a couple matters
 
+msg = 'Computation of bivariate statistics...'
+dashes = len(msg) * '*'
+print(msg + '\n' + dashes)
+
 for o1, o2 in couples:
-    print('Couple {} - {} ...'.format(o1.name, o2.name))
+    print('* Couple {} - {} ...'.format(o1.name, o2.name))
     u1 = univariates_store[o1]
     u2 = univariates_store[o2]
     try:
@@ -156,7 +201,7 @@ for o1, o2 in couples:
     except BivariateIOError:
         biv = compute_bivariate(u1, u2)
         biv.export_text()
-    print('Ok')
+#    print('Ok')
     # export master result as dataframe and look at random rows
     print('Looking at some examples computed for master...')
     df = biv.master.as_dataframe()
@@ -170,11 +215,13 @@ for o1, o2 in couples:
 # =============================================================================
 # Now we move to the more informative cross correlation function at stationarity
 # =============================================================================
-print('Cross-correlation at stationarity\n'
-      '---------------------------------')
+msg = 'Cross-correlation at stationarity'
+dashes = len(msg) * '*'
+print(msg + '\n' + dashes)
+
 figs = []
 for o1, o2 in couples:
-    print('Couple {} - {} ...'.format(o1.name, o2.name))
+    print('* Couple {} - {} ...'.format(o1.name, o2.name))
     u1 = univariates_store[o1]
     u2 = univariates_store[o2]
     try:
@@ -182,7 +229,7 @@ for o1, o2 in couples:
     except StationaryBivariateIOError:
         biv = compute_stationary_bivariate(u1, u2, steady_region, options)
         biv.export_text()
-    print('Ok')
+#    print('Ok')
     # export master result as dataframe and look at random rows
     print('Looking at some examples computed for master...')
     df = biv.master.as_dataframe()
@@ -198,35 +245,44 @@ for o1, o2 in couples:
     else:
         kwargs = {}
     fig = plot_stationary(biv, save=True, **kwargs)
+    fig.show()
     figs.append(fig)
 
-# when run from ipython, figure should automatically be plotted
-press_enter(*figs)
+if args.interactive:
+    ans = input('Press Enter to close these figures and proceed')
+else:
+    for seconds in tqdm(range(10*len(figs)), desc='waiting'):
+        time.sleep(single_plot_timing/10)
+plt.close('all')
 
 # =============================================================================
-# Note that we can get easily non-dynamic bivariate analysis
-# '(mixing cell-cycle observables with different reporting times)
+# We can also analyse the bivariate analysis at stationarity with
+# a scatter plot and associated empirical distributions.
+# For instance to study the dependency between division_size and cell cycle
+# growth rate:
 # =============================================================================
-fig = plt.figure()
-couple = [division_size, increase]
-print('Bivariate sampling of {} and {} ...'.format(couple[0].name, couple[1].name))
-all_dfs = []
-# need to compute raw/func observable list
-raw_obs, func_obs = set_observable_list(*couple, filters=[condition, ])
-for li in exp.iter_lineages(size=100):  # testing
-    dfs = []
-    for obs in couple:
-        ts = li.get_timeseries(obs, raw_obs=raw_obs, func_obs=func_obs, cset=[condition, ])
-        dfs.append(ts.to_dataframe(sharp_tleft=steady_region.tmin,
-                                   sharp_tright=steady_region.tmax))
-    all_dfs.append(pd.merge(*dfs, how='outer'))
-df = pd.concat(all_dfs, ignore_index=True)
-excerpt = df.sample(10).sort_index()
-print('{}'.format(excerpt))
+msg = 'Scatter plot of division size vs cell cycle growth rate'
+dashes = len(msg) * '*'
+print(msg + '\n' + dashes)
 
-plt.scatter(df[couple[0].name], df[couple[1].name])
-plt.xlabel(couple[0].name)
-plt.ylabel(couple[1].name)
-plt.title('Scatter plot of added size vs division size')
+biv = load_stationary_bivariate(univariates_store[average_gr],
+                                univariates_store[division_size],
+                                steady_region, options)
+fig, ax0, ax1, ax2, hs = scatter_plot(biv, xsize=6, ysize=6,
+                                      use_xname=None,
+                                      use_yname=None,
+                                      groupby=None,
+                                      color_index=2,
+                                      xunits=r'min$^{{-1}}$',
+                                      yunits=r'$\mu m$')
+labels = [h.get_label() for h in hs]
+ax1.legend(handles=hs, labels=labels, loc='upper left', bbox_to_anchor=(1, 1))
 
-press_enter(fig)
+fig.show()
+if args.interactive:
+    ans = input('Press Enter to close these figures and terminate script')
+else:
+    for seconds in tqdm(range(10), desc='waiting'):
+        time.sleep(single_plot_timing/10)
+plt.close('all')
+

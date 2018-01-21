@@ -13,6 +13,11 @@ in practice increases the effective sample size.
 """
 
 from __future__ import print_function
+from builtins import input
+import argparse
+import time
+
+from tqdm import tqdm
 
 import matplotlib.pyplot as plt
 
@@ -26,11 +31,41 @@ from tunacell.stats.single import UnivariateIOError, StationaryUnivariateIOError
 from tunacell.stats.utils import Regions, CompuParams
 from tunacell.plotting.dynamics import plot_onepoint, plot_twopoints, plot_stationary
 
-from tutorial import press_enter, args
-
     
 # close all open plots
 plt.close('all')
+
+# Arguments
+argparser = argparse.ArgumentParser()
+argparser.add_argument('-e', '--experiment', type=str,
+                       help='Path to experiment root folder',
+                       default='~/tmptunacell/simutest')
+argparser.add_argument('-i', '--interactive',
+                       help='Ask user to press Enter between parts',
+                       action='store_true')
+argparser.add_argument('--time', type=float,
+                      help='Time per figure when non-interactive mode is on',
+                      default=3)
+
+args = argparser.parse_args()
+single_plot_timing = args.time
+
+msg = ('==============tunacell=tutorial==============\n'
+       '==                                         ==\n'
+       '==        Univariate analysis (2/2)        ==\n'
+       '==                                         ==\n'
+       '== This tutorial shows more details about  ==\n'
+       '== the univariate analysis (statistics of  ==\n'
+       '== single, dynamic observable):            ==\n'
+       '==   * import/export of results            ==\n'
+       '==   * details of stationary analysis      ==\n'
+       '==   * time-lapse, cell cycle observables  ==\n'
+       '==  (refer to comments in code to get more ==\n'
+       '==   details)                              ==\n'
+       '==                                         ==\n'
+       '==============tunacell=tutorial==============\n')
+print(msg)
+print()
 
 # =============================================================================
 # We start with the same settings as in univariate-analysis.py.
@@ -38,6 +73,9 @@ plt.close('all')
 # in univariate-anbalysis.py (please run that script before starting this one)
 # =============================================================================
 
+msg = 'Loading experiment with evenID condition (from part 1/2)'
+dashes = len(msg) * '*'
+print(msg + '\n' + dashes)
 # define the exp instance, no filter applied
 path_to_exp = args.experiment
 exp = Experiment(path_to_exp)
@@ -48,11 +86,13 @@ condition = FilterSet(label='evenID', filtercell=even)
 ou = Observable(name='exact-growth-rate', raw='ou')
 
 # Reference values
-md = exp.metadata.loc[exp.label]
-ref_mean = md.target
-ref_var = md.noise / (2*md.spring)
-ref_decayrate = md.spring
+md = exp.metadata
+params = md['ornstein_uhlenbeck_params']
+ref_mean = params['target']
+ref_var = params['noise']/(2 * params['spring'])
+ref_decayrate = params['spring']
 
+print('Loading univariate results (computed and exported in part 1/2)')
 # loading univariate analysis for the ou observable
 univariate = load_univariate(exp, ou, cset=[condition, ])
 
@@ -64,7 +104,7 @@ univariate = load_univariate(exp, ou, cset=[condition, ])
 # =============================================================================
 
 # TIME-LAPSE OBSERVABLES (time-series per cell)
-
+print('Defining a bunch of observables, time-lapse, and cell-cycle')
 # local estimate of growth rate by using the differentiation of size measurement
 # (the raw column 'exp_ou_int' plays the role of cell size in our simulations)
 gr = Observable(name='approx-growth-rate', raw='exp_ou_int',
@@ -99,13 +139,15 @@ increase = Observable(name='added-size', raw='exp_ou_int',
 
 cycle_obs = [average_gr, division_size, increase]
 
-# %% Start computations
+# Start computations
 
 univariates_store = {}
 figs = []
-print('Computing dynamic univariate statistics...')
+msg = 'Computing dynamic univariate statistics...'
+dashes = len(msg) * '*'
+print(msg + '\n' + dashes)
 for obs in continuous_obs + cycle_obs:
-    print('{} ...'.format(obs.name))
+    print('* {} ...'.format(obs.name))
     try:
         univ = load_univariate(exp, obs, cset=[condition, ])
     except UnivariateIOError:
@@ -136,15 +178,19 @@ for obs in continuous_obs + cycle_obs:
     else:
         kwargs = {}
         kwargs2 = {'trefs': grefs}
-    print('Ok')
+#    print('Ok')
 
-    fig = plot_onepoint(univ, show_ci=True, save=True, **kwargs)
+    fig = plot_onepoint(univ, show_ci=True, save=True, verbose=False, **kwargs)
+    fig.show()
     figs.append(fig)
-    fig2 = plot_twopoints(univ, save=True, **kwargs2)
+    fig2 = plot_twopoints(univ, save=True, verbose=False, **kwargs2)
     # figs.append(fig2)  # commented: too much figures
 
-press_enter(*figs)
-# close all open plots
+if args.interactive:
+    ans = input('Press Enter to close these figures and proceed to stationary autocorrelation analysis')
+else:
+    for seconds in tqdm(range(10*len(figs)), desc='waiting'):
+        time.sleep(single_plot_timing/10)
 plt.close('all')
 
 
@@ -169,10 +215,12 @@ options = CompuParams()  # leaving to default is safe
 # Now we proceed in the same way: try to load, if it fails, compute.
 # We call the plotting function accordingly.
 # =============================================================================
-print('Computing stationary univariate statistics...')
+msg = 'Computing stationary autocorrelation functions...'
+dashes = len(msg) * '*'
+print(msg + '\n' + dashes)
 figs = []
 for obs in continuous_obs + cycle_obs:
-    print('{} ...'.format(obs.name))
+    print('* {} ...'.format(obs.name))
     # need the univariate object to compute stationary statistics
     univ = univariates_store[obs]
     try:
@@ -183,22 +231,32 @@ for obs in continuous_obs + cycle_obs:
             stat.export_text()  # save as text files
         except NoValidTimes:
             stat = None
-    print('Ok')
+#    print('Ok')
     # plotting features
     if obs in [ou, gr, ou2]:
         kwargs = {'show_exp_decay': ref_decayrate}
+    else:
+        kwargs = {}
 
     if stat is not None:
-        fig = plot_stationary(stat, save=True, **kwargs)
+        fig = plot_stationary(stat, save=True, verbose=False, **kwargs)
+        fig.show()
         figs.append(fig)
 
-press_enter(*figs)
+if args.interactive:
+    ans = input('Press Enter to close these figures and proceed')
+else:
+    for seconds in tqdm(range(10*len(figs)), desc='waiting'):
+        time.sleep(single_plot_timing/10)
+plt.close('all')
 
 
 # =============================================================================
 # For the sake of demonstration, we define here another, smaller region
 # =============================================================================
-
+msg = 'Selecting a smaller region of time'
+dashes = len(msg) * '*'
+print(msg + '\n' + dashes)
 regions.add(name='beginning', tmin=0., tmax=100.)
 reg = regions.get('beginning')
 
@@ -210,5 +268,12 @@ except StationaryUnivariateIOError:
     stat = compute_stationary(univ, reg, options)
     stat.export_text()
 
-fig = plot_stationary(stat, save=True, show_exp_decay=ref_decayrate)
-press_enter(fig)
+fig = plot_stationary(stat, save=True, verbose=False, show_exp_decay=ref_decayrate)
+fig.show()
+
+if args.interactive:
+    ans = input('Press Enter to close these figures and terminate script')
+else:
+    for seconds in tqdm(range(10), desc='waiting'):
+        time.sleep(single_plot_timing/10)
+plt.close('all')
