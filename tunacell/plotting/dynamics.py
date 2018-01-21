@@ -98,7 +98,8 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
                   show_legend=True,
                   show_cdt_details_in_legend=False,
                   use_obs_name=None,
-                  save=False, user_path=None, ext='.png'):
+                  save=False, user_path=None, ext='.png',
+                  verbose=False):
     """Plot one point statistics: counts, average, abd variance.
     
     One point functions are plotted for each condition set up in *show_cdts*
@@ -111,6 +112,8 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
     show_cdts : str (default 'all')
         must be either 'all', or 'master', or the repr of a condition, or a
         list thereof
+    show_ci : bool {False, True}
+        whether to show 99% confidence interval
     mean_ref : float
         reference mean value: what user expect to see as sample average to
         compare with data
@@ -151,6 +154,7 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
         (encouraged)
     ext : str {'.png', '.pdf'}
         extension to be used when saving file
+    verbose : bool {False, True}
     """
     if not isinstance(univariate, Univariate):
         raise TypeError('Input is not {}'.format(Univariate))
@@ -325,7 +329,8 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
         bname = 'plot_onepoint_' + univ.obs.name + '_' + univ.region.name + ext
         fname = os.path.join(obs_path, bname)
         fig.savefig(fname, bbox_inches='tight', pad_inches=0)
-        print('Figure saved as {}'.format(fname))
+        if verbose:
+            print('Figure saved as {}'.format(fname))
     return fig
 
 
@@ -342,7 +347,7 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
                    show_legend=True,
                    show_cdt_details_in_legend=False,
                    use_obs_name=None,
-                   save=False, ext='.png'):
+                   save=False, ext='.png', verbose=False):
     """Plot two-point functions: counts and autocorrelation functions.
     
     These plots are able to show only one extra condition with 'master', and
@@ -392,6 +397,7 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
         whether to save figure at canonical path
     ext : str {'.png', '.pdf'}
         extension to be used when saving figure
+    verbose : bool {False, True}
     """
     obs = univariate.obs
     timelabel = _set_timelabel(obs)  # define time label
@@ -593,7 +599,8 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
         bname = 'plot_twopoints_' + obs.name + '_' + univariate.region.name + ext
         fname = os.path.join(cdt_path, bname)
         fig.savefig(fname, bbox_inches='tight', pad_inches=0)
-        print('Figure saved as {}'.format(fname))
+        if verbose:
+            print('Figure saved as {}'.format(fname))
     return fig
 
 
@@ -612,18 +619,38 @@ def plot_stationary(stationary, show_cdts='all',
                     show_exp_decay=None,
                     show_legend=True, show_cdt_details_in_legend=False,
                     use_obs_name=None,
-                    save=False, ext='.png'):
+                    save=False, ext='.png', verbose=False):
     """Plot stationary autocorrelation.
 
     Parameters
     ----------
     stationary : StationaryUnivariate or StationaryBivariate instance
-    
+    axe_xsize : float (default 6)
+        size (in inches) of the x-axis
+    axe_ysize : float (default 2)
+        size (in inches) of the individual y-axis
+    time_range : couple of floats
+        bounds for time (x-axis)
+    time_fractional_pad : float
+        fractional padding for x-axis
+    counts_range : couple of ints
+        bounds for counts axis
+    counts_fractional_pad : float
+        fractional padding for counts axis
+    corr_range : couple of floats
+        bounds for correlation values
+    counts_logscale : bool {False, True}
+        use logscale for counts axis
+    corr_fractional_pad : float
+        fractional padding for correlation values
+    corr_logscale : bool {False, True}
+        use logscale for correlation values (symlog is used to display
+        symmetrically negative values)
+    corr_guides : list of float
+        values where to plot shaded grey horizontal lines
     show_exp_decay : float (default None)
         whether to plot an exponential decay with corresponding rate
         exp(-rate * t)
-    corr_guides : list of float
-        values where to plot shaded grey horizontal lines
     save : bool {False, True}
         whether to save plot at canonical path
     use_obs_name : str (default None)
@@ -880,5 +907,6 @@ def plot_stationary(stationary, show_cdts='all',
         bname += stationary.region.name + ext
         fname = os.path.join(obs_path, bname)
         fig.savefig(fname, bbox_inches='tight', pad_inches=0)
-        print('Figure saved as {}'.format(fname))
+        if verbose:
+            print('Figure saved as {}'.format(fname))
     return fig
