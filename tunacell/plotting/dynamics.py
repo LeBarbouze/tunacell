@@ -325,6 +325,7 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
         bname = 'plot_onepoint_' + univ.obs.name + '_' + univ.region.name + ext
         fname = os.path.join(obs_path, bname)
         fig.savefig(fname, bbox_inches='tight', pad_inches=0)
+        print('Figure saved as {}'.format(fname))
     return fig
 
 
@@ -592,6 +593,7 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
         bname = 'plot_twopoints_' + obs.name + '_' + univariate.region.name + ext
         fname = os.path.join(cdt_path, bname)
         fig.savefig(fname, bbox_inches='tight', pad_inches=0)
+        print('Figure saved as {}'.format(fname))
     return fig
 
 
@@ -878,4 +880,5 @@ def plot_stationary(stationary, show_cdts='all',
         bname += stationary.region.name + ext
         fname = os.path.join(obs_path, bname)
         fig.savefig(fname, bbox_inches='tight', pad_inches=0)
+        print('Figure saved as {}'.format(fname))
     return fig

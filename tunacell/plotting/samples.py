@@ -169,7 +169,9 @@ class SamplePlot(object):
         if add_obs:
             bname += '-' + self.obs.name
         figname = os.path.join(path, bname + '-plot' + extension)
+        self.figpath = figname
         self.fig.savefig(figname, bbox_inches='tight')
+        print('Figure saved as {}'.format(figname))
         if with_data_text:
             dataname = os.path.join(path, bname + '-data.txt')
             with open(dataname, 'w') as f:
