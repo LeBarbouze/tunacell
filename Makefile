@@ -2,7 +2,7 @@ pipinstall:
 	pip install -e .
 
 virtualenv:
-	virtualenv --system-site-packages venv
+	virtualenv venv
 	venv/bin/pip install flake8 pytest
 
 flake8:
@@ -26,6 +26,7 @@ analysis-demo:
 	python scripts/bivariate-analysis.py -i
 
 full-demo:
+	python bin/tunasimu -s 42 -f
 	python scripts/tutorial.py --time .5  # waiting time minimal for efficacy
 	python scripts/plotting-samples.py --time .5
 	python scripts/univariate-analysis.py --time .5

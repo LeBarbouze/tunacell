@@ -24,12 +24,23 @@ movies of dividing micro-organisms.
 
 # Install
 
-tunacell has been developed with Python 2.7 and is now compatible with Python 3.6
-(note that there might be hidden compatibility bugs).
-It can be installed locally using pip.
-Clone (or download) the repo and make a local (editable) install using pip:
+tunacell has been originally developed with Python 2.7 and is developed with
+Python 3.6. Current major version 0 is compatible with both. We encourage users
+to shift to Python 3 though.
+
+The best way to install tunacell is to clone the repo and make a local,
+editable install using pip:
 
     pip install -e .
+
+This way, you will get script tutorials shipped with the library. Otherwise
+the library can be installed remotely from wheels (*i.e.* without cloning the
+repo):
+
+	pip install tunacell
+
+In this case, you should download manually the scripts from the `scripts`
+folder.
 
 ## Local install, and `virtualenv`
 
@@ -39,17 +50,18 @@ directory:
 
     pip install -e --user .
 
-A better solution when Python, pip, and virtualenv are installed on the system
-is to create a virtual environment where you plan to work with tunacell.
-The Makefile does the job, run the command:
+A better solution when Python is to create a virtual environment where you plan
+to work with tunacell. It requires pip and virtualenv to be installed on your
+machine. Then the Makefile does the job, run the command:
 
     make virtualenv
 
-and then
+that will set up the virtual environment and install pytest and flake8 locally.
+Activate the virtual environment with:
 
     source venv/bin/activate
 
-to activate the virtual environment. Then you can run the `pip install -e.`
+Then you can run the `pip install -e.`, or `make pipinstall`
 command, without worrying about permissions since everything will be installed
 locally, and accesses only when your virtual environment is active.
 When you finish working with tunacell, type:
@@ -71,11 +83,16 @@ to provide the user with DataFrame objects for some statistical analyses.
 The tree-like structure arising from dividing cells
 has been implemented using the [treelib][] library.
 
+We use [pyYAML][] to parse yaml files such as metadata or other library-created
+files, and [tqdm][] package for progress bars.
+
 [Scipy]: http://www.scipy.org/ "The Scipy package"
 [Numpy]: https://docs.scipy.org/doc/numpy-dev/user/index.html "Numpy"
 [pandas]: http://pandas.pydata.org/ "pandas"
 [matplotlib]: http://matplotlib.org/ "matplotlib"
 [treelib]: https://github.com/caesar0301/treelib  "Treelib library"
+[pyYAML]: https://pypi.python.org/pypi/PyYAML "Yaml parser"
+[tqdm]: https://pypi.python.org/pypi/tqdm "tqdm progress bar"
 
 ## New to Python
 
@@ -119,16 +136,14 @@ First option is to go through the user manual of the documentation, stepping
 through each point. Although it might give you an in-depth, logical introduction
 to tunacell, it might be tedious as a first approach.
 
-The second, pragmatic option is to run **sequentially** the scripts in the ``scripts``
-folder. In a terminal:
+The second, pragmatic option is to run **sequentially** the scripts in
+the ``scripts`` folder as it is done in the full-demo recipe in Makefile.
+Just change the ``--time .5`` option to interactive mode by adding ``-i``:
 
     cd <your-location-for-tunacell-repo>/scripts
-    python simurun.py  # creates by default the simutest experiment
-    python tutorial.py
-    python plotting-samples.py
-    python univariate-analysis.py
-    python univariate-analysis-2.py
-    python bivariate-analysis.py
+    tunasimu -s 42  # makes the simutest numerically simulated experiment
+	python tutorial.py -i
+	...
 
 Once you've run, read, and understood the bits of code in these files, consider
 yourself as a tunacell expert.
@@ -138,41 +153,34 @@ If you got how it works, plug your data in
 and use tunacell API to write your
 scripts and discover new things about the dynamical properties of your cells!
 
+
 # Development
 
-## About this version
+Current version is now ready for public in beta testing.
 
-Current version is now ready for public in alpha testing. 
-Bugs may come up quickly,
-please report them with an Issue, or better, fork, make the patch, and PR :)
+## Contributing
 
-## Added features
+As bugs may come up quickly, we encourage users to report them with an Issue.
+We further encourage experienced users to propose patches and pull requests :)
 
-* Made the dynamic analysis API a bit clearer (hopefully)
-* Added few scripts to introduce tunacell API
-* `FunctionalObservable` class has been added in tuna/base/observable.py: 
-  it allows the user to define a new observable as a function of other
-  observables. For instance, it can be helpful when one wants to rescale a
-  dynamic, time-lapse observable (say, growth rate) by a cell-cycle observable
-  (say, birth growth rate).
-* Noticeable change how hidden observables are collected to perform all computation.
-  A hidden observable is an observable involved in filtering (filter out those
-  cells that have abnormal values for this observable), or present as an
-  argument of a `FunctionalObservable`. They need to be computed internally and
-  there is a distinction between regular `Observable` and the new
-  `FunctionalObservable` classes. It changed the parameterization of
-  `Lineage.get_timeseries` method (that can be used to parse data, see the end
-  of `bivariate-analysis.py` script for a short example). 
-  `Cell` instances are now equiped with protection against building mutltiple
-  times a given observable (although the protection needs to be specified,
-  it is not automatic).
+We also welcome any suggestion for improvement (though an Issue,
+or an email--see setup). Thanks for your help!
 
-## Future work
+## Testing the install
 
-- [x] Make tunacell Python 3 compatible
-- [ ] Add test cases (coverage is really poor right now)
-- [ ] Add features for static statistical analysis (distributions, scatter-plots, ...)
-- [ ] Add GUI
+tunacell comes with unit tests that can be run with pytest. Run:
+
+	make test
+
+to execute those tests. Unit test coverage is getting better but is far from
+exhaustive. To check whether most features works appropriately, clone the
+repo and run
+
+	make full-demo
+
+It should not raise any Python error (though some warnings may show up).
+
+
 
 [tunadocs]: http://www.joachimrambeau.com/pages/_tunadocs/index.html "Tunacell documentation"
 [tunadocs-intro]: http://www.joachimrambeau.com/pages/_tunadocs/intro.html "Introduction to tunacell"

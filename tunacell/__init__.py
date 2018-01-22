@@ -3,7 +3,7 @@
 
 
 # version to be used in setup and docs
-__version__ = '0.0.9dev'
+__version__ = '0.1.0b1'
 
 
 # API level classes
