@@ -56,7 +56,8 @@ def run_ou_simulation(simuParams, divParams, bsParams, ouParams,
     current_name = label
     exp_path = os.path.join(where, label)
     if force:
-        shutil.rmtree(exp_path)
+        if os.path.exists(exp_path):
+            shutil.rmtree(exp_path)
     while os.path.exists(exp_path) and ans != 'a':
         print('Experiment {} already exists.'.format(current_name))
         ans = input('Override [o], Change experiment name [c], Abort [a]: ')
