@@ -10,6 +10,7 @@ extend over too much rows.
 
 from __future__ import print_function
 from builtins import input
+import sys
 
 import argparse
 import time
@@ -68,7 +69,10 @@ print(msg)
 # results
 # =============================================================================
 name = 'simushort'
-subprocess.run(['tunasimu', '-f', '-l', name, '--stop', '120.', '--seed', '167389'])
+if int(sys.version[0]) == 3:
+    subprocess.run(['tunasimu', '-f', '-l', name, '--stop', '120.', '--seed', '167389'])
+else:
+    subprocess.call(['tunasimu', '-f', '-l', name, '--stop', '120.', '--seed', '167389'])
 
 # =============================================================================
 # To choose samples from the experiment, we use the Parser class that takes
