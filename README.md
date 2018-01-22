@@ -145,6 +145,10 @@ Just change the ``--time .5`` option to interactive mode by adding ``-i``:
 	python tutorial.py -i
 	...
 
+(note that these scripts writes files and folders in a new ``tmptunacell``
+folder in your home directory--taking roughly 13 MB when all scripts have been
+launched)
+
 Once you've run, read, and understood the bits of code in these files, consider
 yourself as a tunacell expert.
 
@@ -179,6 +183,10 @@ repo and run
 	make full-demo
 
 It should not raise any Python error (though some warnings may show up).
+
+(note that these scripts writes files and folders in a new ``tmptunacell``
+folder in your home directory--taking roughly 13 MB when all scripts have been
+launched)
 
 
 
