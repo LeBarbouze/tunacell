@@ -53,7 +53,7 @@ def _set_condition_list(univariate, show_cdts='master'):
     else:
         _append_cdt(univariate, show_cdts, conditions)
     return conditions
-    
+
 
 def _append_cdt(univariate, this_cdt, cdt_list):
     """Append condition associated to this_cdt in univariate object to cdt_list
@@ -101,7 +101,7 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
                   save=False, user_path=None, ext='.png',
                   verbose=False):
     """Plot one point statistics: counts, average, abd variance.
-    
+
     One point functions are plotted for each condition set up in *show_cdts*
     argument: 'all' for all conditions, or the string representation (or label)
     of a particuler condition (or a list thereof).
@@ -292,7 +292,7 @@ def plot_onepoint(univariate, show_cdts='all', show_ci=False,
     axs[0].set_ylabel('Counts', fontsize='medium')
     axs[1].set_ylabel('Average', fontsize='medium')
     axs[2].set_ylabel('Variance', fontsize='medium')
-    
+
     # ## legend ##
     # C.I.
     if ci_handles:
@@ -349,7 +349,7 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
                    use_obs_name=None,
                    save=False, ext='.png', verbose=False):
     """Plot two-point functions: counts and autocorrelation functions.
-    
+
     These plots are able to show only one extra condition with 'master', and
     are plotted for a set of time of references.
 
@@ -418,7 +418,7 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
         indices = np.arange(0, npoints, di, dtype=int)
         trefs = times[indices]
         logging.info(trefs)
-    
+
     all_times = []
     all_counts = []
     all_corr = []
@@ -559,7 +559,7 @@ def plot_twopoints(univariate, condition_label=None, trefs=[], ntrefs=4,
     axs[1].tick_params(axis='x', direction='in', bottom='on', labelbottom='on', pad=-10)
     axs[2].set_xlabel(timelabel, x=.95, horizontalalignment='right',
                       fontsize='medium')
-    
+
     # hide intermediate x axis
     for ax in axs[:1]:
         ax.spines['bottom'].set_visible(False)
@@ -679,7 +679,7 @@ def plot_stationary(stationary, show_cdts='all',
         units = 'mins'
         prefix = 't'
     else:
-        units =''  # generations are used
+        units = ''  # generations are used
         prefix = 'g'
     timelabel = r'$\Delta$'+timelabel
 
@@ -709,7 +709,7 @@ def plot_stationary(stationary, show_cdts='all',
     ci_handles = []
 
     for index, cdt in enumerate(conditions):
-        
+
         if cdt == 'master':
             c_repr = 'master'
             c_label = 'all samples'
@@ -809,7 +809,7 @@ def plot_stationary(stationary, show_cdts='all',
         ax1.set_yscale('symlog', linthresh=1)
 
     # corr
-    
+
     if not corr_logscale:
         bottom, top = _set_axis_limits(ax2, all_corrs, which='y',
                                        pad=corr_fractional_pad,

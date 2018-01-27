@@ -118,6 +118,5 @@ def test_unroll_func():
     vol = FunctionalObservable(name='volume', f=lambda x, y: x*y, observables=[area, width])
     func_obs = list(unroll_func_obs(vol))
     assert func_obs == [area, vol]  # oredering matters for functionalObs
-    func_obs  = list(unroll_func_obs([vol, area]))
+    func_obs = list(unroll_func_obs([vol, area]))
     assert func_obs == [area, vol, area]
-    

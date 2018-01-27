@@ -116,7 +116,7 @@ def test_cell_build_filiation(binary_division_cells):
     
 def test_colony_full_decomposition(tree):
     tree.decompose(independent=False, seed=42)
-    assert tree._decomposition['independent'] == False
+    assert tree._decomposition['independent'] is False
     assert tree._decomposition['seed'] == 42
     assert tree.idseqs == [['harry', 'bill'],
                            ['harry', 'jane', 'diane', 'mary'],
@@ -125,7 +125,7 @@ def test_colony_full_decomposition(tree):
 
 def test_colony_independent_decomposition(tree):
     tree.decompose(independent=True, seed=42)
-    assert tree._decomposition['independent'] == True
+    assert tree._decomposition['independent'] is True
     assert tree._decomposition['seed'] == 42
     assert tree.idseqs == [['harry', 'jane', 'mark'], ['diane', 'mary'], ['bill']]
 

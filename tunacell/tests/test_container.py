@@ -35,9 +35,8 @@ def test_attributes(container):
     assert md['strain'] == 'Thunnus alalunga'
     
 
-
 def test_container_data(container):
-    assert container.data['cellID'][0] ==  1
+    assert container.data['cellID'][0] == 1
     assert container.data['parentID'][0] == 0
     assert container.data['time'][0] == 0.
     assert container.data['value'][0] == 1.

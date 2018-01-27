@@ -52,7 +52,7 @@ class SamplePlot(object):
         self.obs = None  # will be filled at make_plot call
         today = datetime.datetime.today()
         if label is not None:
-            self.label= label
+            self.label = label
         else:
             self.label = 's{}'.format(today.strftime('%Y%m%d%H%M%S'))
 
@@ -232,7 +232,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
         units to add to title
     report_condition: str (default 'master')
         which condition to report on the plot: This must be either 'master',
-        either the repr of one item of conditions, or its label attribute 
+        either the repr of one item of conditions, or its label attribute
     suppl_obs: list of :class:`Observables`
         supplementary observables that need to be computed so that each filter
         in conditions can be applied
@@ -541,7 +541,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
         iax = this_iax
 
     # PLOT SETTINGS
-    
+
     # found limits
     left = np.amin(lefts)
     right = np.amax(rights)
@@ -598,7 +598,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
             ax.set_yscale('log')
         if not at_least_one_timeseries[iax]:
             ax.text(0.4, 0.4, "NO DATA", transform=ax.transAxes)
-    
+
     if len(axes) > 1:
         for ax in axes[:-1]:
             ax.spines['bottom'].set_visible(False)
@@ -608,10 +608,10 @@ def plot_samples(samples, obs, parser=None, conditions=[],
 
         axes[0].tick_params(axis='x', direction='in', bottom='on',
                             labelbottom='off')
-    
+
     yfmt = ticker.ScalarFormatter()
     yfmt.set_powerlimits((-1, 3))
-    
+
     ax = axes[0]
     loc = ticker.MaxNLocator(nbins=yrange_nticks)
     ax.yaxis.set_major_locator(loc)
@@ -630,7 +630,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
 
     axes[-1].set_xlabel('Time (mins)', x=.95, horizontalalignment='right',
                         fontsize='medium')
-    
+
     # now that limits have been set : report for divisions
     if report_divisions:
         line2D_join = _report_divisions(samples, axes, line2D_join, index_to_iax, limit_axes)
@@ -685,7 +685,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
                   loc='upper left',
                   bbox_to_anchor=(0, -.5/axe_ysize),
                   borderaxespad=0.)
-        
+
     # add title
     titling = r'{}'.format(obs.as_latex_string)
     if units:
@@ -706,7 +706,7 @@ def _report_divisions(samples, axes, line2D_join, index_to_iax, limit_axes):
 
     As this function use data, and axe inverted transforms, it needs to be
     called after all axe limits have been set
-    
+
     Parameters
     ----------
     samples : list of (Lineage instance, corresponding TimeSeries
@@ -793,7 +793,7 @@ def _report_divisions(samples, axes, line2D_join, index_to_iax, limit_axes):
                             _, ymax = inv.transform((dispx, dispy))
                         # when no valid values, point to center y
                         else:
-                            ymax=.5  # in transAxes coordinates
+                            ymax = .5  # in transAxes coordinates
                         # logging.debug('in parent cell axe, ymax={}'.format(ymax))
                         vjoin = axes[i_top].axvline(cell.birth_time, ymax=ymax, **styling)
                         i_bottom = index_to_iax[index]

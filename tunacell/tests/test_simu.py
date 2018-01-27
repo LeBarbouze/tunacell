@@ -26,17 +26,16 @@ def test_division_params():
     sizes = np.linspace(1, 5, 5)
     modes = ['none', 'gamma']
     flucts = np.linspace(0.1, 1, 5)
-    
 
-    growth_rates = np.log(2.)/ (60. * np.array([20., 33.3, 47.7, 60., 1001.]))
-    
+    growth_rates = np.log(2.) / (60. * np.array([20., 33.3, 47.7, 60., 1001.]))
+
     for item in itertools.product(lambdas, sizes, modes, flucts):
         div_lambda, div_size, div_mode, div_sd_to_mean = item
         dp = DivisionParams(div_lambda, div_size, div_mode, div_sd_to_mean)
-        
+
         # avoid problem by reaching division size cutoff
         birth_sizes = np.linspace(div_size/10., div_size, 5, endpoint=False)
-        
+
         for bs, mu in itertools.product(birth_sizes, growth_rates):
             assert dp.rv(birth_size=bs, growth_rate=mu) > 0.
 
@@ -55,6 +54,5 @@ def test_sample_initial_size():
                                birth_size_mode='lognormal',
                                birth_size_sd_to_mean=fluct)
         assert bs.rv() > 0.
-    
-    
-    
+
+
