@@ -26,6 +26,7 @@ import os
 import random
 import warnings
 import shutil
+
 from tqdm import tqdm
 
 from tunacell.base.container import Container
@@ -136,17 +137,17 @@ class Experiment(object):
             self._fset = FilterSet()  # default filterset: all TRUE
         else:
             warnings.warn('{} is not a FilterSet'.format(value))
-    
+
     @property
     def analysis_path(self):
         """Get analysis path (with appropriate filterset path)"""
         analysis_path = text.get_analysis_path(self, write=True)
         index, filterset_path = text.get_filter_path(analysis_path, self.fset, write=True)
         return filterset_path
-    
+
     def count_items(self, independent=True, seed=None, read=True):
         """Parse data to count items: cells, colonies, lineages, containers
-        
+
         Parameters
         ----------
         independent : bool {True, False}
@@ -160,7 +161,7 @@ class Experiment(object):
         try:
             if read:
                 # get analysis path
-                
+
                 analysis_path = text.get_analysis_path(self, write=False)
                 i, filter_path = text.get_filter_path(analysis_path, self.fset,
                                                       write=False)
@@ -171,7 +172,7 @@ class Experiment(object):
         except (text.MissingFileError, text.MissingFolderError, text.CorruptedFileError):
             self._count_items(independent=independent, seed=seed, write=True)
         print(self._count_summary())
-        
+
     def _count_summary(self):
         msg = ('\nCount summary:\n'
                ' - cells : {}'.format(self._counts['cells']) + '\n'
@@ -179,7 +180,7 @@ class Experiment(object):
                ' - colonies : {}'.format(self._counts['colonies']) + '\n'
                ' - containers : {}'.format(self._counts['containers']))
         return msg
-        
+
     def _count_items(self, independent=True, seed=None, write=True):
         """Hidden method, see above for parameters"""
         counts = count_items(self, independent_decomposition=independent, seed=seed)
@@ -187,7 +188,7 @@ class Experiment(object):
         text.write_count_file(self.analysis_path, counts)
         if write:
             self._counts = counts
-            
+
     def _erase_count_file(self):
         try:
             analysis_path = text.get_analysis_path(self, write=False)
@@ -462,7 +463,7 @@ class Experiment(object):
 
     def iter_cells(self, size=None, shuffle=False):
         """Iterate through valid cells.
-        
+
         Applies all filters defined in fset.
 
         Parameters

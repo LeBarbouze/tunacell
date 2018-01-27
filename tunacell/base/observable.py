@@ -18,6 +18,8 @@ import dill
 import re
 from copy import deepcopy
 
+from tabulate import tabulate
+
 
 _re_codestring = 'T([a-z])([a-z]*\d*[\.,]*\d*)M([a-z\-]+)J(\d+)'
 
@@ -250,23 +252,14 @@ class Observable(object):
     def as_string_table(self):
         """Human readable output as a table.
         """
-        msg = ''
-        column_size = 14
-
-        def formatting(items):
-                out = ' | '.join(['{}'.format(items[0]).rjust(column_size),
-                                  '{}'.format(items[1]).ljust(column_size)])
-                return out
-
-        msg += formatting(['parameter', 'value'])
-        msg += '\n' + formatting(['----', '----'])
+        tab = [['parameter', 'value']]
         for key in self._attr_names:
             val = self.__getattribute__(key)
-            msg += '\n' + formatting([key, val])
-        msg += '\n'
-        return msg
-        
-    
+            tab.append([key, val])
+
+        return tabulate(tab, headers='firstrow')
+
+
     def latexify(self, show_variable=True,
                  plus_delta=False,
                  shorten_time_variable=False,
@@ -274,7 +267,7 @@ class Observable(object):
                  as_description=False,
                  use_name=None):
         """Returns a latexified string for observable
-        
+
         Parameters
         ----------
         show_variable : bool
@@ -314,7 +307,7 @@ class Observable(object):
             if self.mode != 'dynamics':
                 output += '_{{\mathrm{{ {} }} }}'.format(self.mode)
 
-        
+
         if show_variable:
             time_var = _latexify_time_var(self, prime_time=prime_time,
                                            shorten_time_variable=shorten_time_variable,
@@ -332,8 +325,8 @@ class Observable(object):
         """
         return self.latexify(as_description=False, plus_delta=False, prime_time=False)
 
-    def __str__(self):
-        return self.label
+#    def __str__(self):
+#        return self.label
 
     def __repr__(self):
         name = type(self).__name__
@@ -493,7 +486,7 @@ class FunctionalObservable(object):
             msg += item.label + ', '
         msg += ')'
         return msg
-    
+
     @property
     def as_latex_string(self):
 #        args = r''
@@ -508,7 +501,7 @@ class FunctionalObservable(object):
 #        msg = r'$f( {} )$'.format(args)
         msg = self.latexify(show_variable=True)
         return msg
-    
+
     def latexify(self, show_variable=True,
                  plus_delta=False,
                  shorten_time_variable=False,
@@ -526,7 +519,7 @@ class FunctionalObservable(object):
             time_var = _latexify_time_var(self, plus_delta=plus_delta,
                                           shorten_time_variable=shorten_time_variable,
                                           prime_time=prime_time)
- 
+
             output += '({})'.format(time_var)
         output += '$'
         return output

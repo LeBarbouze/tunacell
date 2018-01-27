@@ -14,6 +14,8 @@ import os
 import numpy as np
 import warnings
 
+from tabulate import tabulate
+
 from tunacell.filters.main import FilterSet
 
 from tunacell.base.experiment import Experiment
@@ -380,27 +382,16 @@ class Parser(object):
 
     def info_samples(self):
         """Table output showing stored samples."""
-        column_size = 12
-        msg = ''
         if not self._sample_list:
-            msg += 'No samples have been added yet. Use .add_sample().'
+            print('No samples have been added yet. Use .add_sample().')
         else:
-            def formatting(items):
-                out = ' | '.join(['{}'.format(item).center(column_size)
-                                  for item in items])
-                return out
-            msg += '\n' + formatting(['index', 'container', 'cell'])
-            vsep = ''.join(['-' for space in range(column_size)])
-            msg += '\n' + formatting([vsep, vsep, vsep])
+            tab = [['index', 'container', 'cell']]
             for index, sample_id in enumerate(self._sample_list):
-                msg += '\n' + formatting([index,
-                                          sample_id['container_label'],
-                                          sample_id['cellID']])
-        return msg
+                tab.append([index, sample_id['container_label'], sample_id['cellID']])
+        return tabulate(tab, headers='firstrow')
 
     def __repr__(self):
         return self.info_samples()
-
 
     def iter_containers(self, mode='all', size=None, shuffle=False):
         """Iterate through valid containers.
