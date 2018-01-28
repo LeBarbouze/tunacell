@@ -11,10 +11,12 @@ extend over too much rows.
 from __future__ import print_function
 from builtins import input
 import sys
-
 import argparse
 import time
 import subprocess
+
+import numpy as np
+
 from tqdm import tqdm
 
 import matplotlib.pyplot as plt
@@ -42,6 +44,9 @@ argparser.add_argument('-i', '--interactive',
 argparser.add_argument('--time', type=float,
                       help='Time per figure when non-interactive mode is on',
                       default=3)
+argparser.add_argument('--seed', type=int,
+                       help='Seed random generating number for sampling',
+                       default=None)
 args = argparser.parse_args()
 
 single_plot_timing = args.time
@@ -85,6 +90,8 @@ else:
 path_to_exp = '~/tmptunacell/' + name
 exp = Experiment(path_to_exp)
 parser = Parser(exp)
+# uncomment line below to change samples
+np.random.seed(args.seed)
 # add 10 random samples
 parser.add_sample(10)
 

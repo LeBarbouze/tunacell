@@ -18,7 +18,7 @@ tuto: ~/tmptunacell/simutest
 	python scripts/tutorial.py -i
 
 plotting-demo:
-	python scripts/plotting-samples.py -i
+	python scripts/plotting-samples.py -i --seed 951
 
 analysis-demo:
 	python scripts/univariate-analysis.py -i
