@@ -64,6 +64,6 @@ setup(name='tunacell',
                         'PyYAML',  # yaml parser
                         'tqdm',  # status bar
                         'tabulate',  # tables
-                       ]
+                       ],
       scripts=['bin/tunasimu'],
       zip_safe=False)
