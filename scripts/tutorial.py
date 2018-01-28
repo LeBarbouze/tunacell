@@ -114,6 +114,7 @@ if __name__ == '__main__':
     print('Plotting timeseries of cell size for cells in our chosen colony')
     print('***************************************************************')
     from tunacell.plotting.samples import SamplePlot
+    colony.decompose(seed=357)  # so that decomposition is always identical
     myplot = SamplePlot([colony, ], parser=parser)
     myplot.make_plot(obs)
     myplot.save(user_bname='tutorial_sample', add_obs=False, extension='.png')
@@ -131,7 +132,7 @@ if __name__ == '__main__':
     print('***********************************************************')
     # looking at ou observable
     ou = Observable(name='growth-rate', raw='ou')
-    
+
     from tunacell.stats.api import compute_univariate
     univariate = compute_univariate(exp, ou)
     univariate.export_text()
