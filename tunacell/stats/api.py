@@ -37,6 +37,7 @@ def compute_univariate(exp, obs, region='ALL', cset=[], times=None,
     """Computes one-point and two-point functions of statistical analysis.
 
     This functions handles conditions and time-window binning:
+
     * all conditions provided in cset are applied independently, in addition
       to the computation with unconditioned data (labelled 'master')
     * A time-binning window is provided with a given offset and a period.
@@ -271,6 +272,7 @@ def compute_bivariate(row_univariate, col_univariate, size=None):
     """Computes cross-correlation between observables defiend in univs.
 
     This functions handles conditions and time-window binning:
+
     * all conditions provided in cset are applied independently, in addition
       to the computation with unconditioned data (labelled 'master')
     * A time-binning window is provided with a given offset and a period.

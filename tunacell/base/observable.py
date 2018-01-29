@@ -72,28 +72,33 @@ class Observable(object):
     mode : str {'dynamics', 'birth', 'division', 'net_increase', 'rate',
         'average'}
         mode used to retrieve data:
-            * 'dynamics': all timepoints are retrieved
-            * 'birth': only birth value is retrieved
-            * 'division': only division value is retrieved
-            * 'net-increase-additive': difference between division value
-               and birth value
-            * 'net-increase-multiplicative': ratio between division value
-               and birth value
-            * 'rate': rate of linear fit of [scale of] observable
-            * 'average': average of observable over cell cycle
+
+        * 'dynamics': all timepoints are retrieved
+        * 'birth': only birth value is retrieved
+        * 'division': only division value is retrieved
+        * 'net-increase-additive': difference between division value
+           and birth value
+        * 'net-increase-multiplicative': ratio between division value
+           and birth value
+        * 'rate': rate of linear fit of [scale of] observable
+        * 'average': average of observable over cell cycle
+
     timing : str {'t', 'b', 'd', 'm', 'g'}
         set the time at which cell cycle observable is associated:
-            * 't' : time-lapse timing (associated to mode 'dynamics')
-            * 'b' : cell cycle birth time
-            * 'd' : cell cycle division time
-            * 'm' : cell cycle midpoint (half time)
-            * 'g' : cell cycle generation index
+
+        * 't' : time-lapse timing (associated to mode 'dynamics')
+        * 'b' : cell cycle birth time
+        * 'd' : cell cycle division time
+        * 'm' : cell cycle midpoint (half time)
+        * 'g' : cell cycle generation index
+
     tref : float or 'root' (default None)
         when timing is set to 'g', sets the 0th generation to the cell
         that bounds this reference time
         when timing is set to 't' (time-lapse timing), allows to translate time
         values by substracting floating point value (if given as a float), or
         aligns to the colony root cell last time value as origin.
+
     """
 
     def __init__(self, name=None, from_string=None,

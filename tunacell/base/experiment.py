@@ -91,6 +91,7 @@ class Experiment(object):
                     extend_observables=False, report_NaNs=True,
                     size=None, shuffle=False)
         browse containers
+
     """
 
     def __init__(self, path='.', filetype=None, filter_set=None,
