@@ -35,7 +35,7 @@ from tunacell.filters.cells import FilterCell
 from tunacell.filters.containers import FilterContainer
 from tunacell.filters.trees import FilterTree
 from tunacell.filters.lineages import FilterLineage
-from tunacell.io import text, metadata
+from tunacell.io import text, metadata, analysis
 
 
 class ParsingExperimentError(Exception):
@@ -142,8 +142,8 @@ class Experiment(object):
     @property
     def analysis_path(self):
         """Get analysis path (with appropriate filterset path)"""
-        analysis_path = text.get_analysis_path(self, write=True)
-        index, filterset_path = text.get_filter_path(analysis_path, self.fset, write=True)
+        analysis_path = analysis.get_analysis_path(self, write=True)
+        index, filterset_path = analysis.get_filter_path(analysis_path, self.fset, write=True)
         return filterset_path
 
     def count_items(self, independent=True, seed=None, read=True):
@@ -163,8 +163,8 @@ class Experiment(object):
             if read:
                 # get analysis path
 
-                analysis_path = text.get_analysis_path(self, write=False)
-                i, filter_path = text.get_filter_path(analysis_path, self.fset,
+                analysis_path = analysis.get_analysis_path(self, write=False)
+                i, filter_path = analysis.get_filter_path(analysis_path, self.fset,
                                                       write=False)
                 counts = text.read_count_file(filter_path)
                 self._counts = counts
@@ -186,14 +186,14 @@ class Experiment(object):
         """Hidden method, see above for parameters"""
         counts = count_items(self, independent_decomposition=independent, seed=seed)
         # save the counts
-        text.write_count_file(self.analysis_path, counts)
+        analysis.write_count_file(self.analysis_path, counts)
         if write:
             self._counts = counts
 
     def _erase_count_file(self):
         try:
-            analysis_path = text.get_analysis_path(self, write=False)
-            i, filter_path = text.get_filter_path(analysis_path, self.fset,
+            analysis_path = analysis.get_analysis_path(self, write=False)
+            i, filter_path = analysis.get_filter_path(analysis_path, self.fset,
                                                       write=False)
             filename = os.path.join(filter_path, '.counts.yml')
             if os.path.exists(filename):

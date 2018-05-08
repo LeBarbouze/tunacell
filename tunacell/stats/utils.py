@@ -15,7 +15,7 @@ from tqdm import tqdm
 
 from tunacell.base.parser import Parser
 from tunacell.base.experiment import Experiment
-from tunacell.io import text
+from tunacell.io import analysis
 from tunacell.base.observable import set_observable_list
 
 
@@ -161,7 +161,7 @@ class Region(object):
             self.tmax = eval(tmax)
         else:
             self.tmax = tmax
-    
+
     def as_dict(self):
         return {'name': self.name, 'tmin': self.tmin, 'tmax': self.tmax}
 
@@ -212,7 +212,7 @@ class Regions(object):
         return msg
 
     def _path_to_file(self, write=False):
-        analysis_path = text.get_analysis_path(self.exp, write=write)
+        analysis_path = analysis.get_analysis_path(self.exp, write=write)
         text_file = os.path.join(analysis_path, 'regions.tsv')
         if not os.path.exists(text_file) and not write:
             raise RegionsIOError
@@ -238,7 +238,7 @@ class Regions(object):
                 for name in names:
                     item = self._regions[name]
                     writer.writerow(item)
-    
+
     def _lookup_bounds(self, tmin=None, tmax=None):
         """Look up in defined regions whether a region already exists
 
