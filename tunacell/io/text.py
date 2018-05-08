@@ -10,6 +10,8 @@ import glob
 import logging
 import numpy as np
 
+from tunacell.io import metadata
+
 
 logger = logging.getLogger(__name__)
 
@@ -225,4 +227,22 @@ def container_filename_parser(abs_path):
 #    filenames = [os.path.join(repo, bn) for bn in basenames]
 #    return filenames
 
+def load_experiment(exp):
+    """Load experiment by looking for all text features
 
+    Parameters
+    ----------
+    exp : tunacell.base.Experiment instance
+    """
+    # get list of container files
+    fns = container_filename_parser(exp.abspath)
+    bns = [os.path.splitext(bn)[0] for bn in fns]
+    # extract only container labels
+    exp.containers = sorted(bns)
+    # get metadata
+    meta = metadata.load_metadata(exp.abspath)
+    exp.metadata = meta
+    exp.period = exp.metadata.period
+    descriptor_file = _check_up('descriptor.csv', exp.abspath, 2)
+    datatype = datatype_parser(descriptor_file)
+    exp.datatype = datatype

@@ -35,7 +35,7 @@ from tunacell.filters.cells import FilterCell
 from tunacell.filters.containers import FilterContainer
 from tunacell.filters.trees import FilterTree
 from tunacell.filters.lineages import FilterLineage
-from tunacell.io import text, metadata, analysis
+from tunacell.io import text, analysis
 
 
 class ParsingExperimentError(Exception):
@@ -117,7 +117,7 @@ class Experiment(object):
             self.filetype = filetype
         # different initialization depending on filetype
         if self.filetype == 'text':
-            self._load_from_text()
+            text.load_experiment(self)
         else:
             raise FiletypeError('Filetype not recognized')
         self.fset = filter_set
@@ -200,22 +200,6 @@ class Experiment(object):
                 os.remove(filename)
         except (text.MissingFileError, text.MissingFolderError):
             pass
-
-    def _load_from_text(self):
-        """Load parameters from text filetype
-        """
-        # get list of container files
-        fns = text.container_filename_parser(self.abspath)
-        bns = [os.path.splitext(bn)[0] for bn in fns]
-        # extract only container labels
-        self.containers = sorted(bns)
-        # get metadata
-        meta = metadata.load_metadata(self.abspath)
-        self.metadata = meta
-        self.period = self.metadata.period
-        descriptor_file = text._check_up('descriptor.csv', self.abspath, 2)
-        datatype = text.datatype_parser(descriptor_file)
-        self.datatype = datatype
 
     @property
     def containers(self):
