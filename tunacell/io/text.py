@@ -6,6 +6,7 @@ Modules that defines import from/export to text files
 from __future__ import print_function
 
 import os
+import pathlib
 import glob
 import logging
 import numpy as np
@@ -226,6 +227,64 @@ def container_filename_parser(abs_path):
     return valids
 #    filenames = [os.path.join(repo, bn) for bn in basenames]
 #    return filenames
+
+
+def find_containers(path):
+    """Find container files
+
+    Parameters
+    ----------
+    path : str, or pathlib.Path
+        experiment root folder path
+
+    Returns
+    -------
+    containers : list of pathlib.Path
+    """
+    if not isinstance(path, pathlib.Path):
+        path = pathlib.Path(path)
+    container_folder = path / 'containers'
+    if not container_folder.exists():
+        msg = 'Expected {}, not found. Check path.'.format(container_folder)
+        raise TextParsingError(msg)
+    containers = []
+    for item in container_folder.iterdir():
+        if item.is_file() and 'readme' not in item.stem.lower():
+            containers.append(item)
+    return sorted(containers)
+
+
+def find_metadata(path):
+    """Find metadata associated to experiment pointed by path
+
+    Parameters
+    ----------
+    path : str, or pathlib.Path
+        experiment root folder path
+
+    Returns
+    -------
+    meta : tunacell.io.metadata.Metadata instance
+    """
+    meta = metadata.load_metadata(path)
+    return meta
+
+
+def find_datatype(path):
+    """Find datatype associated to text files
+
+    Parameters
+    ----------
+    path : str, or pathlib.Path
+        experiment root folder path
+
+    Returns
+    -------
+    """
+    descriptor_file = _check_up('descriptor.csv', path, 2)
+    datatype = datatype_parser(descriptor_file)
+    return datatype
+
 
 def load_experiment(exp):
     """Load experiment by looking for all text features

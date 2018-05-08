@@ -54,7 +54,7 @@ class Experiment(object):
     """General class that stores experiment details.
 
     Creates an Experiment instance from reading a file, records path, filetype,
-    reads metadata, stores the list of container containers.
+    reads metadata, stores the list of containers.
 
     Parameters
     ----------
@@ -117,7 +117,12 @@ class Experiment(object):
             self.filetype = filetype
         # different initialization depending on filetype
         if self.filetype == 'text':
-            text.load_experiment(self)
+            containers = text.find_containers(self.abspath)  # full path
+            basenames = [item.stem for item in containers]  # only labels
+            self.containers = basenames
+            self.metadata = text.find_metadata(self.abspath)
+            self.datatype = text.find_datatype(self.abspath)
+#            text.load_experiment(self)
         else:
             raise FiletypeError('Filetype not recognized')
         self.fset = filter_set
