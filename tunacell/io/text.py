@@ -12,6 +12,9 @@ import logging
 import numpy as np
 
 from tunacell.io import metadata
+from tunacell.base.cell import Cell
+from tunacell.base.datatools import compute_secondary_observables
+
 
 
 logger = logging.getLogger(__name__)
@@ -286,22 +289,111 @@ def find_datatype(path):
     return datatype
 
 
-def load_experiment(exp):
-    """Load experiment by looking for all text features
+class ContainerArrayParsingError(Exception):
+    pass
+
+
+class CellIdentifierError(ContainerArrayParsingError):
+    """Class for Identifier Error"""
+    pass
+
+
+class CellParentError(ContainerArrayParsingError):
+    """Class for parent identifier Error"""
+    pass
+
+
+def build_cells(arr, container=None, report_NaNs=True,
+                extend_observables=False):
+    """Read and store :class:`Cell` instances from structured text files).
+
+    Text file must be tab separated value and its columns must match the
+    experiment descriptor file.
+    TODO: read descriptor from header?
 
     Parameters
     ----------
-    exp : tunacell.base.Experiment instance
+    arr : Numpy structured array
+    container : :class:`Container` instance
+    report_NaNs : boolean {True, False}
+        whether to report for NaNs in text file
+    extend_observables : boolean {False, True}
+        whether to try to compute usual secondary observables such as age,
+        volume, concentration...
+
+    Returns
+    -------
+    list of :class:`Cell` instances
+       Information is stored in attributes:
+           * :attr:`bpointer`: backwards pointer, to parent cell
+           * :attr:`data`: data as structured array
     """
-    # get list of container files
-    fns = container_filename_parser(exp.abspath)
-    bns = [os.path.splitext(bn)[0] for bn in fns]
-    # extract only container labels
-    exp.containers = sorted(bns)
-    # get metadata
-    meta = metadata.load_metadata(exp.abspath)
-    exp.metadata = meta
-    exp.period = exp.metadata.period
-    descriptor_file = _check_up('descriptor.csv', exp.abspath, 2)
-    datatype = datatype_parser(descriptor_file)
-    exp.datatype = datatype
+    cells = []
+    # big array of all cells
+    if extend_observables:
+        try:
+            arr = compute_secondary_observables(arr)
+        except ValueError as ve:
+            msg = ('Extend observable failed, keep original array.\n'
+                   '{}'.format(ve))
+            logger.debug(msg)
+
+    # when arr has got more than 1 frame
+    if len(arr.shape) > 0:
+        breaks = []  # where to split array
+        previous_id = arr['cellID'][0]  # first cid
+        for index, cid in enumerate(arr['cellID']):
+            if cid != previous_id:
+                previous_id = cid
+                breaks.append(index)
+        arrs = np.split(arr, breaks)
+    # otherwise there's only one cell with a single frame
+    else:
+        arrs = [arr, ]
+
+    del arr
+
+    if report_NaNs:
+        nan_labels = {}
+    for arr in arrs:
+        # first check that identifiers are unique
+        cids = np.unique(arr['cellID'])
+        if len(cids) > 1:
+            raise CellIdentifierError('ids found: {}'.format(cids))
+        else:
+            cid = str(cids[0])  # map to string (immutable)
+        pids = np.unique(arr['parentID'])
+        if len(pids) > 1:
+            msg = 'From cellID {}; found these parentIDs: {}'.format(cid, pids)
+            raise CellParentError(msg)
+        else:
+            pid = str(pids[0])  # map to string (immutable)
+        # create Cell instance and update bpointer when pid is valid
+        cell = Cell(identifier=cid, container=container)
+        if pid != '0':  # this is the code for first recorded cells
+            cell.bpointer = pid
+        # record if NaN values appear
+        if report_NaNs:
+            for label, (dtype, offset) in arr.dtype.fields.items():
+                # NaNs are implemented as np.nan for float types,
+                if 'f' in dtype.kind:
+                    if np.isnan(arr[label]).any():
+                        if label not in nan_labels.keys():
+                            nan_labels[label] = [cid, ]
+                        else:
+                            nan_labels[label].append(cid)
+                # for integer types, they seem to be replaced by largest value
+                elif ('u' in dtype.kind) or ('i' in dtype.kind):
+                    if np.amax(arr[label]) == np.iinfo(dtype).max:
+                        if label not in nan_labels.keys():
+                            nan_labels[label] = [cid, ]
+                        else:
+                            nan_labels[label].append(cid)
+        # attach data to Cell instance
+        cell.data = arr
+        cells.append(cell)
+    if report_NaNs:
+        msg = ('In container {}, found NaNs in following columns '.format(container.label) + ''
+               '{}'.format(', '.join(nan_labels.keys())))
+        logger.debug(msg)
+    return cells
