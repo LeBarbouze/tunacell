@@ -122,7 +122,6 @@ class Experiment(object):
             self.containers = basenames
             self.metadata = text.find_metadata(self.abspath)
             self.datatype = text.find_datatype(self.abspath)
-#            text.load_experiment(self)
         else:
             raise FiletypeError('Filetype not recognized')
         self.fset = filter_set
