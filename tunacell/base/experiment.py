@@ -26,6 +26,7 @@ import os
 import random
 import warnings
 import shutil
+import pathlib
 
 from tqdm import tqdm
 
@@ -35,7 +36,7 @@ from tunacell.filters.cells import FilterCell
 from tunacell.filters.containers import FilterContainer
 from tunacell.filters.trees import FilterTree
 from tunacell.filters.lineages import FilterLineage
-from tunacell.io import text, analysis
+from tunacell.io import text, supersegger, analysis
 
 
 class ParsingExperimentError(Exception):
@@ -79,8 +80,8 @@ class Experiment(object):
         file is associated to the experiment.
     metadata: Metadata instance
         experiment metadata
-    containers : list of str
-        sequence of container filenames for text containers
+    containers : list of pathlib.Path
+        list of absolute paths to containers
     period: float
         time interval between two successive aquisitions (this should be
         defined in the experiment metadata)
@@ -118,10 +119,15 @@ class Experiment(object):
         # different initialization depending on filetype
         if self.filetype == 'text':
             containers = text.find_containers(self.abspath)  # full path
-            basenames = [item.stem for item in containers]  # only labels
-            self.containers = basenames
+#            basenames = [item.stem for item in containers]  # only labels
+            self.containers = containers
             self.metadata = text.find_metadata(self.abspath)
             self.datatype = text.find_datatype(self.abspath)
+        elif self.filetype == 'supersegger':
+            containers = supersegger.find_containers(self.abspath)
+#            basenames = [item.stem for item in containers]
+            self.containters = containers
+            self.metadata = text.find_metadata(self.abspath)
         else:
             raise FiletypeError('Filetype not recognized')
         self.fset = filter_set
@@ -213,7 +219,7 @@ class Experiment(object):
     def containers(self, value):
         if isinstance(value, list):
             self._containers = value
-        elif isinstance(value, str):
+        elif isinstance(value, pathlib.Path):
             self._containers.append(value)
         return
 
@@ -293,10 +299,10 @@ class Experiment(object):
             random.shuffle(containers)
         if size is None:
             size = len(self.containers)
-        for index, label in enumerate(containers, start=1):
+        for index, path in enumerate(containers, start=1):
             if index > size:
                 break
-            container = Container(label, exp=self)
+            container = Container(path, exp=self)
             if read:
                 container.read_data(build=build, prefilt=cell_filter,
                                     extend_observables=extend_observables,
@@ -336,12 +342,12 @@ class Experiment(object):
         """
         if self.filetype == 'text':
             found = False
-            for item in self.containers:
-                if label == item:
+            for path in self.containers:
+                if label == path.stem:
                     found = True
                     break
             if found:
-                container = Container(label, exp=self)
+                container = Container(path, exp=self)
             else:
                 msg = 'Filename error: {}'.format(label)
                 msg += ' does not correspond to any container file.'
