@@ -8,6 +8,7 @@ from __future__ import print_function
 import pytest
 import tunacell
 import os
+import pathlib
 
 from tunacell.base.experiment import Experiment
 
@@ -23,7 +24,12 @@ def container():
 
 
 def test_attributes(container):
-    assert container.abspath == os.path.join(os.path.abspath(path_fake_exp),
+    if isinstance(container.abspath, pathlib.Path):
+        assert str(container.abspath.absolute()) == os.path.join(os.path.abspath(path_fake_exp),
+                                              'containers',
+                                              'container_01.txt')
+    else:
+        assert container.abspath == os.path.join(os.path.abspath(path_fake_exp),
                                               'containers',
                                               'container_01.txt')
     assert container.filetype == 'text'
@@ -33,7 +39,7 @@ def test_attributes(container):
     md = container.metadata
     assert md['author'] == 'Joachim Rambeau'
     assert md['strain'] == 'Thunnus alalunga'
-    
+
 
 def test_container_data(container):
     assert container.data['cellID'][0] == 1

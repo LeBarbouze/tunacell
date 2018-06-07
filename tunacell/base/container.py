@@ -99,14 +99,10 @@ class Container(object):
         # we will determine the following attributes in the __init__
         self.datatype = exp.datatype
         self.data = None  # Table read from file
-        self.metadata = exp.metadata.from_container(self.label)
 
         # these attributes are set to empty lists, will be loaded by .read_data
         self.cells = []
         self.trees = []
-
-        # acquisition period
-        self.period = self.metadata.loc['period']
 
         # cases against filetype
         if self.filetype == 'text':
@@ -119,7 +115,10 @@ class Container(object):
         elif self.filetype == 'simu':
             pass
 
-        return
+        # metadata
+        self.metadata = exp.metadata.from_container(self.label)
+        # acquisition period
+        self.period = self.metadata.loc['period']
 
     def read_data(self, build=True, prefilt=None, extend_observables=False,
                   report_NaNs=True):
