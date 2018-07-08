@@ -1,14 +1,11 @@
-level    : experiment
+experiment: fake
 author   : Joachim Rambeau
-label    : fake
 period   : 3.14
 strain   : Thunnus alalunga
 ---
-level    : container_02
-label    : container_02
+container: container_02
 strain   : Thunnus thynnus
 ---
-level    : container_03
-label    : container_03
+container: container_03
 strain   : Thunnus atlanticus
 ---

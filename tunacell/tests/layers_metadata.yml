@@ -1,14 +1,13 @@
-level: top
+experiment: fake
 period-ch1: 5.0
 period-ch2: 20.0
 medium: M9Glu
 species: e.coli
 ---
-level: container_007
-label: container_007
+container: container_007
 species: james bond
 ---
-level:
+container:
     - container_xy
     - container_z
 medium: M9Fru

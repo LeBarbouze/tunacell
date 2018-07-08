@@ -1,4 +1,4 @@
 level,author,label,period,strain
-top,Joachim Rambeau,fake,3.14,Thunnus alalunga
-container_02,,container_02,,Thunnus thynnus
-container_03,,container_03,,Thunnus atlanticus
+experiment,Joachim Rambeau,fake,3.14,Thunnus alalunga
+container,,container_02,,Thunnus thynnus
+container,,container_03,,Thunnus atlanticus

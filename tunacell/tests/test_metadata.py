@@ -63,7 +63,7 @@ def layers():
 @pytest.fixture
 def from_yaml():
     return load_from_yaml(os.path.join(path_fake_exp, 'metadata.yml'))
-    
+
 
 @pytest.fixture
 def from_csv():
@@ -74,12 +74,12 @@ def test_simple_load(simple):
     """Checks that constructor works and local metadata is assigned to top"""
     md = Metadata(simple)
     assert isinstance(md, Metadata)
-    assert isinstance(md.top, LocalMetadata)
+    assert isinstance(md.experiment, LocalMetadata)
 
 
 def test_simple_content(simple):
     md = Metadata(simple)
-    assert md['level'] == 'top'
+    assert md['experiment'] == 'fake'
     assert md['period'] == 5.0
     assert md['author'] == 'J. Rambeau'
     assert md['species'] == 'e.coli'
@@ -89,7 +89,7 @@ def test_simple_content(simple):
 def test_simple_period(simple):
     md = Metadata(simple)
     assert md.period == 5.0
-    assert md.top.period == 5.0
+    assert md.experiment.period == 5.0
 
 
 def test_layers_load(layers):
