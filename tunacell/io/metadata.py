@@ -150,8 +150,6 @@ def load_from_csv(filename, sep=','):
                     local_dict[v] = row['label']
                 elif k == 'label':
                     continue
-                elif k == 'period':
-                    local_dict[k] = float(v)
                 else:
                     local_dict[k] = v
             list_dict.append(local_dict)
@@ -325,9 +323,9 @@ class LocalMetadata(object):
         reduced = [(k, v) for k, v in self._dict.items() if 'period' in k]
         if reduced:
             sorted_ = sorted(reduced, key=lambda x: x[1], reverse=False)
-            return sorted_[0][1]
+            return float(sorted_[0][1])
         else:
-            return self._experiment['period']
+            return float(self._experiment['period'])
 
     def __str__(self):
         """String output based on yaml.dump"""
