@@ -14,6 +14,8 @@
 
 # except .gitignore
 !.gitignore
+# except .travis.yml
+!.travis.yml
 
 # Virtualenv
 /venv/
