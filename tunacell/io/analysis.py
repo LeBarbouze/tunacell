@@ -74,7 +74,7 @@ def get_analysis_path(exp, user_abspath=None, write=True):
     # canonical analysis folder
     else:
         # text
-        if exp.filetype == 'text':
+        if exp.filetype == 'text' or exp.filetype == 'supersegger':
             analysis = os.path.join(exp.abspath, 'analysis')
         elif exp.filetype == 'h5':
             folder_up = os.path.split(exp.abspath)[0]

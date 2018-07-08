@@ -340,7 +340,7 @@ class Experiment(object):
         ParsingContainerError: when despite of existing container filename,
             parsing of container failed and nothing is loaded
         """
-        if self.filetype == 'text':
+        if self.filetype == 'text' or self.filetype == 'supersegger':
             found = False
             for path in self.containers:
                 if label == path.stem:
