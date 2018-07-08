@@ -29,7 +29,7 @@ def find_version(*file_paths):
         return version_match.group(1)
     raise RuntimeError("Unable to find version string.")
 ## end of pip setup extract
-    
+
 
 setup(name='tunacell',
       version=find_version('tunacell','__init__.py'),
@@ -64,6 +64,7 @@ setup(name='tunacell',
                         'PyYAML',  # yaml parser
                         'tqdm',  # status bar
                         'tabulate',  # tables
+                        'pathlib2',  # backward compatibility for python2.7
                        ],
       scripts=['bin/tunasimu'],
       zip_safe=False)
