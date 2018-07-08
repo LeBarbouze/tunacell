@@ -126,7 +126,7 @@ class Experiment(object):
         elif self.filetype == 'supersegger':
             containers = supersegger.find_containers(self.abspath)
 #            basenames = [item.stem for item in containers]
-            self.containters = containers
+            self.containers = containers
             self.metadata = text.find_metadata(self.abspath)
         else:
             raise FiletypeError('Filetype not recognized')
@@ -240,7 +240,7 @@ class Experiment(object):
             if count > 5:
                 msg += '\t...\n'
                 break
-            msg += '\t' + fn + '\n'
+            msg += '\t' + str(fn) + '\n'
         msg += '\t({} containers)\n'.format(len(self.containers))
 #        msg += 'Filetype: {}\n'.format(self.filetype)
         msg += repr(self.metadata)
