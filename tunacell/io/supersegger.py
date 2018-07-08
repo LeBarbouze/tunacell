@@ -175,10 +175,12 @@ def build_cells(mat, container):
     ncells, nobs, nframes = data3D.shape
     for k in range(ncells):
         arr = build_cell_data(data3D[k, :, :], dict_ids, header3D,
-                              container.time_array, container.period)
+                              time_array=None,
+                              period=container.period)
         cid = arr['cellID'][0]
         pid = arr['parentID'][0]
         new = Cell(identifier=cid, container=container)
+        new.data = arr
         if pid != 0:
             new.bpointer = pid
         cells.append(new)
