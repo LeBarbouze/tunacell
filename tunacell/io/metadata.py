@@ -175,6 +175,16 @@ def _update_local_dict(local_dict, new_items):
             local_dict[key] = value
 
 
+def _prune_dict(dic):
+    """Remove entries with empty string value
+    """
+    new = {}
+    for key, item in dic.items():
+        if item:
+            new[key] = item
+    return new
+
+
 class Metadata(object):
     """Experiment metadata
 
@@ -211,6 +221,7 @@ class Metadata(object):
         for dic in self._iter_dict:
             if dic is None:
                 continue
+            dic= _prune_dict(dic)  # remove empty string values
             if 'experiment' in dic:
                 self._ddict['experiment'] = dic
             else:
