@@ -26,7 +26,12 @@ import os
 import random
 import warnings
 import shutil
-import pathlib
+
+import sys
+if sys.version_info[0] < 3:
+    import pathlib2 as pathlib
+else:
+    import pathlib
 
 from tqdm import tqdm
 

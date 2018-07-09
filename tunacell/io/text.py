@@ -6,10 +6,15 @@ Modules that defines import from/export to text files
 from __future__ import print_function
 
 import os
-import pathlib
 import glob
 import logging
 import numpy as np
+
+import sys
+if sys.version_info[0] < 3:
+    import pathlib2 as pathlib
+else:
+    import pathlib
 
 from tunacell.io import metadata
 from tunacell.base.cell import Cell

@@ -6,12 +6,16 @@ This module defines how each container file (FoV) is handled
 from __future__ import print_function
 
 import os
-import pathlib
 import re
 import random
 import numpy as np
-
 import logging
+
+import sys
+if sys.version_info[0] < 3:
+    import pathlib2 as pathlib
+else:
+    import pathlib
 
 from tunacell.io import text, supersegger
 
@@ -139,7 +143,7 @@ class Container(object):
         # TEXT FILETYPE
         if self.filetype == 'text':
             # Read cells from file
-            arr = text.get_array(self.abspath, self.datatype, delimiter='\t')
+            arr = text.get_array(str(self.abspath), self.datatype, delimiter='\t')
         elif self.filetype == 'supersegger':
             arr = supersegger.load_container(self.abspath)
         elif self.filetype == 'simu':

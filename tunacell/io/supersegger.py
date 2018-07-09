@@ -7,9 +7,14 @@
     module to parse supersegger data as input for tunacell processing
 """
 
-import pathlib
 from scipy.io import loadmat
 import numpy as np
+
+import sys
+if sys.version_info[0] < 3:
+    import pathlib2 as pathlib
+else:
+    import pathlib
 
 from tunacell.base.cell import Cell
 

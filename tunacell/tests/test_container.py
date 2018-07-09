@@ -8,7 +8,12 @@ from __future__ import print_function
 import pytest
 import tunacell
 import os
-import pathlib
+
+import sys
+if sys.version_info[0] < 3:
+    import pathlib2 as pathlib
+else:
+    import pathlib
 
 from tunacell.base.experiment import Experiment
 
