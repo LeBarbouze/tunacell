@@ -122,7 +122,7 @@ class Container(object):
         # metadata
         self.metadata = exp.metadata.from_container(self.label)
         # acquisition period
-        self.period = self.metadata.loc['period']
+        self.period = self.metadata.period
 
     def read_data(self, build=True, prefilt=None, extend_observables=False,
                   report_NaNs=True):
