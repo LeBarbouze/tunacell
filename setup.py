@@ -64,7 +64,7 @@ setup(name='tunacell',
                         'PyYAML',  # yaml parser
                         'tqdm',  # status bar
                         'tabulate',  # tables
-                        'pathlib2',  # backward compatibility for python2.7
+#                        'pathlib2',  # backward compatibility for python2.7
                        ],
       scripts=['bin/tunasimu'],
       zip_safe=False)
