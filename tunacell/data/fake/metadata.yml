@@ -1,6 +1,6 @@
 experiment: fake
 author   : Joachim Rambeau
-period   : 3.14
+period   : !!float '3.14'
 strain   : Thunnus alalunga
 ---
 container: container_02
