@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/LeBarbouze/tunacell.svg?branch=next)](https://travis-ci.com/LeBarbouze/tunacell)
+
       _                              _ _ 
      | |_ _   _ _ __   __ _  ___ ___| | |
      | __| | | | '_ \ / _` |/ __/ _ \ | |   tune-a-cell
@@ -31,7 +33,11 @@ to shift to Python 3 though.
 The best way to install tunacell is to clone the repo and make a local,
 editable install using pip:
 
+    pip install -r requirements.txt
     pip install -e .
+
+The first line install dependencies whereas the second line install an editable
+version of the library.
 
 This way, you will get script tutorials shipped with the library. Otherwise
 the library can be installed remotely from wheels (*i.e.* without cloning the
@@ -72,9 +78,6 @@ and that's it.
 
 
 ## Dependencies
-
-tunacell depends on few libraries that are automatically installed if you are
-using pip.
 
 [Numpy][], [Scipy][], [matplotlib][] are classic libraries,
 as well as [pandas][] that is used
