@@ -108,7 +108,6 @@ class Experiment(object):
         self._containers = []
         self._counts = None
         self.metadata = None
-        self.period = None
         # let's go
         self.abspath = os.path.abspath(os.path.expanduser(path))
         # remove extension
@@ -138,6 +137,15 @@ class Experiment(object):
         self.fset = filter_set
         if count_items:
             self.count_items()
+
+    @property
+    def period(self):
+        """Return the experimental level period
+
+        The experimental level period is defined as the smallest acquisition
+        period over all containers.
+        """
+        return self.metadata.period
 
     @property
     def fset(self):
@@ -181,7 +189,7 @@ class Experiment(object):
                 analysis_path = analysis.get_analysis_path(self, write=False)
                 i, filter_path = analysis.get_filter_path(analysis_path, self.fset,
                                                       write=False)
-                counts = text.read_count_file(filter_path)
+                counts = analysis.read_count_file(filter_path)
                 self._counts = counts
             else:
                 raise text.MissingFileError  # mock it to go to exception
