@@ -39,4 +39,4 @@ def test_filename_parser(fname):
     assert 'container_01.txt' in basenames
     assert 'container_02.txt' in basenames
     assert 'container_03.txt' in basenames
-    assert len(basenames) == 3
+    assert len(basenames) == 4
