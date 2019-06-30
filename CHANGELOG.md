@@ -15,3 +15,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
    - Use analysis module instead of everything in text module
    - Metadata yaml and csv syntax
+
+## [0.1.0] - 2018-01-29
+### Added
+   - tunacell API
+   - 10-minute tutorial script
+   - analysis example scripts
