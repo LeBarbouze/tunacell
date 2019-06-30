@@ -342,7 +342,8 @@ def build_cells(arr, container=None, report_NaNs=True,
             msg = ('Extend observable failed, keep original array.\n'
                    '{}'.format(ve))
             logger.debug(msg)
-
+    # store cellIDs
+    cellIDs = np.unique(arr['cellID'])
     # when arr has got more than 1 frame
     if len(arr.shape) > 0:
         breaks = []  # where to split array
@@ -377,6 +378,9 @@ def build_cells(arr, container=None, report_NaNs=True,
         cell = Cell(identifier=cid, container=container)
         if pid != '0':  # this is the code for first recorded cells
             cell.bpointer = pid
+        # prune parent identifier when pid is not in cellIDS
+        if pids[0] not in cellIDs:
+            cell.bpointer = None  # needed to inform that current Cell is a root
         # record if NaN values appear
         if report_NaNs:
             for label, (dtype, offset) in arr.dtype.fields.items():
