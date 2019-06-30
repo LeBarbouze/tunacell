@@ -186,9 +186,7 @@ def build_cells(mat, container):
         pid = arr['parentID'][0]
         new = Cell(identifier=cid, container=container)
         new.data = arr
-        if pid != 0:
+        if pid in dict_ids:  # points to parent if and only if itself a recorded cell
             new.bpointer = pid
         cells.append(new)
     return cells
-
-
