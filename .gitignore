@@ -20,3 +20,9 @@
 # Virtualenv
 /venv/
 /venv3/
+
+# built documentation
+docs/_build/
+docs/_template/
+docs/_static/
+docs/images
