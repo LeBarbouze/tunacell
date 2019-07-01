@@ -48,7 +48,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'tunacell'
-copyright = u'2017-2018, Joachim Rambeau'
+copyright = u'2017-2019, Joachim Rambeau'
 author = u'Joachim Rambeau'
 
 # The version info for the project you're documenting, acts as replacement for
