@@ -6,15 +6,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## [0.2.0] - 2018-07-11
+## [0.2.0] - 2019-07-01
 ### Added
    - supersegger module to read directly from supersegger output
    - Travis CI support
    - CHANGELOG
+   - documentation source, hosted by readthedocs at [tunacell.readthedocs.io](https://tunacell.readthedocs.io/en/latest/)
 
 ### Changed
    - Use analysis module instead of everything in text module
    - Metadata yaml and csv syntax
+   - cell identifiers are kept to their original type (not translated to str)
 
 ### Fixed
    - Root cells can point to non-zero label
