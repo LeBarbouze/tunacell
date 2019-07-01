@@ -1,5 +1,6 @@
 [![Build Status](https://travis-ci.com/LeBarbouze/tunacell.svg?branch=develop)](https://travis-ci.com/LeBarbouze/tunacell)
 [![Documentation Status](https://readthedocs.org/projects/tunacell/badge/?version=latest)](https://tunacell.readthedocs.io/en/latest/?badge=latest)
+
       _                              _ _ 
      | |_ _   _ _ __   __ _  ___ ___| | |
      | __| | | | '_ \ / _` |/ __/ _ \ | |   tune-a-cell
