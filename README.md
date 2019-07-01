@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/LeBarbouze/tunacell.svg?branch=next)](https://travis-ci.com/LeBarbouze/tunacell)
+[![Build Status](https://travis-ci.com/LeBarbouze/tunacell.svg?branch=develop)](https://travis-ci.com/LeBarbouze/tunacell)
 
       _                              _ _ 
      | |_ _   _ _ __   __ _  ___ ___| | |
