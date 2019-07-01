@@ -2,11 +2,17 @@ Input file format
 =================
 
 This section discusses how raw data should be organized so that ``tunacell`` is
-able to read it. It requires the user to format data from the
-segmentation/tracking software to the accepted input.
+able to read it.
 
-So far, full compatibility exists only for text-based input, which is described
-here.
+Two types of input are possible:
+
+- plain text format (full compatibility): data output from any segmentation software
+  can be translated to plain-text format; its format is explained thoroughly below
+- `SuperSegger`_ output format (experimental): data output is read directly from
+  the output of the software (stored in a number of Matlab ``.mat`` files under a specific
+  folder structure.
+
+.. _SuperSegger: http://mtshasta.phys.washington.edu/website/SuperSegger.php
 
 .. contents:: Contents
    :depth: 2
@@ -212,6 +218,12 @@ Although more compact, it can be harder to read/or fill from a text file.
    is read from to the experiment metadata.
    Missing values for a container row are filled with experiment-level values.
 
+
+Supersegger output
+------------------
+
+The supersegger output is stored in numerous subfolders from a main folder.
+The `Metadata description`_ needs to be added as well under this main folder.
 
 What to do next?
 ----------------
