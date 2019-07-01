@@ -66,7 +66,7 @@ class Experiment(object):
     ----------
     path : str
         path to experiment root file
-    filetype -- str {None, 'text', 'h5'}
+    filetype -- str {None, 'text', 'supersegger'}
         leave to None for automatic detection.
 
     Attributes
@@ -75,7 +75,7 @@ class Experiment(object):
         absolute path on disk of main directory for text containers
     label : str
         experiment label
-    filetype : str {'text', 'simu'}
+    filetype : str {'text', 'supersegger'}
         one of the available file type ('simu' is not a filetype per se...)
     fset : :class:`FilterSet` instance
         filterset to be applied when parsing data
