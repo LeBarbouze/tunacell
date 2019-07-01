@@ -16,6 +16,10 @@
 !.gitignore
 # except .travis.yml
 !.travis.yml
+# except readthedocs
+!.readthedocs.yml
+# except .gitattributes
+!.gitattributes
 
 # Virtualenv
 /venv/
