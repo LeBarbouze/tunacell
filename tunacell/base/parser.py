@@ -226,7 +226,7 @@ class Parser(object):
                     item['cellID'] = cid
                 # catching Parsing errors and stopping
                 except ParsingContainerError as pe:
-                    msg = pe
+                    msg = '{}'.format(pe)
                     msg += '\nCheck input.'
                     warnings.warn(msg)
                     return  # exit
