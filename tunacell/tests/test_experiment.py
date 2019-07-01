@@ -46,7 +46,7 @@ def test_experiment_abspath(fake_exp):
 
 
 def test_experiment_number_container(fake_exp):
-    assert len(fake_exp.containers) == 3
+    assert len(fake_exp.containers) == 4
 
 
 def test_experiment_metadata(fake_exp):
@@ -72,7 +72,7 @@ def test_experiment_get_container(fake_exp):
 
 def test_counts(fake_exp):
     counts = fake_exp._counts
-    assert counts['containers'] == 3
-    assert counts['cells'] == 18
-    assert counts['colonies'] == 3
-    assert counts['lineages'] == 9  # number of leaves when no filter is applied
+    assert counts['containers'] == 4
+    assert counts['cells'] == 24
+    assert counts['colonies'] == 4
+    assert counts['lineages'] == 12  # number of leaves when no filter is applied

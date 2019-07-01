@@ -56,5 +56,5 @@ def test_container_data(container):
 def test_container_content(container):
     assert len(container.cells) == 6
     assert len(container.trees) == 1
-    colony = container.get_colony('2')
-    assert colony.root == '1'  # root cell
+    colony = container.get_colony(2)
+    assert colony.root == 1  # root cell

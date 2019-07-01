@@ -164,7 +164,7 @@ class Cell(tlib.Node):
         else:
             pid = '-'
         if self.childs:
-            ch = ','.join([c.identifier for c in self.childs])
+            ch = ','.join(['{}'.format(c.identifier) for c in self.childs])
         else:
             ch = '-'
         return cid+';p:'+pid+';ch:'+ch

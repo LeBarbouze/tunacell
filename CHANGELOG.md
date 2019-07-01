@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
    - Use analysis module instead of everything in text module
    - Metadata yaml and csv syntax
 
+### Fixed
+   - Root cells can point to non-zero label
+  
 ## [0.1.0] - 2018-01-29
 ### Added
    - tunacell API

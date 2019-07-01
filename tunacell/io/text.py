@@ -342,7 +342,8 @@ def build_cells(arr, container=None, report_NaNs=True,
             msg = ('Extend observable failed, keep original array.\n'
                    '{}'.format(ve))
             logger.debug(msg)
-
+    # store cellIDs
+    cellIDs = np.unique(arr['cellID'])
     # when arr has got more than 1 frame
     if len(arr.shape) > 0:
         breaks = []  # where to split array
@@ -366,16 +367,16 @@ def build_cells(arr, container=None, report_NaNs=True,
         if len(cids) > 1:
             raise CellIdentifierError('ids found: {}'.format(cids))
         else:
-            cid = str(cids[0])  # map to string (immutable)
+            cid = cids[0]
         pids = np.unique(arr['parentID'])
         if len(pids) > 1:
             msg = 'From cellID {}; found these parentIDs: {}'.format(cid, pids)
             raise CellParentError(msg)
         else:
-            pid = str(pids[0])  # map to string (immutable)
+            pid = pids[0]
         # create Cell instance and update bpointer when pid is valid
         cell = Cell(identifier=cid, container=container)
-        if pid != '0':  # this is the code for first recorded cells
+        if pid in cellIDs:  # register parent if and only if present as a recorded cell
             cell.bpointer = pid
         # record if NaN values appear
         if report_NaNs:
