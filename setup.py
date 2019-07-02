@@ -69,5 +69,10 @@ setup(name='tunacell',
                         'tabulate',  # tables
 #                        'pathlib2',  # backward compatibility for python2.7
                        ],
+      entry_points={
+          'console_scripts': [
+              'tunacell = tunacell.__main__:main'
+          ]
+      },
       scripts=['bin/tunasimu'],
       zip_safe=False)
