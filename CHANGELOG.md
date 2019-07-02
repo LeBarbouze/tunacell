@@ -7,9 +7,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ## [0.2.1] - 2019-07-02
+### Added
+- __main__ module and its entry point to print out tunacell version `tunacell -V`, or `python -m tunacell -V`
+  which simplifies the cumbersome `python -c "from tunacell import __version__; print(__version__)"`
+
 ### Fixed
 - Parser.info_samples() when no sample in Parser instance
 - hidden files under the `containers` folder are skipped (not retained as a container)
+
+### Changed
+- bin/tunasimu script is moved as a module: tunacell/simu/run.py and its new entry point is properly declared in setup.py
 
 ### Removed
 - Parser.iter_cells, Parser.iter_colonies, Parser.iter_containers methods (were moved to Experiment instances)
