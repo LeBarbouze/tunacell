@@ -71,8 +71,8 @@ setup(name='tunacell',
                        ],
       entry_points={
           'console_scripts': [
-              'tunacell = tunacell.__main__:main'
+              'tunacell = tunacell.__main__:main',
+              'tunasimu = tunacell.simu.run:main'
           ]
       },
-      scripts=['bin/tunasimu'],
       zip_safe=False)
