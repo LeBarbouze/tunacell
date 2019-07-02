@@ -27,6 +27,12 @@ import random
 import warnings
 import shutil
 
+import sys
+if sys.version_info[0] < 3:
+    import pathlib2 as pathlib
+else:
+    import pathlib
+
 from tqdm import tqdm
 
 from tunacell.base.container import Container
@@ -35,7 +41,7 @@ from tunacell.filters.cells import FilterCell
 from tunacell.filters.containers import FilterContainer
 from tunacell.filters.trees import FilterTree
 from tunacell.filters.lineages import FilterLineage
-from tunacell.io import text, metadata
+from tunacell.io import text, supersegger, analysis
 
 
 class ParsingExperimentError(Exception):
@@ -54,13 +60,13 @@ class Experiment(object):
     """General class that stores experiment details.
 
     Creates an Experiment instance from reading a file, records path, filetype,
-    reads metadata, stores the list of container containers.
+    reads metadata, stores the list of containers.
 
     Parameters
     ----------
     path : str
         path to experiment root file
-    filetype -- str {None, 'text', 'h5'}
+    filetype -- str {None, 'text', 'supersegger'}
         leave to None for automatic detection.
 
     Attributes
@@ -69,7 +75,7 @@ class Experiment(object):
         absolute path on disk of main directory for text containers
     label : str
         experiment label
-    filetype : str {'text', 'simu'}
+    filetype : str {'text', 'supersegger'}
         one of the available file type ('simu' is not a filetype per se...)
     fset : :class:`FilterSet` instance
         filterset to be applied when parsing data
@@ -79,8 +85,8 @@ class Experiment(object):
         file is associated to the experiment.
     metadata: Metadata instance
         experiment metadata
-    containers : list of str
-        sequence of container filenames for text containers
+    containers : list of pathlib.Path
+        list of absolute paths to containers
     period: float
         time interval between two successive aquisitions (this should be
         defined in the experiment metadata)
@@ -102,7 +108,6 @@ class Experiment(object):
         self._containers = []
         self._counts = None
         self.metadata = None
-        self.period = None
         # let's go
         self.abspath = os.path.abspath(os.path.expanduser(path))
         # remove extension
@@ -117,12 +122,30 @@ class Experiment(object):
             self.filetype = filetype
         # different initialization depending on filetype
         if self.filetype == 'text':
-            self._load_from_text()
+            containers = text.find_containers(self.abspath)  # full path
+#            basenames = [item.stem for item in containers]  # only labels
+            self.containers = containers
+            self.metadata = text.find_metadata(self.abspath)
+            self.datatype = text.find_datatype(self.abspath)
+        elif self.filetype == 'supersegger':
+            containers = supersegger.find_containers(self.abspath)
+#            basenames = [item.stem for item in containers]
+            self.containers = containers
+            self.metadata = text.find_metadata(self.abspath)
         else:
             raise FiletypeError('Filetype not recognized')
         self.fset = filter_set
         if count_items:
             self.count_items()
+
+    @property
+    def period(self):
+        """Return the experimental level period
+
+        The experimental level period is defined as the smallest acquisition
+        period over all containers.
+        """
+        return self.metadata.period
 
     @property
     def fset(self):
@@ -142,8 +165,8 @@ class Experiment(object):
     @property
     def analysis_path(self):
         """Get analysis path (with appropriate filterset path)"""
-        analysis_path = text.get_analysis_path(self, write=True)
-        index, filterset_path = text.get_filter_path(analysis_path, self.fset, write=True)
+        analysis_path = analysis.get_analysis_path(self, write=True)
+        index, filterset_path = analysis.get_filter_path(analysis_path, self.fset, write=True)
         return filterset_path
 
     def count_items(self, independent=True, seed=None, read=True):
@@ -163,10 +186,10 @@ class Experiment(object):
             if read:
                 # get analysis path
 
-                analysis_path = text.get_analysis_path(self, write=False)
-                i, filter_path = text.get_filter_path(analysis_path, self.fset,
+                analysis_path = analysis.get_analysis_path(self, write=False)
+                i, filter_path = analysis.get_filter_path(analysis_path, self.fset,
                                                       write=False)
-                counts = text.read_count_file(filter_path)
+                counts = analysis.read_count_file(filter_path)
                 self._counts = counts
             else:
                 raise text.MissingFileError  # mock it to go to exception
@@ -186,36 +209,20 @@ class Experiment(object):
         """Hidden method, see above for parameters"""
         counts = count_items(self, independent_decomposition=independent, seed=seed)
         # save the counts
-        text.write_count_file(self.analysis_path, counts)
+        analysis.write_count_file(self.analysis_path, counts)
         if write:
             self._counts = counts
 
     def _erase_count_file(self):
         try:
-            analysis_path = text.get_analysis_path(self, write=False)
-            i, filter_path = text.get_filter_path(analysis_path, self.fset,
+            analysis_path = analysis.get_analysis_path(self, write=False)
+            i, filter_path = analysis.get_filter_path(analysis_path, self.fset,
                                                       write=False)
             filename = os.path.join(filter_path, '.counts.yml')
             if os.path.exists(filename):
                 os.remove(filename)
         except (text.MissingFileError, text.MissingFolderError):
             pass
-
-    def _load_from_text(self):
-        """Load parameters from text filetype
-        """
-        # get list of container files
-        fns = text.container_filename_parser(self.abspath)
-        bns = [os.path.splitext(bn)[0] for bn in fns]
-        # extract only container labels
-        self.containers = sorted(bns)
-        # get metadata
-        meta = metadata.load_metadata(self.abspath)
-        self.metadata = meta
-        self.period = self.metadata.period
-        descriptor_file = text._check_up('descriptor.csv', self.abspath, 2)
-        datatype = text.datatype_parser(descriptor_file)
-        self.datatype = datatype
 
     @property
     def containers(self):
@@ -225,7 +232,7 @@ class Experiment(object):
     def containers(self, value):
         if isinstance(value, list):
             self._containers = value
-        elif isinstance(value, str):
+        elif isinstance(value, pathlib.Path):
             self._containers.append(value)
         return
 
@@ -246,7 +253,7 @@ class Experiment(object):
             if count > 5:
                 msg += '\t...\n'
                 break
-            msg += '\t' + fn + '\n'
+            msg += '\t' + str(fn) + '\n'
         msg += '\t({} containers)\n'.format(len(self.containers))
 #        msg += 'Filetype: {}\n'.format(self.filetype)
         msg += repr(self.metadata)
@@ -305,10 +312,10 @@ class Experiment(object):
             random.shuffle(containers)
         if size is None:
             size = len(self.containers)
-        for index, label in enumerate(containers, start=1):
+        for index, path in enumerate(containers, start=1):
             if index > size:
                 break
-            container = Container(label, exp=self)
+            container = Container(path, exp=self)
             if read:
                 container.read_data(build=build, prefilt=cell_filter,
                                     extend_observables=extend_observables,
@@ -346,14 +353,14 @@ class Experiment(object):
         ParsingContainerError: when despite of existing container filename,
             parsing of container failed and nothing is loaded
         """
-        if self.filetype == 'text':
+        if self.filetype == 'text' or self.filetype == 'supersegger':
             found = False
-            for item in self.containers:
-                if label == item:
+            for path in self.containers:
+                if label == path.stem:
                     found = True
                     break
             if found:
-                container = Container(label, exp=self)
+                container = Container(path, exp=self)
             else:
                 msg = 'Filename error: {}'.format(label)
                 msg += ' does not correspond to any container file.'

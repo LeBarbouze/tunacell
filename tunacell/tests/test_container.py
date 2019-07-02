@@ -9,6 +9,12 @@ import pytest
 import tunacell
 import os
 
+import sys
+if sys.version_info[0] < 3:
+    import pathlib2 as pathlib
+else:
+    import pathlib
+
 from tunacell.base.experiment import Experiment
 
 path_data = os.path.join(os.path.dirname(tunacell.__file__), 'data')
@@ -23,7 +29,12 @@ def container():
 
 
 def test_attributes(container):
-    assert container.abspath == os.path.join(os.path.abspath(path_fake_exp),
+    if isinstance(container.abspath, pathlib.Path):
+        assert str(container.abspath.absolute()) == os.path.join(os.path.abspath(path_fake_exp),
+                                              'containers',
+                                              'container_01.txt')
+    else:
+        assert container.abspath == os.path.join(os.path.abspath(path_fake_exp),
                                               'containers',
                                               'container_01.txt')
     assert container.filetype == 'text'
@@ -33,7 +44,7 @@ def test_attributes(container):
     md = container.metadata
     assert md['author'] == 'Joachim Rambeau'
     assert md['strain'] == 'Thunnus alalunga'
-    
+
 
 def test_container_data(container):
     assert container.data['cellID'][0] == 1
@@ -45,5 +56,5 @@ def test_container_data(container):
 def test_container_content(container):
     assert len(container.cells) == 6
     assert len(container.trees) == 1
-    colony = container.get_colony('2')
-    assert colony.root == '1'  # root cell
+    colony = container.get_colony(2)
+    assert colony.root == 1  # root cell

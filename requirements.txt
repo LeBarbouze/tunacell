@@ -1,0 +1,11 @@
+numpy
+scipy
+pandas
+treelib
+matplotlib >=2
+future
+dill
+PyYAML
+tqdm
+tabulate
+pathlib2 ; python_version =='2.7'

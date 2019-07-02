@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.com/LeBarbouze/tunacell.svg?branch=develop)](https://travis-ci.com/LeBarbouze/tunacell)
+[![Documentation Status](https://readthedocs.org/projects/tunacell/badge/?version=latest)](https://tunacell.readthedocs.io/en/latest/?badge=latest)
+
       _                              _ _ 
      | |_ _   _ _ __   __ _  ___ ___| | |
      | __| | | | '_ \ / _` |/ __/ _ \ | |   tune-a-cell
@@ -21,17 +24,94 @@ movies of dividing micro-organisms.
 * Data visualization of small samples (looking at both the dynamic, and
   the tree structure)
 * Export of computed data as text files in a comprehensive folder structure
+* Numerical simulations
+
+
+# Documentation
+
+Documentation can be found [here][tunadocs], with an [introduction][tunadocs-intro],
+a [quick demo tutorial][tunadocs-tutorial], a user manual that guides you
+through tunacell utilization.
+
+
+# Input data
+
+`tunacell` works with data obtained from microscopy segmentation software.
+It has been designed to work with plain text input data (tab/comma separated values) to adapt to any
+public or custom software. We are working on plugins for the most widely used software,
+some examples of which are shown in the next section.
+
+
+# Segmentation and tracking tools
+
+Before using ``tunacell`` you need to have segmented and tracked images from your
+time-lapse movie. Many different softwares exist, depending on your
+experimental setup. Some exemples are listed (non-exhaustively):
+
+* [SuperSegger][SuperSegger]: a Matlab-based software, with GUI. Uses machine learning
+  principles to detect false divisions. Adapted for micro-colony growth in agar
+  pads-like setups. Segment brightfield images (possible to inverse fluorescent
+  images); **new**: the supersegger plugin is able to parse supersegger's native Matlab output directly!
+  Use the `filetype='supersegger'` option in the `Experiment` instance initialization.
+* [oufti][oufti] is also a Matlab-based software, following the previous
+  [microbetracker][microbetracker] software developed by the same group.
+* [moma][moma] is a Java-based software particularly adapted to mother machine-like
+  setups (and their [paper][paper]).
+* [ieee_seg][ieee_seg] is another software adapted to mother machine-like setups.
+ 
+
+[SuperSegger]: http://mtshasta.phys.washington.edu/website/SuperSegger.php
+[oufti]: http://www.oufti.org/
+[microbetracker]: http://microbetracker.org/
+[moma]: https://github.com/fjug/MoMA
+[paper]: http://biorxiv.org/content/early/2016/09/20/076224
+[ieee_seg]: http://ieeexplore.ieee.org/document/7299289/?reload=true
+
+# Using tunacell
+
+There are two main options to dive into tunacell.
+
+First option is to go through the user manual of the documentation, stepping
+through each point. Although it might give you an in-depth, logical introduction
+to tunacell, it might be tedious as a first approach.
+
+The second, pragmatic option is to run **sequentially** the scripts in
+the ``scripts`` folder as it is done in the full-demo recipe in Makefile.
+Just change the ``--time .5`` option to interactive mode by adding ``-i``:
+
+    cd <your-location-for-tunacell-repo>/scripts
+    tunasimu -s 42  # makes the simutest numerically simulated experiment
+	python tutorial.py -i
+	...
+
+(note that these scripts writes files and folders in a new ``tmptunacell``
+folder in your home directory--taking roughly 13 MB when all scripts have been
+launched)
+
+Once you've run, read, and understood the bits of code in these files, consider
+yourself as a tunacell expert.
+
+If you got how it works, plug your data in
+(look at [how to format input files][tunadocs-data-structure])
+and use tunacell API to write your
+scripts and discover new things about the dynamical properties of your cells!
+
 
 # Install
 
-tunacell has been originally developed with Python 2.7 and is developed with
-Python 3.6. Current major version 0 is compatible with both. We encourage users
+tunacell has been originally developed with Python 2.7 and 3.6,
+and is now developed with 3.7.
+Current major version 0 is compatible with both. We encourage users
 to shift to Python 3 though.
 
 The best way to install tunacell is to clone the repo and make a local,
 editable install using pip:
 
+    pip install -r requirements.txt
     pip install -e .
+
+The first line install dependencies whereas the second line install an editable
+version of the library.
 
 This way, you will get script tutorials shipped with the library. Otherwise
 the library can be installed remotely from wheels (*i.e.* without cloning the
@@ -72,9 +152,6 @@ and that's it.
 
 
 ## Dependencies
-
-tunacell depends on few libraries that are automatically installed if you are
-using pip.
 
 [Numpy][], [Scipy][], [matplotlib][] are classic libraries,
 as well as [pandas][] that is used
@@ -122,41 +199,6 @@ Then get back to install instructions above.
 [install-pip]: https://pip.pypa.io/en/stable/installing/ "Install pip"
 [anaconda]: https://docs.continuum.io/ "Anaconda"
 
-# Documentation
-
-Documentation can be found [here][tunadocs], with an [introduction][tunadocs-intro],
-a [quick demo tutorial][tunadocs-tutorial], a user manual that guides you
-through tunacell utilization.
-
-# Using, and learning to use tunacell
-
-There are two main options to dive into tunacell.
-
-First option is to go through the user manual of the documentation, stepping
-through each point. Although it might give you an in-depth, logical introduction
-to tunacell, it might be tedious as a first approach.
-
-The second, pragmatic option is to run **sequentially** the scripts in
-the ``scripts`` folder as it is done in the full-demo recipe in Makefile.
-Just change the ``--time .5`` option to interactive mode by adding ``-i``:
-
-    cd <your-location-for-tunacell-repo>/scripts
-    tunasimu -s 42  # makes the simutest numerically simulated experiment
-	python tutorial.py -i
-	...
-
-(note that these scripts writes files and folders in a new ``tmptunacell``
-folder in your home directory--taking roughly 13 MB when all scripts have been
-launched)
-
-Once you've run, read, and understood the bits of code in these files, consider
-yourself as a tunacell expert.
-
-If you got how it works, plug your data in
-(look at [how to format input files][tunadocs-data-structure])
-and use tunacell API to write your
-scripts and discover new things about the dynamical properties of your cells!
-
 
 # Development
 
@@ -190,8 +232,8 @@ launched)
 
 
 
-[tunadocs]: http://www.joachimrambeau.com/pages/_tunadocs/index.html "Tunacell documentation"
-[tunadocs-intro]: http://www.joachimrambeau.com/pages/_tunadocs/intro.html "Introduction to tunacell"
-[tunadocs-tutorial]: http://www.joachimrambeau.com/pages/_tunadocs/tutorial.html "10 minute tutorial"
-[tunadocs-data-structure]: www.joachimrambeau.com/pages/_tunadocs/docs/_build/html/users/data-structure.html "Tunacell input format"
+[tunadocs]: https://tunacell.readthedocs.io/en/latest/ "Tunacell documentation"
+[tunadocs-intro]: https://tunacell.readthedocs.io/en/latest/intro.html "Introduction to tunacell"
+[tunadocs-tutorial]: https://tunacell.readthedocs.io/en/latest/tutorial.html "10 minute tutorial"
+[tunadocs-data-structure]: https://tunacell.readthedocs.io/en/latest/users/data-structure.html "Tunacell input format"
 

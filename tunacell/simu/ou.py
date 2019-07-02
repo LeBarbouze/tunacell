@@ -29,7 +29,7 @@ from tunacell.simu.main import Ecoli, SimuParams, DivisionParams, SampleInitialS
 def run_ou_simulation(simuParams, divParams, bsParams, ouParams,
                       where, label, force=False):
     """API function to run and export OU numerical simulation
-    
+
     Parameters
     ----------
     simuParams : :class:`tunacell.simu.main.SimuParams` instance
@@ -50,7 +50,7 @@ def run_ou_simulation(simuParams, divParams, bsParams, ouParams,
     exp = OUSimulation(label=label,
                        simuParams=simuParams, divisionParams=divParams,
                        ouParams=ouParams, birthsizeParams=bsParams)
-    
+
     # check that experiment has been saved before
     ans = 'go'
     current_name = label
@@ -70,7 +70,7 @@ def run_ou_simulation(simuParams, divParams, bsParams, ouParams,
         # when overriding, need to erase everything first
         elif ans == 'o':
             shutil.rmtree(exp_path)
-    
+
     # export except if process has been aborted
     if ans != 'a':
         exp.raw_text_export(path=where)
@@ -129,7 +129,7 @@ class OUSimulation(Experiment):
         self.divisionParams = divisionParams
         self.ouParams = ouParams
         self.birthsizeParams = birthsizeParams
-        
+
         self._set_metadata()
         # set filterset
         self.fset = filter_set
@@ -137,13 +137,12 @@ class OUSimulation(Experiment):
 
     def _set_metadata(self):
 
-        dic = {'level': 'top',  # mandatory
+        dic = {'experiment': self.label,  # mandatory
                'period' : self.simuParams.period,  # mandatory
-               'label': self.label,  # optional
                'date': self.date.strftime('%Y-%m-%d'),  # optional
                }
 
-        
+
         # optional, but convenient: paramaters as sub-dicts
         dic['simu_params'] = {k: v for k, v in self.simuParams.content}
         dic['division_params'] = {k:v for k, v in self.divisionParams.content}
@@ -152,9 +151,9 @@ class OUSimulation(Experiment):
 
 #        dics = {key: {self.label: value} for key, value in content}
 #        self.metadata = pd.DataFrame(dics)
-        
+
         self.metadata = Metadata([dic, ])
-        
+
         return
 
     @property
@@ -204,11 +203,11 @@ class OUSimulation(Experiment):
 
 class OUContainer(Container):
     """Ornstein-Uhlenbeck simulation container.
-    
+
     This is subclassed from :class:`tunacell.base.container.Container`,
     only ``__init__`` changes.
-    
-    
+
+
     Parameters
     ----------
     simu : OUSimulation instance
@@ -304,7 +303,7 @@ class OUsteps(object):
         set of parameters for OU process
     dt : float
         time interval for update.
-    
+
     Attributes
     ----------
     mu : float
@@ -472,7 +471,7 @@ def root_cell(ouparams, divparams, birthsizeparams, identifier=None, tstart=0., 
     equilibrium_std = np.sqrt(ouparams.noise / (2. * ouparams.spring))
     birth_alpha = np.random.normal(loc=equilibrium_mean, scale=equilibrium_std)
     birth_size = birthsizeparams.rv()
-    
+
     if divparams.use_growth_rate == 'parameter':
         alpha = ouparams.target
     elif divparams.use_growth_rate == 'birth':

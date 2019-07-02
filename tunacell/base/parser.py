@@ -39,7 +39,7 @@ class Parser(object):
         if exp is None:
             print('Use parser.load_experiment() to load from path to file')
         else:
-            if isinstance(exp, Experiment):
+            if hasattr(exp, 'iter_containers'):
                 self._experiment = exp
             else:
                 self.load_experiment(exp)
@@ -126,7 +126,8 @@ class Parser(object):
         if container_label is None:
             empty = True
             while empty:
-                label = np.random.choice(exp.containers)
+                path = np.random.choice(exp.containers)
+                label = path.stem
                 container = exp.get_container(label, read=True,
                                               build=True, prefilt=filtcell,
                                               extend_observables=False,
@@ -225,7 +226,7 @@ class Parser(object):
                     item['cellID'] = cid
                 # catching Parsing errors and stopping
                 except ParsingContainerError as pe:
-                    msg = pe
+                    msg = '{}'.format(pe)
                     msg += '\nCheck input.'
                     warnings.warn(msg)
                     return  # exit

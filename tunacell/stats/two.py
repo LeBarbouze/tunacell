@@ -9,7 +9,7 @@ import numpy as np
 import os
 import pandas as pd
 
-from tunacell.io import text
+from tunacell.io import analysis
 from tunacell.stats.utils import _dtype_converter
 
 
@@ -60,7 +60,7 @@ class BivariateConditioned(object):
     def _get_path(self, user_root=None, write=False):
         """Get condition path"""
         obs_path = self.bivariate._get_obs_path(user_root=user_root, write=write)
-        res = text.get_condition_path(obs_path, self.applied_filter, write=write)
+        res = analysis.get_condition_path(obs_path, self.applied_filter, write=write)
         index_condition, condition_path = res
         return condition_path
 
@@ -91,7 +91,7 @@ class BivariateConditioned(object):
         cdt_path = self._get_path(user_root=path, write=False)
         item_path = os.path.join(cdt_path, 'times.tsv')
         if not os.path.exists(item_path):
-            raise text.MissingFileError(item_path)
+            raise analysis.MissingFileError(item_path)
         times = []
         with open(item_path, 'r') as f:
             for line in f.readlines():
@@ -100,19 +100,19 @@ class BivariateConditioned(object):
         # matrix for counts
         item_path = os.path.join(cdt_path, 'count_cross.tsv')
         if not os.path.exists(item_path):
-            raise text.MissingFileError(item_path)
+            raise analysis.MissingFileError(item_path)
         arr = np.genfromtxt(item_path, dtype='i8', delimiter='\t')
         self.counts = arr
         # matrix for cross-correlations
         item_path = os.path.join(cdt_path, 'cross.tsv')
         if not os.path.exists(item_path):
-            raise text.MissingFileError(item_path)
+            raise analysis.MissingFileError(item_path)
         arr = np.genfromtxt(item_path, dtype='f8', delimiter='\t')
         self.cross = arr
         # matrix for standard deviation of covariance estimates
         item_path = os.path.join(cdt_path, 'std_dev.tsv')
         if not os.path.exists(item_path):
-            raise text.MissingFileError(item_path)
+            raise analysis.MissingFileError(item_path)
         arr = np.genfromtxt(item_path, dtype='f8', delimiter='\t')
         self.std_dev = arr
         pass
@@ -217,11 +217,11 @@ class Bivariate(object):
         obss = [univ.obs for univ in self.univariates]
         exp = self.exp
         fset = self.exp.fset
-        analysis_path = text.get_analysis_path(exp, user_abspath=user_root,
+        analysis_path = analysis.get_analysis_path(exp, user_abspath=user_root,
                                                write=write)
-        res = text.get_filter_path(analysis_path, fset, write=write)
+        res = analysis.get_filter_path(analysis_path, fset, write=write)
         index_filter, filter_path = res
-        obs_path = text.get_biobservable_path(filter_path, obss, write=write)
+        obs_path = analysis.get_biobservable_path(filter_path, obss, write=write)
         return obs_path
 
     def export_text(self, analysis_folder=None):
@@ -235,7 +235,7 @@ class Bivariate(object):
         try:
             for key, val in self._items.items():
                 val.read_text(analysis_folder)
-        except (text.MissingFileError, text.MissingFolderError) as missing:
+        except (analysis.MissingFileError, analysis.MissingFolderError) as missing:
             raise BivariateIOError(missing)
         return
 
@@ -286,7 +286,7 @@ class StationaryBivariateConditioned(object):
     def _get_path(self, user_root=None, write=False):
         """Get condition path"""
         obs_path = self.statbivariate._get_obs_path(user_root=user_root, write=write)
-        res = text.get_condition_path(obs_path, self.applied_filter, write=write)
+        res = analysis.get_condition_path(obs_path, self.applied_filter, write=write)
         index_condition, condition_path = res
         return condition_path
 
@@ -312,7 +312,7 @@ class StationaryBivariateConditioned(object):
         cdt_path = self._get_path(user_root=path, write=False)
         item_path = os.path.join(cdt_path, self.basename + '.tsv')
         if not os.path.exists(item_path):
-            raise text.MissingFileError(item_path)
+            raise analysis.MissingFileError(item_path)
         arr = np.genfromtxt(item_path, delimiter='\t', names=True)
         self.array = arr
         return
@@ -396,11 +396,11 @@ class StationaryBivariate(object):
         obss = [univ.obs for univ in self.univariates]
         exp = self.exp
         fset = self.exp.fset
-        analysis_path = text.get_analysis_path(exp, user_abspath=user_root,
+        analysis_path = analysis.get_analysis_path(exp, user_abspath=user_root,
                                                write=write)
-        res = text.get_filter_path(analysis_path, fset, write=write)
+        res = analysis.get_filter_path(analysis_path, fset, write=write)
         index_filter, filter_path = res
-        obs_path = text.get_biobservable_path(filter_path, obss, write=write)
+        obs_path = analysis.get_biobservable_path(filter_path, obss, write=write)
         return obs_path
 
     def export_text(self, analysis_folder=None):
@@ -409,7 +409,7 @@ class StationaryBivariate(object):
             for key, val in self._items.items():
                 val.write_text(analysis_folder)
         # when not possible it means single object has not been exported yet
-        except text.MissingFolderError:
+        except analysis.MissingFolderError:
             for uni in self.univariates:
                 uni.export_text(analysis_folder)
             for key, val in self._items.items():
@@ -418,10 +418,10 @@ class StationaryBivariate(object):
         if self.dataframe is not None:
             exp = self.exp
             fset = self.exp.fset
-            analysis_path = text.get_analysis_path(exp,
+            analysis_path = analysis.get_analysis_path(exp,
                                                    user_abspath=analysis_folder,
                                                    write=True)
-            res = text.get_filter_path(analysis_path, fset, write=True)
+            res = analysis.get_filter_path(analysis_path, fset, write=True)
             index_filter, filter_path = res
             o1, o2 = [uni.obs for uni in self.univariates]
             basename = 'data_{}_{}---{}'.format(self.label, o1.name, o2.name)
@@ -435,15 +435,15 @@ class StationaryBivariate(object):
                 val.read_text(analysis_folder)
             exp = self.exp
             fset = self.exp.fset
-            analysis_path = text.get_analysis_path(exp, user_abspath=analysis_folder,
+            analysis_path = analysis.get_analysis_path(exp, user_abspath=analysis_folder,
                                                    write=False)
-            res = text.get_filter_path(analysis_path, fset, write=False)
+            res = analysis.get_filter_path(analysis_path, fset, write=False)
             index_filter, filter_path = res
             o1, o2 = [uni.obs for uni in self.univariates]
             basename = 'data_{}_{}---{}'.format(self.label, o1.name, o2.name)
             text_file = os.path.join(filter_path, basename + '.csv')
             if not os.path.exists(text_file):
-                raise text.MissingFileError
+                raise analysis.MissingFileError
             df = pd.read_csv(text_file, index_col=False)
             # convert column dtypes
             for col_name in df.columns:
@@ -451,7 +451,7 @@ class StationaryBivariate(object):
                 if dtype is not None:
                     df[col_name] = df[col_name].astype(dtype)
             self.dataframe = df
-        except (text.MissingFileError, text.MissingFolderError):
+        except (analysis.MissingFileError, analysis.MissingFolderError):
             raise StationaryBivariateIOError
         return
 

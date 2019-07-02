@@ -9,15 +9,19 @@ import os
 import re
 import random
 import numpy as np
-
 import logging
 
-from tunacell.io import text
+import sys
+if sys.version_info[0] < 3:
+    import pathlib2 as pathlib
+else:
+    import pathlib
 
-from tunacell.base.cell import Cell, filiate_from_bpointer
-from tunacell.base.datatools import compute_secondary_observables
+from tunacell.io import text, supersegger
+
+from tunacell.base.cell import filiate_from_bpointer
 from tunacell.base.colony import Colony, build_recursively_from_cells
-from tunacell.base.observable import Observable, set_observable_list
+from tunacell.base.observable import set_observable_list
 from tunacell.filters.main import FilterTRUE
 from tunacell.filters.trees import FilterTree
 
@@ -37,17 +41,10 @@ class Container(object):
 
     Parameters
     ----------
-    filename : str
-        container filename
-        if exp is given, it must be an element of exp.files
     exp : Experiment instance
-    path :str
+    path : str, or pathlib.Path
         relative/absolute path to find the text file on disk
         [used only when exp is not provided] (default None)
-    filetype : str {'text', 'simu'}
-        [used only when exp is not provided] (default 'text')
-    period : float
-        time interval between two successive frames
 
     Attributes
     ----------
@@ -97,49 +94,35 @@ class Container(object):
         do not verify the filter assumption(s), before trees are constructed.
     """
 
-    def __init__(self, label, exp):
-
+    def __init__(self, path, exp):
+        if not isinstance(path, pathlib.Path):
+            path = pathlib.Path(path).expanduser().absolute()
         self.exp = exp  # experiment to which current Container belongs
         self.filetype = exp.filetype  # to be read or given
-
+        self.abspath = path
         # we will determine the following attributes in the __init__
-        self.label = label  # to be read
         self.datatype = exp.datatype
         self.data = None  # Table read from file
-#        try:
-#            self.metadata = exp.metadata.loc[label]
-#        except KeyError:
-#            self.metadata = exp.metadata.loc[exp.label]
-        self.metadata = exp.metadata.from_container(self.label)
 
         # these attributes are set to empty lists, will be loaded by .read_data
         self.cells = []
         self.trees = []
 
-        # acquisition period
-        self.period = self.metadata.loc['period']
-
         # cases against filetype
         if self.filetype == 'text':
             # identify absolute path to container file
-            folder = os.path.join(self.exp.abspath, 'containers')
-            # remove extension and store label
-            self.label = label
-#            print(label)
-            if exp is not None and label not in exp.containers:
-                msg = ''
-                msg += 'This filename: {}'.format(label)
-                msg += 'does not belong to exp: {}'.format(exp.abspath)
-                raise ParsingContainerError(msg)
-            self.abspath = text.get_file(label, folder)
-
+            self.label = path.stem
             # Inherits datatype from Experiment datatype
             self.datatype = exp.datatype
-
+        elif self.filetype == 'supersegger':
+            self.label = path.stem
         elif self.filetype == 'simu':
             pass
 
-        return
+        # metadata
+        self.metadata = exp.metadata.from_container(self.label)
+        # acquisition period
+        self.period = self.metadata.period
 
     def read_data(self, build=True, prefilt=None, extend_observables=False,
                   report_NaNs=True):
@@ -160,19 +143,22 @@ class Container(object):
         # TEXT FILETYPE
         if self.filetype == 'text':
             # Read cells from file
-            arr = text.get_array(self.abspath, self.datatype, delimiter='\t')
-
+            arr = text.get_array(str(self.abspath), self.datatype, delimiter='\t')
+        elif self.filetype == 'supersegger':
+            arr = supersegger.load_container(self.abspath)
         elif self.filetype == 'simu':
             pass
-        
+
         self.data = arr
 
         if build:
-            self.cells = build_cells(arr, container=self,
-                                     extend_observables=extend_observables,
-                                     report_NaNs=report_NaNs)
+            if self.filetype == 'text':
+                self.cells = text.build_cells(arr, container=self,
+                                              extend_observables=extend_observables,
+                                              report_NaNs=report_NaNs)
+            elif self.filetype == 'supersegger':
+                self.cells = supersegger.build_cells(arr, container=self)
 
-        
             self._build(prefilt=prefilt)
 
         return
@@ -304,7 +290,7 @@ class Container(object):
         See also
         --------
         the .prefilter method that acts on self.cells before building trees.
-        
+
         .. warning:: does not compute supplementary observables in filters
 
         """
@@ -455,111 +441,3 @@ class Container(object):
 
 
 # READING
-class ContainerArrayParsingError(Exception):
-    pass
-
-
-class CellIdentifierError(ContainerArrayParsingError):
-    """Class for Identifier Error"""
-    pass
-
-
-class CellParentError(ContainerArrayParsingError):
-    """Class for parent identifier Error"""
-    pass
-
-
-def build_cells(arr, container=None, report_NaNs=True,
-                extend_observables=False):
-    """Read and store :class:`Cell` instances from structured text files).
-
-    Text file must be tab separated value and its columns must match the
-    experiment descriptor file.
-    TODO: read descriptor from header?
-
-    Parameters
-    ----------
-    arr : Numpy structured array
-    container : :class:`Container` instance
-    report_NaNs : boolean {True, False}
-        whether to report for NaNs in text file
-    extend_observables : boolean {False, True}
-        whether to try to compute usual secondary observables such as age,
-        volume, concentration...
-
-    Returns
-    -------
-    list of :class:`Cell` instances
-       Information is stored in attributes:
-           * :attr:`bpointer`: backwards pointer, to parent cell
-           * :attr:`data`: data as structured array
-    """
-    cells = []
-    # big array of all cells
-    if extend_observables:
-        try:
-            arr = compute_secondary_observables(arr)
-        except ValueError as ve:
-            msg = ('Extend observable failed, keep original array.\n'
-                   '{}'.format(ve))
-            logger.debug(msg)
-
-    # when arr has got more than 1 frame
-    if len(arr.shape) > 0:
-        breaks = []  # where to split array
-        previous_id = arr['cellID'][0]  # first cid
-        for index, cid in enumerate(arr['cellID']):
-            if cid != previous_id:
-                previous_id = cid
-                breaks.append(index)
-        arrs = np.split(arr, breaks)
-    # otherwise there's only one cell with a single frame
-    else:
-        arrs = [arr, ]
-
-    del arr
-
-    if report_NaNs:
-        nan_labels = {}
-    for arr in arrs:
-        # first check that identifiers are unique
-        cids = np.unique(arr['cellID'])
-        if len(cids) > 1:
-            raise CellIdentifierError('ids found: {}'.format(cids))
-        else:
-            cid = str(cids[0])  # map to string (immutable)
-        pids = np.unique(arr['parentID'])
-        if len(pids) > 1:
-            msg = 'From cellID {}; found these parentIDs: {}'.format(cid, pids)
-            raise CellParentError(msg)
-        else:
-            pid = str(pids[0])  # map to string (immutable)
-        # create Cell instance and update bpointer when pid is valid
-        cell = Cell(identifier=cid, container=container)
-        if pid != '0':  # this is the code for first recorded cells
-            cell.bpointer = pid
-        # record if NaN values appear
-        if report_NaNs:
-            for label, (dtype, offset) in arr.dtype.fields.items():
-                # NaNs are implemented as np.nan for float types,
-                if 'f' in dtype.kind:
-                    if np.isnan(arr[label]).any():
-                        if label not in nan_labels.keys():
-                            nan_labels[label] = [cid, ]
-                        else:
-                            nan_labels[label].append(cid)
-                # for integer types, they seem to be replaced by largest value
-                elif ('u' in dtype.kind) or ('i' in dtype.kind):
-                    if np.amax(arr[label]) == np.iinfo(dtype).max:
-                        if label not in nan_labels.keys():
-                            nan_labels[label] = [cid, ]
-                        else:
-                            nan_labels[label].append(cid)
-        # attach data to Cell instance
-        cell.data = arr
-        cells.append(cell)
-    if report_NaNs:
-        msg = ('In container {}, found NaNs in following columns '.format(container.label) + ''
-               '{}'.format(', '.join(nan_labels.keys())))
-        logger.debug(msg)
-    return cells

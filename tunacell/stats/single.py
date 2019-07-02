@@ -31,7 +31,7 @@ import logging
 import numpy as np
 import pandas as pd
 import warnings
-from tunacell.io import text
+from tunacell.io import analysis
 from tunacell.base.observable import ObservableNameError
 from tunacell.stats.utils import Region, Regions, CompuParams, _dtype_converter
 
@@ -99,7 +99,7 @@ class UnivariateConditioned(object):
     def _get_path(self, user_root=None, write=False):
         """Get condition path"""
         obs_path = self.univariate._get_obs_path(user_root=user_root, write=write)
-        res = text.get_condition_path(obs_path, self.applied_filter, write=write)
+        res = analysis.get_condition_path(obs_path, self.applied_filter, write=write)
         index_condition, condition_path = res
         return condition_path
 
@@ -187,7 +187,7 @@ class UnivariateConditioned(object):
         bname = 'onepoint' + add_name + ext
         fname = os.path.join(condition_path, bname)
         if not os.path.exists(fname):
-            raise text.MissingFileError(fname)
+            raise analysis.MissingFileError(fname)
         array = np.genfromtxt(fname, delimiter='\t',
                               dtype=(float, int, float, float), names=True)
         self.onepoint = array
@@ -199,7 +199,7 @@ class UnivariateConditioned(object):
             bname = key + add_name + ext
             fname = os.path.join(condition_path, bname)
             if not os.path.exists(fname):
-                raise text.MissingFileError(fname)
+                raise analysis.MissingFileError(fname)
             array = np.genfromtxt(fname, delimiter='\t', dtype=dtype)
             self[key] = array
         return
@@ -387,7 +387,7 @@ class Univariate(object):
             master.read_text()
             self.eval_times = master.time
             logger.debug('Evaluation times import successful')
-        except (text.MissingFileError, text.MissingFolderError):
+        except (analysis.MissingFileError, analysis.MissingFolderError):
             msg = 'Nothing to read there. Think of computing instead'
             print(msg)
             self.eval_times = None
@@ -411,11 +411,11 @@ class Univariate(object):
         obs = self.obs
         exp = self.exp
         fset = self.exp.fset
-        analysis_path = text.get_analysis_path(exp, user_abspath=user_root,
+        analysis_path = analysis.get_analysis_path(exp, user_abspath=user_root,
                                                write=write)
-        res = text.get_filter_path(analysis_path, fset, write=write)
+        res = analysis.get_filter_path(analysis_path, fset, write=write)
         index_filter, filter_path = res
-        obs_path = text.get_observable_path(filter_path, obs, write=write)
+        obs_path = analysis.get_observable_path(filter_path, obs, write=write)
         return obs_path
 
     def __str__(self):
@@ -468,10 +468,10 @@ class Univariate(object):
                 logger.debug('Reading {} ..'.format(key))
                 val.read_text(analysis_folder)
                 logger.debug('..successful')
-        except (text.MissingFileError, text.MissingFolderError) as missing:
+        except (analysis.MissingFileError, analysis.MissingFolderError) as missing:
             logger.debug('..failure: file is missing')
             raise UnivariateIOError(missing)
-        except text.MismatchFileError as err:
+        except analysis.MismatchFileError as err:
             logger.debug('..failure: filename mismatch at level {}'.format(err.level))
             if err.level == 'observable':
                 raise ObservableNameError('Obs name taken by a different observable')
@@ -574,7 +574,7 @@ class StationaryUnivariateConditioned(object):
         cdt_path = cdt_univ._get_path(write=False)
         item_path = os.path.join(cdt_path, self.basename + '.tsv')
         if not os.path.exists(item_path):
-            raise text.MissingFileError(item_path)
+            raise analysis.MissingFileError(item_path)
         arr = np.genfromtxt(item_path, delimiter='\t',
                             dtype=(float, int, float, float),
                             names=True)
@@ -731,7 +731,7 @@ class StationaryUnivariate(object):
             for key, val in self._items.items():
                 val.write_text(analysis_folder)
         # when not possible it means single object has not been exported yet
-        except text.MissingFolderError:
+        except analysis.MissingFolderError:
             self.single.export_text(analysis_folder)
             for key, val in self._items.items():
                 val.write_text(analysis_folder)
@@ -739,9 +739,9 @@ class StationaryUnivariate(object):
         if self.dataframe is not None:
             exp = self.univariate.exp
             fset = self.univariate.exp.fset
-            analysis_path = text.get_analysis_path(exp, user_abspath=analysis_folder,
+            analysis_path = analysis.get_analysis_path(exp, user_abspath=analysis_folder,
                                                    write=True)
-            res = text.get_filter_path(analysis_path, fset, write=True)
+            res = analysis.get_filter_path(analysis_path, fset, write=True)
             index_filter, filter_path = res
             basename = 'data_{}_{}'.format(self.label, self.obs.name)
             text_file = os.path.join(filter_path, basename + '.csv')
@@ -754,9 +754,9 @@ class StationaryUnivariate(object):
                 val.read_text(analysis_folder)
             exp = self.univariate.exp
             fset = self.univariate.exp.fset
-            analysis_path = text.get_analysis_path(exp, user_abspath=analysis_folder,
+            analysis_path = analysis.get_analysis_path(exp, user_abspath=analysis_folder,
                                                    write=False)
-            res = text.get_filter_path(analysis_path, fset, write=False)
+            res = analysis.get_filter_path(analysis_path, fset, write=False)
             index_filter, filter_path = res
             basename = 'data_{}_{}'.format(self.label, self.obs.name)
             text_file = os.path.join(filter_path, basename + '.csv')
@@ -767,6 +767,6 @@ class StationaryUnivariate(object):
                 if dtype is not None:
                     df[col_name] = df[col_name].astype(dtype)
             self.dataframe = df
-        except (text.MissingFileError, text.MissingFolderError):
+        except (analysis.MissingFileError, analysis.MissingFolderError):
             raise StationaryUnivariateIOError
         return

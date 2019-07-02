@@ -27,7 +27,7 @@ from tunacell import Experiment, Observable, FilterSet
 from tunacell.filters.cells import FilterCellIDparity
 from tunacell.stats.api import compute_univariate
 from tunacell.plotting.dynamics import plot_onepoint, plot_twopoints
-from tunacell.io import text
+from tunacell.io import analysis
 
 
 # close all open plots
@@ -196,14 +196,14 @@ univariate.export_text()  # save results as text files in structured folders
 # You can go check your ~/tmptunacell/simutest folder. There should be an analysis
 # folder with subfolders: filterset folder > observable folder > condition folders
 # where results are stored.
-# There are also a few sets of functions defined in the tunacell.io.text module
+# There are also a few sets of functions defined in the tunacell.io.analysis module
 # that allow the user to inspect the various folders in a console,
 # and to load objects (at the exception of FunctionalObservable instances)
 # =============================================================================
 
-text.print_filtersets(exp)
-text.print_observables(exp, exp.fset)
-text.print_conditions(exp, exp.fset, ou)
+analysis.print_filtersets(exp)
+analysis.print_observables(exp, exp.fset)
+analysis.print_conditions(exp, exp.fset, ou)
 
 if args.interactive:
     ans = input('Press Enter to proceed')

@@ -29,13 +29,13 @@ def find_version(*file_paths):
         return version_match.group(1)
     raise RuntimeError("Unable to find version string.")
 ## end of pip setup extract
-    
+
 
 setup(name='tunacell',
       version=find_version('tunacell','__init__.py'),
       description='Analysis of Timeseries from dividing UNicellular microorganisms',
       long_description=descr,
-      url='',
+      url='https://github.com/LeBarbouze/tunacell',
       author='Joachim Rambeau',
       author_email='joachim.rambeau@gmail.com',
       license='MIT',
@@ -43,6 +43,7 @@ setup(name='tunacell',
         "Programming Language :: Python",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
         #'Development Status :: 1 - Planning',
         #'Development Status :: 2 - Pre-Alpha',
         #'Development Status :: 3 - Alpha',
@@ -50,8 +51,10 @@ setup(name='tunacell',
         #'Development Status :: 5 - Production/Stable',
         #'Development Status :: 6 - Mature',
         #'Development Status :: 7 - Inactive',
-        "License :: OSI Approved :: MIT License"
+        "License :: OSI Approved :: MIT License",
+        "Topic :: Scientific/Engineering :: Bio-Informatics"
       ],
+      keywords='microscopy time-lapse bacteria cell-division analysis statistics dynamics cross-correlations',
       #packages=['tuna'],
       packages=find_packages(),
       install_requires=['numpy',
@@ -64,6 +67,7 @@ setup(name='tunacell',
                         'PyYAML',  # yaml parser
                         'tqdm',  # status bar
                         'tabulate',  # tables
+#                        'pathlib2',  # backward compatibility for python2.7
                        ],
       scripts=['bin/tunasimu'],
       zip_safe=False)
