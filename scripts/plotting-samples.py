@@ -210,8 +210,6 @@ figs.append(splt.fig)
 figs[-1].show()
 
 print('* Superimposing all timeseries on a single subplot')
-#splt5 = SamplePlot(ou, parser.iter_colonies(size=5), parser=parser,
-#                   conditions=[condition, ])
 splt.make_plot(ou, report_condition=repr(condition), change_colony_color=True,
                 superimpose='all', show_markers=False, alpha=.5)
 splt.save(user_bname='lineages-from-colonies5', add_obs=False,
