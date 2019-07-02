@@ -124,7 +124,7 @@ def setup_args():
     return args
 
 
-def main(args):
+def main():
     """Setup numerical simulation parameters from command line arguments
     
     Parameters
@@ -137,7 +137,7 @@ def main(args):
         'initial_birth_size_mode', 'initial_birth_size_sigma', 'start', 'stop',
         'period']
     """
-
+    args = setup_args()
 
     path = os.path.abspath(os.path.expanduser(args.dir))
     if not os.path.exists(path):
@@ -193,5 +193,4 @@ def main(args):
     
     
 if __name__ == '__main__':
-    args = setup_args()
-    main(args)
+    main()
