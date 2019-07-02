@@ -385,11 +385,12 @@ class Parser(object):
         """Table output showing stored samples."""
         if not self._sample_list:
             print('No samples have been added yet. Use .add_sample().')
+            return
         else:
             tab = [['index', 'container', 'cell']]
             for index, sample_id in enumerate(self._sample_list):
                 tab.append([index, sample_id['container_label'], sample_id['cellID']])
-        return tabulate(tab, headers='firstrow')
+            return tabulate(tab, headers='firstrow')
 
     def __repr__(self):
         return self.info_samples()
