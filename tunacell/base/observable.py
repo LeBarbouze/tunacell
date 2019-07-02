@@ -439,10 +439,10 @@ class FunctionalObservable(object):
             raise ValueError('f must be callable')
         self.f = f
         self.source_f = dill.dumps(f)
-        argspec = inspect.getargspec(f)
+        sig = inspect.signature(f)
         self.observables = observables
         self.raw_observables = unroll_raw_obs(observables)
-        if len(observables) != len(argspec.args):
+        if len(observables) != len(sig.parameters):
             msg = ('length of observable list must match number of arguments of f ')
             raise ValueError(msg)
         for obs in observables:
