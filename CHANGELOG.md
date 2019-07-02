@@ -6,10 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## [0.2.1] - Unreleased
+## [0.2.1] - 2019-07-02
 ### Fixed
 - Parser.info_samples() when no sample in Parser instance
-
+- hidden files under the `containers` folder are skipped (not retained as a container)
 
 ### Removed
 - Parser.iter_cells, Parser.iter_colonies, Parser.iter_containers methods (were moved to Experiment instances)
