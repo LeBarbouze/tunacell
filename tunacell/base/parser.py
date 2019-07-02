@@ -394,3 +394,114 @@ class Parser(object):
 
     def __repr__(self):
         return self.info_samples()
+
+    def iter_containers(self, mode='samples', size=None):
+        """Iterate through valid containers.
+
+        Parameters
+        ----------
+        mode : str {'samples'} (default 'samples')
+            iterates over containers pointed by parser.samples
+        size : int (default None)
+            number of containers to be parsed
+
+        Yields
+        ------
+        container : :class:`tunacell.core.Container` instance
+            filtering removed outlier cells, containers
+        """
+        parsed_container_names = []
+        if mode == 'samples':
+            count = 0
+            for sample_id in self.samples:
+                container = self.get_container(sample_id)
+                if self.fset.container_filter(container) and container.label not in parsed_container_names:
+                    parsed_container_names.append(container.label)
+                    yield container
+                    count += 1
+                    if size is not None and count >= size:
+                        break
+        return
+
+    def iter_colonies(self, mode='samples', size=None):
+        """Iterate through valid colonies.
+
+        Parameters
+        ----------
+        mode : str {'samples'} (default 'samples')
+            whether to iterate over all colonies (up to number limitation), or
+            over registered samples
+        size : int (default None)
+            limit the number of colonies to size.
+
+        Yields
+        ------
+        colony : :class:`Colony` instance
+            filtering removed outlier cells, containers, and colonies
+        """
+        colfilt = self.fset.colony_filter
+        parsed_colony_roots = []
+        if mode == 'samples':
+            count = 0
+            for sample_id in self.samples:
+                colony = self.get_colony(sample_id)
+                if colfilt(colony) and colony.root not in parsed_colony_roots:
+                    parsed_colony_roots.append(colony.root)
+                    yield colony
+                    count += 1
+                    if size is not None and count >= size:
+                        break
+        return
+
+    def iter_lineages(self, mode='samples', size=None):
+        """Iterate through valid lineages.
+
+        Parameters
+        ----------
+        mode : str {''samples'} (default 'samples')
+            whether to iterate over all lineages (up to number limitation), or
+            over registered samples
+        size : int (default None)
+            limit the number of lineages to size.
+
+        Yields
+        ------
+        lineage : :class:`Lineage` instance
+            filtering removed outlier cells, containers, colonies, and lineages
+        """
+        parsed_lineage_idseqs = []
+        if mode == 'samples':
+            count = 0
+            for sample_id in self.samples:
+                lineage = self.get_lineage(sample_id)
+                if self.fset.lineage_filter(lineage) and lineage.idseq not in parsed_lineage_idseqs:
+                    parsed_lineage_idseqs.append(lineage.idseq)
+                    yield lineage
+                    count += 1
+                    if size is not None and count >= size:
+                        break
+
+    def iter_cells(self, mode='samples', size=None):
+        """Iterate through valid cells.
+
+        Parameters
+        ----------
+        mode : str {'samples'} (default 'samples')
+            whether to iterate over all cells (up to number limitation), or
+            over registered samples
+        size : int (default None)
+            limit the number of lineages to size. Works only in mode='all'
+
+        Yields
+        ------
+        cell : :class:`Cell` instance
+            filtering removed outlier cells, containers, colonies, and lineages
+        """
+        if mode == 'samples':
+            count = 0
+            for sample_id in self.samples:
+                cell = self.get_cell(sample_id)
+                yield cell
+                count += 1
+                if size is not None and count >= size:
+                    break
