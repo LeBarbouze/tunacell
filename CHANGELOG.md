@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## [0.2.1] - 2019-07-02
+## [0.2.1] - 2019-07-03
 ### Added
 - __main__ module and its entry point to print out tunacell version `tunacell -V`, or `python -m tunacell -V`
   which simplifies the cumbersome `python -c "from tunacell import __version__; print(__version__)"`
@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 - bin/tunasimu script is moved as a module: tunacell/simu/run.py and its new entry point is properly declared in setup.py
+  (call to executable `tunasimu` still valid)
 
 ### Removed
 - Parser.iter_cells, Parser.iter_colonies, Parser.iter_containers methods (were moved to Experiment instances)
