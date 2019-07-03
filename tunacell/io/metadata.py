@@ -116,7 +116,7 @@ def load_from_yaml(path_to_yaml_file):
     :class:`Metadata` instance
     """
     with open(path_to_yaml_file, 'r') as f:
-        docs = list(yaml.load_all(f))
+        docs = list(yaml.load_all(f, Loader=yaml.SafeLoader))
     md = Metadata(docs)
     return md
 
@@ -190,7 +190,7 @@ class Metadata(object):
 
     Parameters
     ----------
-    ddict : iterable of dict
+    iter_dict : iterable of dict
         each dict is a metadata entry corresponding to either experiment
         level ('level': 'experiment'), or to specific containers, in which
         case container label is mandatory (e.g. 'label': 'container_01');
@@ -221,12 +221,11 @@ class Metadata(object):
         for dic in self._iter_dict:
             if dic is None:
                 continue
-            dic= _prune_dict(dic)  # remove empty string values
+            dic = _prune_dict(dic)  # remove empty string values
             if 'experiment' in dic:
                 self._ddict['experiment'] = dic
             else:
                 labs = dic['container']
-                container_labs = []
                 if isinstance(labs, list):
                     container_labs = labs
                 else:  # labs is only one label

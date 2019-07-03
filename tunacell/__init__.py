@@ -1,9 +1,9 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 
 # version to be used in setup and docs
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 
 
 # API level classes

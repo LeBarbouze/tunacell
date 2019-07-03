@@ -12,7 +12,7 @@ test:
 	venv/bin/py.test -v tunacell/tests/
 
 simu:
-	python bin/tunasimu -s 42
+	tunasimu -s 42
 
 tuto: ~/tmptunacell/simutest
 	python scripts/tutorial.py -i
@@ -26,7 +26,7 @@ analysis-demo:
 	python scripts/bivariate-analysis.py -i
 
 full-demo:
-	python bin/tunasimu -s 42 -f
+	tunasimu -s 42 -f
 	python scripts/tutorial.py --time .5  # waiting time minimal for efficacy
 	python scripts/plotting-samples.py --time .5
 	python scripts/univariate-analysis.py --time .5

@@ -9,7 +9,7 @@ import pytest
 import numpy as np
 import itertools
 
-from tunacell.simu.main import SimuParams, DivisionParams, SampleInitialSize
+from tunacell.simu.base import SimuParams, DivisionParams, SampleInitialSize
 #from tunacell.simu.ou import OUSimulation, run_ou_simulation
 
 

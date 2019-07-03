@@ -1,31 +1,35 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-command-line: tunasimu
+This module indirectly defines the command-line: tunasimu (see entry point in setup.py)
 
-executes numerical simulations from command-line. Usage:
+It executes numerical simulations from command-line. Usage:
 
-    [python] tunasimu [[--dir <path>]
-                       [-l|--label <exp-name>]
-                       [-s|--seed <seed>]
-                       [-f|--force]
-                       [-s|--samples <number-of-samples>]
-                       [--alpha <growth-rate-target>]
-                       [--alpha_sd <standard-deviation-for-alpha]
-                       [--alpha_autocorr <autocorrelation time for alpha>]
-                       [--div_lambda <lambda division parameter>]
-                       [--div_size_cutoff <target size for division>]
-                       [--div_use_alpha {'parameter', 'birth'}]
-                       [--div_fluctuation_mode {'gamma', 'none'}]
-                       [--div_relative_fluctuations <ratio sd/mean>]
-                       [--initial_birth_size_mode {'fixed', 'lognormal'}]
-                       [--initial_birth_size_sigma <sigma for initial birth size>]
-                       [--start <starting-time-value>]
-                       [--stop <stoping-time-value>]
-                       [--period <time-interval-between-acquisitions>]
-                      ]
+    tunasimu [[--dir <path>]
+               [-l|--label <exp-name>]
+               [-s|--seed <seed>]
+               [-f|--force]
+               [-s|--samples <number-of-samples>]
+               [--alpha <growth-rate-target>]
+               [--alpha_sd <standard-deviation-for-alpha]
+               [--alpha_autocorr <autocorrelation time for alpha>]
+               [--div_lambda <lambda division parameter>]
+               [--div_size_cutoff <target size for division>]
+               [--div_use_alpha {'parameter', 'birth'}]
+               [--div_fluctuation_mode {'gamma', 'none'}]
+               [--div_relative_fluctuations <ratio sd/mean>]
+               [--initial_birth_size_mode {'fixed', 'lognormal'}]
+               [--initial_birth_size_sigma <sigma for initial birth size>]
+               [--start <starting-time-value>]
+               [--stop <stoping-time-value>]
+               [--period <time-interval-between-acquisitions>]
+              ]
 
 All parameters have default values (see code).
+
+(the execution can be stated as:
+
+    python -m tunacell.simu.run [options...]
 """
 from __future__ import print_function
 
@@ -120,7 +124,7 @@ def setup_args():
     return args
 
 
-def main(args):
+def main():
     """Setup numerical simulation parameters from command line arguments
     
     Parameters
@@ -133,7 +137,7 @@ def main(args):
         'initial_birth_size_mode', 'initial_birth_size_sigma', 'start', 'stop',
         'period']
     """
-
+    args = setup_args()
 
     path = os.path.abspath(os.path.expanduser(args.dir))
     if not os.path.exists(path):
@@ -189,5 +193,4 @@ def main(args):
     
     
 if __name__ == '__main__':
-    args = setup_args()
-    main(args)
+    main()
