@@ -35,8 +35,8 @@ def test_check_up(fname):
 
 
 def test_filename_parser(fname):
-    basenames = text.container_filename_parser(path_fake_exp)
-    assert 'container_01.txt' in basenames
-    assert 'container_02.txt' in basenames
-    assert 'container_03.txt' in basenames
-    assert len(basenames) == 4
+    containers = text.find_containers(path_fake_exp)
+    assert 'container_01.txt' in list(map(lambda item: item.name, containers))
+    assert 'container_02.txt' in list(map(lambda item: item.name, containers))
+    assert 'container_03.txt' in list(map(lambda item: item.name, containers))
+    assert len(containers) == 4

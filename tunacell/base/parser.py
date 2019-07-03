@@ -385,78 +385,54 @@ class Parser(object):
         """Table output showing stored samples."""
         if not self._sample_list:
             print('No samples have been added yet. Use .add_sample().')
+            return
         else:
             tab = [['index', 'container', 'cell']]
             for index, sample_id in enumerate(self._sample_list):
                 tab.append([index, sample_id['container_label'], sample_id['cellID']])
-        return tabulate(tab, headers='firstrow')
+            return tabulate(tab, headers='firstrow')
 
     def __repr__(self):
         return self.info_samples()
 
-    def iter_containers(self, mode='all', size=None, shuffle=False):
+    def iter_containers(self, mode='samples', size=None):
         """Iterate through valid containers.
-
-        .. note:: Deprecated in tunacell 0.0.7
-                  mode 'all' is similar to run iter_containers from Experiment
-                  instance. This mode will be removed in the future.
-
-        If mode 'all' is chosen, then the iterator browses all files,
-        up to the size limit. If mode 'samples' is chosen, then only sample ids
-        already stored in Parser instance are browsed. Only valid Container
-        instance are yielded (valid under filtering against containers).
 
         Parameters
         ----------
-        mode : str {'all', 'samples'} (default 'all')
-            whether to iterate over all possible containers, or restrict to
-            containers pointed by parser.samples
-        size : int (default None), number of containers to be parsed
-        shuffle : bool (default False)
-            whether to randomize ordering of containers
+        mode : str {'samples'} (default 'samples')
+            iterates over containers pointed by parser.samples
+        size : int (default None)
+            number of containers to be parsed
 
         Yields
         ------
         container : :class:`tunacell.core.Container` instance
             filtering removed outlier cells, containers
         """
-        exp = self.experiment
-        if mode == 'all':
-            for container in exp.iter_containers(read=True, build=True,
-                                                 prefilt=self.fset.cell_filter,
-                                                 extend_observables=True,
-                                                 report_NaNs=True,
-                                                 size=size,
-                                                 shuffle=shuffle):
-                if self.fset.container_filter(container):
-                    yield container
-        elif mode == 'samples':
+        parsed_container_names = []
+        if mode == 'samples':
             count = 0
             for sample_id in self.samples:
                 container = self.get_container(sample_id)
-                if self.fset.container_filter(container):
+                if self.fset.container_filter(container) and container.label not in parsed_container_names:
+                    parsed_container_names.append(container.label)
                     yield container
                     count += 1
                     if size is not None and count >= size:
                         break
         return
 
-    def iter_colonies(self, mode='all', size=None, shuffle=False):
+    def iter_colonies(self, mode='samples', size=None):
         """Iterate through valid colonies.
-
-        .. note:: Deprecated in tunacell 0.0.7
-                  mode 'all' is similar to run iter_containers from Experiment
-                  instance. This mode will be removed in the future.
 
         Parameters
         ----------
-        mode : str {'all', 'samples'} (default 'all')
+        mode : str {'samples'} (default 'samples')
             whether to iterate over all colonies (up to number limitation), or
             over registered samples
         size : int (default None)
-            limit the number of colonies to size. Works only in mode='all'
-        shuffle : bool (default False)
-            whether to shuffle the ordering of colonies when mode='all'
+            limit the number of colonies to size.
 
         Yields
         ------
@@ -464,124 +440,64 @@ class Parser(object):
             filtering removed outlier cells, containers, and colonies
         """
         colfilt = self.fset.colony_filter
-        if mode == 'all':
-            if size is not None:
-                count = 0  # count colonies
-                for container in self.iter_containers(mode='all',
-                                                      shuffle=shuffle):
-                    for colony in container.iter_colonies(filt=colfilt,
-                                                          shuffle=shuffle):
-                        yield colony
-                        count += 1
-                        if count >= size:
-                            break
-                    if count >= size:
-                        break
-            else:
-                for container in self.iter_containers(mode='all',
-                                                      shuffle=shuffle):
-                    for colony in container.iter_colonies(filt=colfilt,
-                                                          shuffle=shuffle):
-                        yield colony
-        elif mode == 'samples':
+        parsed_colony_roots = []
+        if mode == 'samples':
             count = 0
             for sample_id in self.samples:
                 colony = self.get_colony(sample_id)
-                if colfilt(colony):
+                if colfilt(colony) and colony.root not in parsed_colony_roots:
+                    parsed_colony_roots.append(colony.root)
                     yield colony
                     count += 1
                     if size is not None and count >= size:
                         break
         return
 
-    def iter_lineages(self, mode='all', size=None, shuffle=False):
+    def iter_lineages(self, mode='samples', size=None):
         """Iterate through valid lineages.
-
-        .. note:: Deprecated in tunacell 0.0.7
-                  mode 'all' is similar to run iter_containers from Experiment
-                  instance. This mode will be removed in the future.
 
         Parameters
         ----------
-        mode : str {'all', 'samples'} (default 'all')
+        mode : str {''samples'} (default 'samples')
             whether to iterate over all lineages (up to number limitation), or
             over registered samples
         size : int (default None)
-            limit the number of lineages to size. Works only in mode='all'
-        shuffle : bool (default False)
-            whether to shuffle the ordering of lineages when mode='all'
+            limit the number of lineages to size.
 
         Yields
         ------
         lineage : :class:`Lineage` instance
             filtering removed outlier cells, containers, colonies, and lineages
         """
-        if mode == 'all':
-            if size is not None:
-                count = 0
-                for colony in self.iter_colonies(mode='all', shuffle=shuffle):
-                    for lineage in colony.iter_lineages(filt=self.fset.lineage_filter,
-                                                        shuffle=shuffle):
-                        yield lineage
-                        count += 1
-                        if count >= size:
-                            break
-                    if count >= size:
-                        break
-            else:
-                for colony in self.iter_colonies(mode='all', shuffle=shuffle):
-                    for lineage in colony.iter_lineages(filt=self.fset.lineage_filter,
-                                                        shuffle=shuffle):
-                        yield lineage
-        elif mode == 'samples':
+        parsed_lineage_idseqs = []
+        if mode == 'samples':
             count = 0
             for sample_id in self.samples:
                 lineage = self.get_lineage(sample_id)
-                if self.fset.lineage_filter(lineage):
+                if self.fset.lineage_filter(lineage) and lineage.idseq not in parsed_lineage_idseqs:
+                    parsed_lineage_idseqs.append(lineage.idseq)
                     yield lineage
                     count += 1
                     if size is not None and count >= size:
                         break
-        return
 
-    def iter_cells(self, mode='all', size=None, shuffle=False):
+    def iter_cells(self, mode='samples', size=None):
         """Iterate through valid cells.
-
-        .. note:: Deprecated in tunacell 0.0.7
-                  mode 'all' is similar to run iter_containers from Experiment
-                  instance. This mode will be removed in the future.
 
         Parameters
         ----------
-        mode : str {'all', 'samples'} (default 'all')
+        mode : str {'samples'} (default 'samples')
             whether to iterate over all cells (up to number limitation), or
             over registered samples
         size : int (default None)
             limit the number of lineages to size. Works only in mode='all'
-        shuffle : bool (default False)
-            whether to shuffle the ordering of lineages when mode='all'
 
         Yields
         ------
         cell : :class:`Cell` instance
             filtering removed outlier cells, containers, colonies, and lineages
         """
-        if mode == 'all':
-            if size is not None:
-                count = 0
-                for lin in self.iter_lineages(mode='all', shuffle=shuffle):
-                    for cell in lin.iter_cells(shuffle=shuffle):
-                        yield cell
-                        count += 1
-                        if count >= size:
-                            break
-                    if count >= size:
-                        break
-            else:
-                for lin in self.iter_lineages(mode='all', shuffle=shuffle):
-                    for cell in lin.iter_cells(shuffle=shuffle):
-                        yield cell
-        elif mode == 'samples':
+        if mode == 'samples':
             count = 0
             for sample_id in self.samples:
                 cell = self.get_cell(sample_id)
@@ -589,4 +505,3 @@ class Parser(object):
                 count += 1
                 if size is not None and count >= size:
                     break
-        return

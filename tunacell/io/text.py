@@ -218,25 +218,6 @@ def is_valid_experiment_folder(abs_path):
     return has_container_data(abs_path)
 
 
-def container_filename_parser(abs_path):
-    "Parse experiment directory to retrieve FOV filenames."
-    boo = is_valid_experiment_folder(abs_path)
-    if boo:
-        basenames = os.listdir(os.path.join(abs_path, 'containers'))
-    # remove nondata files (so far remove the readme file)
-    valids = []
-    for basename in basenames:
-        if 'readme' in basename or 'metadata' in basename:
-            continue
-        # skip hidden files
-        if basename[0] == '.':
-            continue
-        valids.append(basename)
-    return valids
-#    filenames = [os.path.join(repo, bn) for bn in basenames]
-#    return filenames
-
-
 def find_containers(path):
     """Find container files
 
@@ -257,7 +238,7 @@ def find_containers(path):
         raise TextParsingError(msg)
     containers = []
     for item in container_folder.iterdir():
-        if item.is_file() and 'readme' not in item.stem.lower():
+        if item.is_file() and 'readme' not in item.stem.lower() and item.name[0] != '.':
             containers.append(item)
     return sorted(containers)
 

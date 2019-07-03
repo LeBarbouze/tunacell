@@ -23,7 +23,7 @@ from tunacell.base.colony import Colony
 
 from tunacell.io.metadata import Metadata
 
-from tunacell.simu.main import Ecoli, SimuParams, DivisionParams, SampleInitialSize
+from tunacell.simu.base import Ecoli, SimuParams, DivisionParams, SampleInitialSize
 
 
 def run_ou_simulation(simuParams, divParams, bsParams, ouParams,
@@ -32,11 +32,11 @@ def run_ou_simulation(simuParams, divParams, bsParams, ouParams,
 
     Parameters
     ----------
-    simuParams : :class:`tunacell.simu.main.SimuParams` instance
+    simuParams : :class:`tunacell.simu.base.SimuParams` instance
         sets general simulation parameters
-    divParams : :class:`tunacell.simu.main.DivisionParams` instance
+    divParams : :class:`tunacell.simu.base.DivisionParams` instance
         sets cell division process
-    bsParams : :class:`tunacell.simu.main.SampleInitialSize` instance
+    bsParams : :class:`tunacell.simu.base.SampleInitialSize` instance
         sets how initial cell size is sampled in simulation
     ouParams : :class:`OUParams`
         sets Ornstein-Uhlenbeck parameters for simulation of growth rate
