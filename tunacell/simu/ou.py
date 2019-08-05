@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-The present module defines classes and functions needed to simulate an
-Ornstein-Uhlenbeck process as the instantaneous growth rate of cells.
+"""Classes and functions to simulate an Ornstein-Uhlenbeck process for the instantaneous growth rate
+
+
+See also
+--------
+:mod:`tunacell.simu.base` for base classes to parameterize numerical simulations
+
 """
 from __future__ import print_function
 from builtins import input  # future package
@@ -109,8 +113,7 @@ class OUSimulation(Experiment):
             ouParams = OUParams()
             print('Using default OUParams:\n{}'.format(ouParams))
         if birthsizeParams is None:
-            birthsizeParams = SampleInitialSize(size_cutoff=divisionParams.size_cutoff,
-                                             mode='fixed')
+            birthsizeParams = SampleInitialSize()
         if label is None:
             self._label = 'simu_{}'.format(today.strftime('%Y-%m-%d_%H-%M-%S'))
         else:
