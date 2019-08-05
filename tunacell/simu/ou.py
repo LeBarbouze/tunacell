@@ -293,19 +293,25 @@ class OUParams(object):
 
     Parameters
     ----------
-    target : float
-        target value for growth rate
-    spring : float
-        spring constant (inverse of autocorrelation time)
-    noise : float
-        sets the noise intensity
+    target : float (default np.log(2)/60)
+        target value for growth rate, default value is one doubling time per hour in units of min^-1
+    spring : float (default 1/30)
+        spring constant (inverse of autocorrelation time), default value is 1/30 per minute
+    noise : float (default 2.0/30.0 * (np.log(2.) / 600.)**2)
+        sets the noise intensity, default value is chosen to get a 10% standard deviation at steady state
+        with the two other default parameters
 
     See also
     --------
     Gillespie, D.T., Phys Rev E, vol 54, pp 2084-2091 (1996)
     """
 
-    def __init__(self, target=0.0, spring=1.0, noise=1.0):
+    def __init__(
+        self,
+        target=np.log(2.0) / 60,
+        spring=1.0 / 30.0,
+        noise=2.0 / 30.0 * (np.log(2.0) / 600.0) ** 2,
+    ):
         self.target = target
         self.spring = spring
         self.noise = noise
@@ -518,18 +524,22 @@ def root_cell(
     # start with OU equilibrium sample for alpha
     equilibrium_mean = ouparams.target
     equilibrium_std = np.sqrt(ouparams.noise / (2.0 * ouparams.spring))
-    birth_alpha = np.random.normal(loc=equilibrium_mean, scale=equilibrium_std)
+    birth_growth_rate = -1
+    while birth_growth_rate < 0:  # prevent surprises...
+        birth_growth_rate = np.random.normal(
+            loc=equilibrium_mean, scale=equilibrium_std
+        )
     birth_size = birthsizeparams.rv()
 
     if divparams.use_growth_rate == "parameter":
-        alpha = ouparams.target
+        growth_rate = ouparams.target
     elif divparams.use_growth_rate == "birth":
-        alpha = birth_alpha
+        growth_rate = birth_growth_rate
     # reject lifetime smaller than dt
     counter = 0
     lifetime_root = -1
     while lifetime_root < dt and counter < 1000:
-        lifetime_root = divparams.rv(birth_size, alpha)
+        lifetime_root = divparams.rv(birth_size, growth_rate)
         if lifetime_root < dt:
             logging.info(
                 "Rejecting interdivision time {} < period {}".format(lifetime_root, dt)
@@ -548,7 +558,7 @@ def root_cell(
         lifetime=lifetime_root,
     )
 
-    root.birth_value = (birth_alpha, np.log(birth_size))
+    root.birth_value = (birth_growth_rate, np.log(birth_size))
 
     return root
 
