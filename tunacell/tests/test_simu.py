@@ -10,7 +10,7 @@ import numpy as np
 import itertools
 
 from tunacell.simu.base import SimuParams, DivisionParams, SampleInitialSize
-#from tunacell.simu.ou import OUSimulation, run_ou_simulation
+from tunacell.simu.ou import OUSimulation
 
 
 @pytest.fixture
@@ -54,5 +54,15 @@ def test_sample_initial_size():
                                birth_size_mode='lognormal',
                                birth_size_sd_to_mean=fluct)
         assert bs.rv() > 0.
+
+
+def test_ou_simulation_container_iteration():
+    ou = OUSimulation()
+    expected_nbr_container = ou.simuParams.nbr_container
+    counter = 0
+    for container in ou.iter_containers():
+        counter += 1
+        assert container.filetype == "simulations"
+    assert counter == expected_nbr_container
 
 
