@@ -1,28 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-The purpose of numerical simulations is to simulate growing and dividing cells:
-a process must be defined to sample instantaneous, single cell growth rate, to
-relate the instantaneous growth rate (in units of time) to cell size, and then
-to sample size regulation through division process.
+"""Base classes for numerical simulations of growing and dividing cells
 
-This module deals with the following parameterization:
-    
-* global simulation parameters such as duration of experiment, number of
-  samples, etc... are defined in :class:`SimuParams`,
-* division control is defined in :class:`DivParams`,
-* size sampling (only initial size sampling is needed) in
-  :class:`SampleInitialSize`,
-  
-and with the :class:`Ecoli` objects that derive from
-:class:`tunacell.base.cell.Cell` objects, only with precise information
-regarding precise division timing.
+This module defines base classes to parameterize numerical simulations regarding:
+- global simulation parameters such as duration of experiment or the number of samples,
+- division control parameters (how cell division is triggered as a function of other cell observables),
+- initial cell size sampling
 
-The associated module, :module:`ou.py` contains classes and functions to
-simulate the instantaneous, single cell growth rate as the
-Ornstein-Uhlenbeck process (stationary Gaussian process). Both modules can be
-used jointly to perform complete, tunable numerical simulations of growing
-and dividing bacteria.
+See also
+---------
+
+:mod:`tunacell.simu.ou` that defines classes and functions to simulate a particular
+growth process using the Ornstein-Uhlenbeck model.
 """
 from __future__ import print_function
 
@@ -33,7 +22,7 @@ from tunacell.base.cell import Cell
 
 
 class SimuParams(object):
-    """Stores parameters for simulation parameters
+    """Stores global parameters for simulation parameters
 
     Parameters
     ----------
@@ -69,8 +58,15 @@ class SimuParams(object):
             - proportionally on nbr_colony_per_container
     """
 
-    def __init__(self, nbr_container=1, nbr_colony_per_container=1,
-                 start=0., stop=100., period=5., seed=None):
+    def __init__(
+        self,
+        nbr_container=1,
+        nbr_colony_per_container=1,
+        start=0.0,
+        stop=100.0,
+        period=5.0,
+        seed=None,
+    ):
         self.nbr_container = nbr_container
         self.nbr_colony_per_container = nbr_colony_per_container
         self.start = start
@@ -78,67 +74,74 @@ class SimuParams(object):
         self.period = period
         self.seed = seed
         # metadata helper
-        self.content = [('nbr_container', nbr_container),
-                        ('nbr_colony_per_container', nbr_colony_per_container),
-                        ('start', start),
-                        ('stop', stop),
-                        ('period', period),
-                        ('seed', seed)]
+        self.content = [
+            ("nbr_container", nbr_container),
+            ("nbr_colony_per_container", nbr_colony_per_container),
+            ("start", start),
+            ("stop", stop),
+            ("period", period),
+            ("seed", seed),
+        ]
         return
 
     def __str__(self):
-        msg = ('Simulation parameters:\n'
-               '----------------------\n')
+        msg = "Simulation parameters:\n" "----------------------\n"
         left_column_size = 25
         right_column_size = 10
         for key, val in self.content:
-            msg += '{}'.format(key).ljust(left_column_size)
-            msg += ': ' + '{}\n'.format(val).rjust(right_column_size)
+            msg += "{}".format(key).ljust(left_column_size)
+            msg += ": " + "{}\n".format(val).rjust(right_column_size)
         return msg
 
 
 class DivisionParams(object):
-    """Sets parameters for computing interdivision times.
+    """Parameterize when a given cell divides depending on its observables
     
     This settings is based on the linear results explained elsewhere.
     
     Parameters
     ----------
     div_lambda : float between 0 and 1
-        lambda parameter (note trailing): mixing parameter between timer (0)
-        and size (1). Adder is obtained with lambda_ 0.5.
+        the lambda parameter is the mixing parameter between timer (0)
+        and sizer (1) models. The adder model is obtained with lambda_ 0.5.
     div_size_target : float
-        X^* set the cutoff size for division. When lambda_ is 1, and there are
-        no fluctuations, division is triggered when size reaches exactly X^*
-        (fixed final size).
-    div_mode : str {'gamma', 'none'}
+        the size target sets the cutoff size for division. With *div_lambda=1*, and
+        no fluctuations, division is triggered when size reaches exactly the size target
+    div_mode : str {'gamma', 'fixed'}
         'fixed': only the linear response is taken;
-        'gamma': adds fluctuations over linear response (needs kwargs)
+        'gamma': adds fluctuations over linear response
     div_sd_to_mean : float (default 0.1)
-        sets the standard deviation relative to mean value (default 10%)
+        sets the standard deviation relative to mean value (default 10%) when used
+        with the *div_mode='gamma'* option
     use_growth_rate : str {'parameter', 'birth'}
         division control scales as cell size growth rate, that can be given as
-        a parameter (fixed), or from instanced value ('birth' value is taken
-        as input)
+        a parameter (fixed), or from the actual growth rate value **at cell birth**
     """
-    
-    def __init__(self, div_lambda=0, div_size_target=2.,
-                 div_mode='gamma', div_sd_to_mean=.1,
-                 use_growth_rate='parameter'):
+
+    def __init__(
+        self,
+        div_lambda=0,
+        div_size_target=2.0,
+        div_mode="gamma",
+        div_sd_to_mean=0.1,
+        use_growth_rate="parameter",
+    ):
         self.div_lambda = div_lambda
         self.div_size_target = div_size_target
         self.div_mode = div_mode
         self.div_sd_to_mean = div_sd_to_mean
         self.use_growth_rate = use_growth_rate
-        self.content = [('div_lambda', div_lambda),
-                        ('div_size_target', div_size_target),
-                        ('div_mode', div_mode),
-                        ('div_sd_to_mean', div_sd_to_mean),
-                        ('use_growth_rate', use_growth_rate)]
+        self.content = [
+            ("div_lambda", div_lambda),
+            ("div_size_target", div_size_target),
+            ("div_mode", div_mode),
+            ("div_sd_to_mean", div_sd_to_mean),
+            ("use_growth_rate", use_growth_rate),
+        ]
         return
-    
-    def rv(self, birth_size=1., growth_rate=1./60*np.log(2.)):
-        """Returns a random variate for interdivision time given X_0 and alpha.
+
+    def rv(self, birth_size=1.0, growth_rate=1.0 / 60 * np.log(2.0)):
+        """Returns a random variate for interdivision time given *birth_size* and *growth_rate*.
 
         Parameters
         ----------
@@ -154,25 +157,27 @@ class DivisionParams(object):
             interdivision time computed according to linear response with
             coefficient lambda plus fluctuations when mode is 'gamma'
         """
-        tau = ((1. - self.div_lambda) * np.log(2.) +
-               self.div_lambda * np.log(self.div_size_target/birth_size)) / growth_rate
-        if self.div_mode == 'gamma':
-            tau = _gamma(mean=tau, std=self.div_sd_to_mean*tau)
+        tau = (
+            (1.0 - self.div_lambda) * np.log(2.0)
+            + self.div_lambda * np.log(self.div_size_target / birth_size)
+        ) / growth_rate
+        if self.div_mode == "gamma":
+            tau = _gamma(mean=tau, std=self.div_sd_to_mean * tau)
         return tau
 
     def __str__(self):
-        msg = ('Division parameters:\n'
-               '--------------------\n')
+        msg = "Division parameters:\n" "--------------------\n"
         left_column_size = 5
         right_column_size = 10
         for key, val in self.content:
-            msg = '{}'.format(key).ljust(left_column_size)
-            msg += ': ' + '{}\n'.format(val).rjust(right_column_size)
+            msg = "{}".format(key).ljust(left_column_size)
+            msg += ": " + "{}\n".format(val).rjust(right_column_size)
         return msg
-    
-def _gamma(mean=60, std=6.):
-    theta = std**2 / mean
-    k = (std / theta)**2 + 1.
+
+
+def _gamma(mean=60, std=6.0):
+    theta = std ** 2 / mean
+    k = (std / theta) ** 2 + 1.0
     val = np.random.gamma(k, scale=theta)
     return val
 
@@ -191,25 +196,28 @@ class SampleInitialSize(object):
         relative fluctuations
         
     """
-    
-    def __init__(self, birth_size_mean=1., birth_size_mode='fixed',
-                 birth_size_sd_to_mean=.1):
+
+    def __init__(
+        self, birth_size_mean=1.0, birth_size_mode="fixed", birth_size_sd_to_mean=0.1
+    ):
         self.birth_size_mean = birth_size_mean
         self.birth_size_mode = birth_size_mode
         self.birth_size_sd_to_mean = birth_size_sd_to_mean
-        self.content = [('birth_size_mean', birth_size_mean),
-                        ('birth_size_mode', birth_size_mode),
-                        ('birth_size_sd_to_mean', birth_size_sd_to_mean)]
+        self.content = [
+            ("birth_size_mean", birth_size_mean),
+            ("birth_size_mode", birth_size_mode),
+            ("birth_size_sd_to_mean", birth_size_sd_to_mean),
+        ]
         return
 
     def rv(self):
-        if self.birth_size_mode == 'fixed':
+        if self.birth_size_mode == "fixed":
             return self.birth_size_mean
-        elif self.birth_size_mode == 'lognormal':
+        elif self.birth_size_mode == "lognormal":
             # getting normal parameters from average and relative fluct
             av = self.birth_size_mean
-            sigma = np.sqrt(np.log(1. + self.birth_size_sd_to_mean**2))
-            mu = np.log(av) - 0.5 * sigma**2
+            sigma = np.sqrt(np.log(1.0 + self.birth_size_sd_to_mean ** 2))
+            mu = np.log(av) - 0.5 * sigma ** 2
             lognorm = np.random.lognormal(mean=mu, sigma=sigma)
             return lognorm
 
@@ -246,8 +254,7 @@ class Ecoli(Cell):
         float, duration of cell cycle
     """
 
-    def __init__(self, identifier=None, parent=None,
-                 birth_time=None, lifetime=None):
+    def __init__(self, identifier=None, parent=None, birth_time=None, lifetime=None):
 
         Cell.__init__(self, identifier)
 
