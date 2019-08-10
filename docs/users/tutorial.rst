@@ -297,7 +297,8 @@ as :obj:`tutorial_sample-plot.png`.
 
 You should see something that looks like:
 
-.. figure:: ../images/tutorial_sample-plot.png
+.. figure:: /images/tutorial_sample-plot.png
+   :width: 60%
    
    Timeseries of a given observable (here size) in all cells from a colony.
 
@@ -379,7 +380,8 @@ The first one to look at is :obj:`plot_onepoint_growth-rate_ALL.png`, or by typi
 
 It should print out like this:
 
-.. figure:: ../images/plot_onepoint_growth-rate_ALL.png
+.. figure:: /images/plot_onepoint_growth-rate_ALL.png
+   :width: 60%
    
    Plot of one-point functions: counts, average, and variance vs. time.
 
@@ -404,7 +406,8 @@ The second plot to look at is :obj:`plot_twopoints_growth-rate_ALL.png`, or::
 
 which should print like this:
 
-.. figure:: ../images/plot_twopoints_growth-rate_ALL.png
+.. figure:: /images/plot_twopoints_growth-rate_ALL.png
+   :width: 60%
 
    Plot of two-point functions: counts, autocorrelation functions, and
    centered superimposition of autocorrelation functions vs.time.
