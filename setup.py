@@ -1,11 +1,5 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-descr = """Analysis of Timeseries from dividing UNicellular microorganisms
-
-Analysis of time-lapse data from microscopy of growing micro-organisms,
-including tree reconstruction, time-series visualization, computation of
-statistics of dynamic, and cell-cycle variables.
-"""
 import codecs
 import os
 import re
@@ -30,11 +24,16 @@ def find_version(*file_paths):
     raise RuntimeError("Unable to find version string.")
 ## end of pip setup extract
 
+README_rst = ''
+src_dir = os.path.abspath(os.path.dirname(__file__))
+fndoc = os.path.join(src_dir, 'README.rst')
+with open(fndoc, mode='r', encoding='utf-8') as fd:
+    README_rst = fd.read()
 
 setup(name='tunacell',
       version=find_version('tunacell','__init__.py'),
       description='Analysis of Timeseries from dividing UNicellular microorganisms',
-      long_description=descr,
+      long_description=README_rst,
       url='https://github.com/LeBarbouze/tunacell',
       author='Joachim Rambeau',
       author_email='joachim.rambeau@gmail.com',
