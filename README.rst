@@ -58,7 +58,7 @@ Testing the install
 Unit tests
 ----------
 
-tunacell comes with unit tests that can be run with pytest. Run:
+tunacell comes with unit tests that can be run with pytest. Run::
 
 	make test
 
@@ -69,7 +69,7 @@ End-to-end tests
 ----------------
 
 To check whether most features works appropriately, clone the
-repo and run
+repo and run::
 
 	make full-demo
 
