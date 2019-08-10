@@ -1,15 +1,21 @@
-.. image:: https://travis-ci.com/LeBarbouze/tunacell.svg?branch=develop)
+===========
+tunacell
+===========
+
+|Build-Status| |Documentation-Status| |PyPI-Version| |License|
+
+.. |Build-Status| image:: https://travis-ci.com/LeBarbouze/tunacell.svg?branch=develop)
    :target: https://travis-ci.com/LeBarbouze/tunacell
    :alt: Travis CI Status
 
-.. image:: https://readthedocs.org/projects/tunacell/badge/?version=latest
+.. |Documentation-Status| image:: https://readthedocs.org/projects/tunacell/badge/?version=latest
    :target: https://tunacell.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
 
-.. image:: https://img.shields.io/pypi/v/tunacell?color=blue
+.. |PyPI-Version| image:: https://img.shields.io/pypi/v/tunacell?color=blue
    :target: ttps://pypi.org/project/tunacell/
 
-.. image:: https://img.shields.io/github/license/LeBarbouze/tunacell
+.. |License| image:: https://img.shields.io/github/license/LeBarbouze/tunacell
 
 
 ``tunacell`` is a Python package that provides tools to analyze data from time-lapse
