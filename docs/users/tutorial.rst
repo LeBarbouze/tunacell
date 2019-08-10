@@ -297,7 +297,7 @@ as :obj:`tutorial_sample-plot.png`.
 
 You should see something that looks like:
 
-.. figure:: /_static/tutorial_sample-plot.png
+.. figure:: /images/tutorial_sample-plot.png
    :width: 60%
    
    Timeseries of a given observable (here size) in all cells from a colony.
