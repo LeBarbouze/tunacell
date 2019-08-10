@@ -333,7 +333,7 @@ The first figure, stored in ``fig1``, looks like:
 
 .. _fig-one-point:
 
-.. figure:: ../images/plot_onepoint_exact-growth-rate_ALL.png
+.. figure:: /images/plot_onepoint_exact-growth-rate_ALL.png
 
    Plot of one-point functions computed by ``tuna``. The first row shows the
    sample counts vs. time, :math:`s^{(1)}_i` vs. :math:`t_i`. The middle row
@@ -355,7 +355,7 @@ The second figure, stored in ``fig2``, looks like so:
 
 .. _fig-two-point:
 
-.. figure:: ../images/plot_twopoints_exact-growth-rate_ALL.png
+.. figure:: /images/plot_twopoints_exact-growth-rate_ALL.png
 
    Plot of two-point functions. Three times of reference are chosen to display
    the associated functions. Top row shows the sample counts, *i.e.* the
@@ -449,7 +449,7 @@ The first argument must be a :class:`tuna.stats.single.StationaryObservable`
 instance. The second parameter displays an exponential decay (to compare with
 data).
 
-.. figure:: ../images/plot_stationary_exact-growth-rate_ALL.png
+.. figure:: /images/plot_stationary_exact-growth-rate_ALL.png
 
    Plot of stationary autocorrelation function. Top row is the number of
    samples, *i.e.* the number of (disjoint) segments of size :math:`\Delta t`
@@ -592,7 +592,7 @@ autocorrelation functions::
 
 which should plot something like:
 
-.. figure:: ../images/plot_stationary_exact-growth-rate---approx-growth-rate_ALL.png
+.. figure:: /images/plot_stationary_exact-growth-rate---approx-growth-rate_ALL.png
 
    Plot of the stationary cross-correlation function of the Ornstein-Uhlenbeck
    process with the local growth rate estimate using the exponential of the
@@ -607,7 +607,7 @@ Other examples
 If one performs a similar analysis with the two cell-cycle observables,
 for example:
 
-.. figure:: ../images/plot_stationary_average-growth-rate---division-size_ALL.png
+.. figure:: /images/plot_stationary_average-growth-rate---division-size_ALL.png
 
    Plot of the stationary cross-correlation function of the cell-cycle average
    growth rate with the cell length at division, with respect to the number of

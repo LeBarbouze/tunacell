@@ -132,7 +132,7 @@ The figure is stored as the :attr:`fig` attribute of :code:`colplt`::
 
 This kind of plot should be produced:
 
-.. figure:: ../images/colony0-plot.png
+.. figure:: /images/colony0-plot.png
 
    Timeseries of length vs time for one colony, default settings.
 
@@ -162,7 +162,7 @@ the :func:`repr` call.
 
 Now the :attr:`fig` attribute should store the following result:
 
-.. figure:: ../images/colony0-even-plot.png
+.. figure:: /images/colony0-even-plot.png
 
    Timeseries of length vs time for one colony. Plain markers are used for
    samples that verify the condition (cell identifier is even), empty markers
@@ -182,7 +182,7 @@ Changing cell colour
 
     colplt.make_plot(length, report_condition=repr(condition), change_cell_color=True)
 
-.. figure:: ../images/colony0-even-cell-color-plot.png
+.. figure:: /images/colony0-even-cell-color-plot.png
 
   Colour is changed for each cell, and assigned with respect to the generation
   index of the cell in the colony. This allows to investigate how generations
@@ -195,7 +195,7 @@ Changing lineage colour
 
     colplt.make_plot(length, report_condition=repr(condition), change_lineage_color=True)
 
-.. figure:: ../images/colony0-even-lineage-color-plot.png
+.. figure:: /images/colony0-even-lineage-color-plot.png
 
   Colour is changed for each lineage, *i.e* each row in this colony plot.
 
@@ -221,7 +221,7 @@ For example, if we superimpose at most 3 lineages::
     colplt.make_plot(length, report_condition=repr(condition), change_lineage_color=True,
                  superimpose=3)
 
-.. figure:: ../images/colony0-even-super3-plot.png
+.. figure:: /images/colony0-even-super3-plot.png
 
    Superimposition of at most 3 lineages with :code:`superimpose=3`. Once
    :code:`superimpose` is different from ``'none'`` (or 1), the vertical lines
@@ -242,7 +242,7 @@ colonies in the same plot, that can be given as an iterable over colonies::
 
 Here we iterated over colonies from the samples defined in ``parser.samples``.
 
-.. figure:: ../images/colonies-even-plot.png
+.. figure:: /images/colonies-even-plot.png
 
    First two colonies from ``parser.samples``, with changing colony colour
    option.
@@ -253,7 +253,7 @@ growth rate::
     splt3.make_plot(ou, report_condition=repr(condition), change_colony_color=True,
                     superimpose=2)
 
-.. figure:: ../images/colonies-ou-even-plot.png
+.. figure:: /images/colonies-ou-even-plot.png
 
    Same samples as above, but we changed the observable to growth rate.
 
@@ -266,7 +266,7 @@ files::
                     superimpose=2)
 
 
-.. figure:: ../images/colonies5-ou-even-plot.png
+.. figure:: /images/colonies5-ou-even-plot.png
 
    Two lineages are superimposed on each row. Colour is changed for each new
    colony.
@@ -279,7 +279,7 @@ to distinguish better individual timeseries::
     splt.make_plot(ou, change_colony_color=True, superimpose='all', show_markers=False,
                     alpha=.6)
 
-.. figure:: ../images/lineages-from-colonies5-plot.png
+.. figure:: /images/lineages-from-colonies5-plot.png
 
    Lineages from the 5 colonies superimposed on a single row plot.
 
@@ -296,7 +296,7 @@ or an iterable over lineages as argument of the plotting environment::
                     superimpose='all', alpha=.6)
 
 
-.. figure:: ../images/lineages10-plot.png
+.. figure:: /images/lineages10-plot.png
 
    10 lineages from an iterator on a single row plot.
 
@@ -322,7 +322,7 @@ values::
                     superimpose='all', alpha=.5, show_markers=False,
                     ref_mean=ref_mean, ref_var=ref_var)
 
-.. figure:: ../images/lineages10-with-ref-plot.png
+.. figure:: /images/lineages10-with-ref-plot.png
 
    Timeseries from lineages are reported together with theoretical mean value
    (dash-dotted horizontal line) +/- one standard deviation (dotted lines).
@@ -339,7 +339,7 @@ is useful when no theoretical values exist (most of the time)::
                 superimpose='all', alpha=.5, show_markers=False,
                 data_statistics=True)
 
-.. figure:: ../images/lineages10-with-stats-plot.png
+.. figure:: /images/lineages10-with-stats-plot.png
 
    Data statistics have been added: grey line shows the estimated mean value
    and shadows show +/- one estimated standard deviation. Note that these
