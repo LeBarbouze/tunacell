@@ -27,7 +27,7 @@ def find_version(*file_paths):
 README_rst = ''
 src_dir = os.path.abspath(os.path.dirname(__file__))
 fndoc = os.path.join(src_dir, 'README.rst')
-with open(fndoc, mode='r', encoding='utf-8') as fd:
+with open(fndoc, mode='r') as fd:
     README_rst = fd.read()
 
 setup(name='tunacell',
