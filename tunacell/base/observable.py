@@ -12,15 +12,21 @@ Classes
 from __future__ import print_function
 
 import collections
-import warnings
-import inspect
-import dill
-import re
 from copy import deepcopy
+import re
+import sys
+import warnings
 
+if sys.version_info[0] < 3:
+    import pathlib2 as pathlib
+else:
+    import pathlib
+
+import dill
 from tabulate import tabulate
 
 
+INTERNALS_OBSERVABLES_BASENAME = 'observables.txt'  # file to store the list of observables in experiment/internals/observables.txt
 _re_codestring = "T([a-z])([a-z]*\d*[\.,]*\d*)M([a-z\-]+)J(\d+)"
 
 
@@ -101,16 +107,18 @@ class Observable(object):
 
     """
 
-    _ATTR_NAMES = ("name",
-            "raw",
-            "scale",
-            "differentiate",
-            "local_fit",
-            "time_window",
-            "join_points",
-            "mode",
-            "timing",
-            "tref",)
+    _ATTR_NAMES = (
+        "name",
+        "raw",
+        "scale",
+        "differentiate",
+        "local_fit",
+        "time_window",
+        "join_points",
+        "mode",
+        "timing",
+        "tref",
+    )
 
     def __init__(
         self,
@@ -159,7 +167,9 @@ class Observable(object):
         if not isinstance(other, Observable):
             return False  # super(Observable, self).__eq__(other)
         equal = True
-        attributes = [attr for attr in self._ATTR_NAMES if attr != 'name']  # name can be different
+        attributes = [
+            attr for attr in self._ATTR_NAMES if attr != "name"
+        ]  # name can be different
         for attr in attributes:
             equal = equal and getattr(self, attr) == getattr(other, attr)
         return equal
@@ -170,7 +180,7 @@ class Observable(object):
 
     @classmethod
     def load_from_repr(cls, representation):
-        """Instantiate Observafrom a repr
+        """Instantiate Observable from a repr
 
         Parameters
         ----------
@@ -182,6 +192,56 @@ class Observable(object):
         Observable
         """
         return eval(representation)
+
+    @classmethod
+    def load_list_from_internals(cls, exp):
+        """Load a list of Observable instances serialized for Experiment *exp*
+
+        Parameters
+        ----------
+        filename : tunacell.base.experiment.Experiment
+
+        Returns
+        -------
+        list of Observable instances
+        """
+        res = []
+        internals = exp.path_internals
+        filename = internals / INTERNALS_OBSERVABLES_BASENAME
+        if not filename.exists():
+            return []
+        with open(str(filename), "r") as f:
+            for line in f.readlines():
+                content = line.strip("\n")
+                if content:
+                    res.append(cls.load_from_repr(content))
+        return res
+
+    def save_in_internals(self, exp):
+        """Save current instance in internals
+
+        No duplicate observables are stored, so if a previous observable
+        matches current one, only its name is overridden
+
+        Parameters
+        ----------
+        exp : tunacell.base.experiment.Experiment
+        """
+        # first, load the list of observables saved in internals
+        res = Observable.load_list_from_internals(exp)
+        found = False
+        for item in res:
+            if item == self:
+                item.name = self.name  # update name, because user wants to modify
+        if not found:
+            res.append(self)
+        internals = exp.path_internals
+        if not internals.exists():
+            internals.mkdir(parents=True)
+        filename = internals / INTERNALS_OBSERVABLES_BASENAME
+        with open(str(filename), 'w') as f:
+            for item in res:
+                f.write("{}\n".format(repr(item)))
 
     def as_timelapse(self):
         """Convert current observable to its dynamic counterpart
@@ -399,6 +459,14 @@ class Observable(object):
             chain += "{}={}, ".format(key, repr(val))
         chain += ")"
         return chain
+
+    def add_to_internals(self, exp):
+        """Add to list of observables stored under 'internals' subfolder
+
+        Parameters
+        ----------
+        exp : tunacell.base.experiment.Experiment
+        """
 
 
 def _latexify_time_var(

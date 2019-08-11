@@ -10,7 +10,7 @@ from itertools import product, combinations
 
 from tunacell.base.observable import (Observable, ObservableStringError,
                                   FunctionalObservable, set_observable_list,
-                                  unroll_func_obs, unroll_raw_obs)
+                                  unroll_func_obs, unroll_raw_obs, INTERNALS_OBSERVABLES_BASENAME)
 
 
 t_params = (('name', ['mysoup', 'donald']),
@@ -120,6 +120,21 @@ def test_observable_repr(all_params):
         for attr in obs._ATTR_NAMES:
             assert hasattr(nobs, attr)
             assert getattr(nobs, attr) == getattr(obs, attr)
+
+
+def test_observable_save(fake_exp):
+    assert not (fake_exp.path_internals / INTERNALS_OBSERVABLES_BASENAME).exists()
+    print(fake_exp.path_internals)
+    # fake exp has got a single raw observable: 'value'
+    value = Observable(raw='value')
+    value.save_in_internals(fake_exp)
+    itsderivative = Observable(name='itsderivative', raw='value', differentiate=True)
+    itsderivative.save_in_internals(fake_exp)
+    assert (fake_exp.path_internals / INTERNALS_OBSERVABLES_BASENAME).exists()
+    # count lines
+    with (fake_exp.path_internals / INTERNALS_OBSERVABLES_BASENAME).open('r') as f:
+        number_obs = len(f.readlines()[:])
+    assert number_obs == 2
 
 
 def test_unrolling():
