@@ -11,6 +11,7 @@ import logging
 import numpy as np
 
 import sys
+
 if sys.version_info[0] < 3:
     import pathlib2 as pathlib
 else:
@@ -21,17 +22,18 @@ from tunacell.base.cell import Cell
 from tunacell.base.datatools import compute_secondary_observables
 
 
-
 logger = logging.getLogger(__name__)
 
 
 class TextParsingError(Exception):
     """General class for Errors while parsing text flat files."""
+
     pass
 
 
 class MissingFileError(TextParsingError):
     """Class for missing file."""
+
     pass
 
 
@@ -43,23 +45,24 @@ class MismatchFileError(TextParsingError):
     args : tuple
         arguments passed to Exception class init
     """
-    def __init__(self, level='none', *args):
+
+    def __init__(self, level="none", *args):
         super().__init__(*args)
         self.level = level
 
 
 class MissingFolderError(TextParsingError):
-
     def __init__(self, missing):
         self.missing = missing
 
     def __str__(self):
-        msg = 'Missing folder: {}'.format(self.missing)
+        msg = "Missing folder: {}".format(self.missing)
         return msg
 
 
 class CorruptedFileError(TextParsingError):
     """When a file does not contain what it should"""
+
     pass
 
 
@@ -70,20 +73,21 @@ class TextFileSystem(TextParsingError):
         self.root = root
 
     def __str__(self):
-        label = ''
-        label += 'DID NOT FIND APPROPRIATE FILESYSTEM in root\n'
-        label += '  > {}\n'.format(self.root)
-        label += 'Appropriate structure from root directory:\n'
-        label += 'root/\n'
-        label += '  descriptor.csv (describe data structure within files)\n'
-        label += '  lineages/\n'
-        label += '    fov_001.txt\n'
-        label += '    fov_002.txt\n'
-        label += '    [...]\n'
+        label = ""
+        label += "DID NOT FIND APPROPRIATE FILESYSTEM in root\n"
+        label += "  > {}\n".format(self.root)
+        label += "Appropriate structure from root directory:\n"
+        label += "root/\n"
+        label += "  metadata.yml (period of acquisition, strain, other experimental conditions, ...)\n"
+        label += "  descriptor.csv (describe data structure within text files)\n"
+        label += "  containers/\n"
+        label += "    fov_001.txt\n"
+        label += "    fov_002.txt\n"
+        label += "    [...]\n"
         return label
 
 
-def _check_up(filename, path='.', level=2):
+def _check_up(filename, path=".", level=2):
     """Check in parent directories (up to level) whether filename exists
 
     Parameters
@@ -134,7 +138,7 @@ def get_file(label, folder):
     filename : str
         absolute path to file
     """
-    accepted_extensions = ['', '.txt', '.tsv']
+    accepted_extensions = ["", ".txt", ".tsv"]
     for ext in accepted_extensions:
         fn = os.path.join(folder, label + ext)
         if os.path.exists(fn):
@@ -144,7 +148,7 @@ def get_file(label, folder):
     return fn
 
 
-def get_array(fname, datatype, delimiter='\t'):
+def get_array(fname, datatype, delimiter="\t"):
     """Returns Numpy structured array from text file
 
     Text file must be tab separated value and its columns must match the
@@ -165,7 +169,7 @@ def get_array(fname, datatype, delimiter='\t'):
     return arr
 
 
-def datatype_parser(descriptor_file, sep=',', comment='!'):
+def datatype_parser(descriptor_file, sep=",", comment="!"):
     """Return Numpy datatype from descriptor file.
 
     Parameters
@@ -185,11 +189,11 @@ def datatype_parser(descriptor_file, sep=',', comment='!'):
     """
     datatypes = []
     abspath = os.path.abspath(os.path.expanduser(descriptor_file))
-    with open(abspath, 'r') as f:
+    with open(abspath, "r") as f:
         for line in f.readlines():
             if line[0] != comment:
                 seq = line.rstrip()
-                if seq != '':
+                if seq != "":
                     words = seq.split(sep)
                     datatypes.append(tuple(words[:2]))
     return datatypes
@@ -198,7 +202,7 @@ def datatype_parser(descriptor_file, sep=',', comment='!'):
 def has_container_data(abs_path):
     "Test whether absolute path has a sue"
     boo = False
-    if 'containers' in os.listdir(abs_path):
+    if "containers" in os.listdir(abs_path):
         boo = True
     else:
         raise TextFileSystem(abs_path)
@@ -208,13 +212,13 @@ def has_container_data(abs_path):
 def is_valid_experiment_folder(abs_path):
     res = glob.glob(abs_path)
     if not res:
-        raise TextParsingError('No experiment folder at {}'.format(abs_path))
-    res = glob.glob(os.path.join(abs_path, 'descriptor*'))
+        raise TextParsingError("No experiment folder at {}".format(abs_path))
+    res = glob.glob(os.path.join(abs_path, "descriptor*"))
     if not res:
-        raise TextParsingError('no descriptor file in experiment folder')
-    res = glob.glob(os.path.join(abs_path, 'metadata*'))
+        raise TextParsingError("no descriptor file in experiment folder")
+    res = glob.glob(os.path.join(abs_path, "metadata*"))
     if not res:
-        raise TextParsingError('no metadata file in experiment folder')
+        raise TextParsingError("no metadata file in experiment folder")
     return has_container_data(abs_path)
 
 
@@ -232,13 +236,13 @@ def find_containers(path):
     """
     if not isinstance(path, pathlib.Path):
         path = pathlib.Path(path)
-    container_folder = path / 'containers'
+    container_folder = path / "containers"
     if not container_folder.exists():
-        msg = 'Expected {}, not found. Check path.'.format(container_folder)
+        msg = "Expected {}, not found. Check path.".format(container_folder)
         raise TextParsingError(msg)
     containers = []
     for item in container_folder.iterdir():
-        if item.is_file() and 'readme' not in item.stem.lower() and item.name[0] != '.':
+        if item.is_file() and "readme" not in item.stem.lower() and item.name[0] != ".":
             containers.append(item)
     return sorted(containers)
 
@@ -270,7 +274,7 @@ def find_datatype(path):
     Returns
     -------
     """
-    descriptor_file = _check_up('descriptor.csv', path, 2)
+    descriptor_file = _check_up("descriptor.csv", path, 2)
     datatype = datatype_parser(descriptor_file)
     return datatype
 
@@ -281,16 +285,17 @@ class ContainerArrayParsingError(Exception):
 
 class CellIdentifierError(ContainerArrayParsingError):
     """Class for Identifier Error"""
+
     pass
 
 
 class CellParentError(ContainerArrayParsingError):
     """Class for parent identifier Error"""
+
     pass
 
 
-def build_cells(arr, container=None, report_NaNs=True,
-                extend_observables=False):
+def build_cells(arr, container=None, report_NaNs=True, extend_observables=False):
     """Read and store :class:`Cell` instances from structured text files).
 
     Text file must be tab separated value and its columns must match the
@@ -320,23 +325,22 @@ def build_cells(arr, container=None, report_NaNs=True,
         try:
             arr = compute_secondary_observables(arr)
         except ValueError as ve:
-            msg = ('Extend observable failed, keep original array.\n'
-                   '{}'.format(ve))
+            msg = "Extend observable failed, keep original array.\n" "{}".format(ve)
             logger.debug(msg)
     # store cellIDs
-    cellIDs = np.unique(arr['cellID'])
+    cellIDs = np.unique(arr["cellID"])
     # when arr has got more than 1 frame
     if len(arr.shape) > 0:
         breaks = []  # where to split array
-        previous_id = arr['cellID'][0]  # first cid
-        for index, cid in enumerate(arr['cellID']):
+        previous_id = arr["cellID"][0]  # first cid
+        for index, cid in enumerate(arr["cellID"]):
             if cid != previous_id:
                 previous_id = cid
                 breaks.append(index)
         arrs = np.split(arr, breaks)
     # otherwise there's only one cell with a single frame
     else:
-        arrs = [arr, ]
+        arrs = [arr]
 
     del arr
 
@@ -344,14 +348,14 @@ def build_cells(arr, container=None, report_NaNs=True,
         nan_labels = {}
     for arr in arrs:
         # first check that identifiers are unique
-        cids = np.unique(arr['cellID'])
+        cids = np.unique(arr["cellID"])
         if len(cids) > 1:
-            raise CellIdentifierError('ids found: {}'.format(cids))
+            raise CellIdentifierError("ids found: {}".format(cids))
         else:
             cid = cids[0]
-        pids = np.unique(arr['parentID'])
+        pids = np.unique(arr["parentID"])
         if len(pids) > 1:
-            msg = 'From cellID {}; found these parentIDs: {}'.format(cid, pids)
+            msg = "From cellID {}; found these parentIDs: {}".format(cid, pids)
             raise CellParentError(msg)
         else:
             pid = pids[0]
@@ -363,24 +367,25 @@ def build_cells(arr, container=None, report_NaNs=True,
         if report_NaNs:
             for label, (dtype, offset) in arr.dtype.fields.items():
                 # NaNs are implemented as np.nan for float types,
-                if 'f' in dtype.kind:
+                if "f" in dtype.kind:
                     if np.isnan(arr[label]).any():
                         if label not in nan_labels.keys():
-                            nan_labels[label] = [cid, ]
+                            nan_labels[label] = [cid]
                         else:
                             nan_labels[label].append(cid)
                 # for integer types, they seem to be replaced by largest value
-                elif ('u' in dtype.kind) or ('i' in dtype.kind):
+                elif ("u" in dtype.kind) or ("i" in dtype.kind):
                     if np.amax(arr[label]) == np.iinfo(dtype).max:
                         if label not in nan_labels.keys():
-                            nan_labels[label] = [cid, ]
+                            nan_labels[label] = [cid]
                         else:
                             nan_labels[label].append(cid)
         # attach data to Cell instance
         cell.data = arr
         cells.append(cell)
     if report_NaNs:
-        msg = ('In container {}, found NaNs in following columns '.format(container.label) + ''
-               '{}'.format(', '.join(nan_labels.keys())))
+        msg = "In container {}, found NaNs in following columns ".format(
+            container.label
+        ) + "" "{}".format(", ".join(nan_labels.keys()))
         logger.debug(msg)
     return cells
