@@ -76,8 +76,8 @@ def test_observable_init(all_params):
 
 def test_observable_equal(all_attributes):
     for kwargs in all_attributes:
-        obs = Observable(**kwargs, name='this')
-        other = Observable(**kwargs, name='that')  # only name changes
+        obs = Observable(name='this', **kwargs)
+        other = Observable(name='that', **kwargs)  # only name changes
         assert obs.name != other.name  # we changed its name
         assert obs == other  # all other attributes are equal
 

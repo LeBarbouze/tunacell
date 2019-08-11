@@ -157,7 +157,7 @@ class Observable(object):
         bool
         """
         if not isinstance(other, Observable):
-            return super(Observable, self).__eq__(other)
+            return False  # super(Observable, self).__eq__(other)
         equal = True
         attributes = [attr for attr in self._ATTR_NAMES if attr != 'name']  # name can be different
         for attr in attributes:
