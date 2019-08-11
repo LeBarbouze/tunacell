@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-This module implements the first core class: Experiment,
-and functions to parse containers, retrieve and build data.
+"""Top-level data model structure: Experiment
 
 Each experiment consists of multiple containers where
 data is stored under container folders. A container may
@@ -54,10 +52,17 @@ class FiletypeError(ParsingExperimentError):
 
 
 class Experiment(object):
-    """General class that stores experiment details.
+    """Entry-point to a dataset
 
-    Creates an Experiment instance from reading a file, records path, filetype,
-    reads metadata, stores the list of containers.
+    The Experiment class is central in how tunacell parses and analyses data.
+    A dataset is supposed to originate from a complete experiment, which will
+    be read using this class. An experiment is divided in multiple containers
+    (within each container, the cell identifiers are unique), and additional
+    metadata is read to provide information such as the acquisition time period,
+    or any information that could be relevant to distinguish containers (different
+    strains, different growth conditions). tunacell's API to explore data is
+    based on the Experiment. Results are kept in a subfolder ('analysis').
+    Serialization of various objects can be found in another subfolder ('internals').
 
     Parameters
     ----------
