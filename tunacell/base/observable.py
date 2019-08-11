@@ -21,7 +21,7 @@ from copy import deepcopy
 from tabulate import tabulate
 
 
-_re_codestring = 'T([a-z])([a-z]*\d*[\.,]*\d*)M([a-z\-]+)J(\d+)'
+_re_codestring = "T([a-z])([a-z]*\d*[\.,]*\d*)M([a-z\-]+)J(\d+)"
 
 
 def _is_valid_codestring(codestring):
@@ -101,20 +101,31 @@ class Observable(object):
 
     """
 
-    def __init__(self, name=None, from_string=None,
-                 raw=None, differentiate=False, scale='linear',
-                 local_fit=False, time_window=0., join_points=3,
-                 mode='dynamics', timing='t', tref=None):
-        self._attr_names = ['name',
-                            'raw',
-                            'scale',
-                            'differentiate',
-                            'local_fit',
-                            'time_window',
-                            'join_points',
-                            'mode',
-                            'timing',
-                            'tref']
+    _ATTR_NAMES = ("name",
+            "raw",
+            "scale",
+            "differentiate",
+            "local_fit",
+            "time_window",
+            "join_points",
+            "mode",
+            "timing",
+            "tref",)
+
+    def __init__(
+        self,
+        name=None,
+        from_string=None,
+        raw=None,
+        differentiate=False,
+        scale="linear",
+        local_fit=False,
+        time_window=0.0,
+        join_points=3,
+        mode="dynamics",
+        timing="t",
+        tref=None,
+    ):
         if from_string is not None:
             self.load_from_string(from_string)
         else:
@@ -133,21 +144,58 @@ class Observable(object):
             # case where name is None
             if name is None:
                 self.name = self.label  # use the codestring
-        return
+
+    def __eq__(self, other):
+        """Test whether *other* equals current instance by inspecting defining attributes
+
+        Parameters
+        ----------
+        other : Observable
+
+        Returns
+        -------
+        bool
+        """
+        if not isinstance(other, Observable):
+            return super(Observable, self).__eq__(other)
+        equal = True
+        attributes = [attr for attr in self._ATTR_NAMES if attr != 'name']  # name can be different
+        for attr in attributes:
+            equal = equal and getattr(self, attr) == getattr(other, attr)
+        return equal
+
+    def __hash__(self):
+        """As we override the __eq__ method for comparison, we need to state the __hash__ as object parent's __hash__"""
+        return super(Observable, self).__hash__()
+
+    @classmethod
+    def load_from_repr(cls, representation):
+        """Instantiate Observafrom a repr
+
+        Parameters
+        ----------
+        representation : str
+            only works if it matches repr(Observable)
+
+        Returns
+        -------
+        Observable
+        """
+        return eval(representation)
 
     def as_timelapse(self):
         """Convert current observable to its dynamic counterpart
 
         This is needed when computing cell-cycle observables.
         """
-        if self.mode == 'dynamics' and self.timing == 't':
+        if self.mode == "dynamics" and self.timing == "t":
             # everything's fine
             return self
         else:
             tobs = deepcopy(self)
-            tobs.mode = 'dynamics'
-            tobs.timing = 't'
-            tobs.name = '_timelapsed_' + self.name
+            tobs.mode = "dynamics"
+            tobs.timing = "t"
+            tobs.name = "_timelapsed_" + self.name
             return tobs
 
     @property
@@ -166,26 +214,26 @@ class Observable(object):
         called by the built-in :func:`eval()`, to instantiate a new object
         with identical functional parameters.
         """
-        msg = ''
+        msg = ""
         # timing is in between T flags
         if self.tref is not None:
             if isinstance(self.tref, float):
-                stref = '{:.2f}'.format(self.tref)
+                stref = "{:.2f}".format(self.tref)
             elif isinstance(self.tref, int) or isinstance(self.tref, str):
-                stref = '{}'.format(self.tref)
+                stref = "{}".format(self.tref)
         else:
-            stref = ''
-        msg += 'T' + self.timing + stref
+            stref = ""
+        msg += "T" + self.timing + stref
         # mode is in between M flags
-        msg += 'M' + self.mode
-        msg += 'J' + '{}'.format(self.join_points)
-        msg += '_'
+        msg += "M" + self.mode
+        msg += "J" + "{}".format(self.join_points)
+        msg += "_"
         if self.differentiate:
-            msg += 'dot_'
+            msg += "dot_"
         if self.local_fit:
-            msg += 'W{:.2f}_'.format(self.time_window)
-        if self.scale == 'log':
-            msg += 'log_'
+            msg += "W{:.2f}_".format(self.time_window)
+        if self.scale == "log":
+            msg += "log_"
         msg += self.raw
         return msg
 
@@ -203,18 +251,20 @@ class Observable(object):
             must follow some rules for parsing
         """
         # set options to default and update if found
-        self.mode = 'dynamics'
-        self.timing = 't'
+        self.mode = "dynamics"
+        self.timing = "t"
         self.local_fit = False
-        self.time_window = 0.
+        self.time_window = 0.0
         self.join_points = 3  # default
         self.differentiate = False
-        self.scale = 'linear'
-        items = codestring.split('_')
+        self.scale = "linear"
+        items = codestring.split("_")
         self.raw = items[-1]  # last item is always raw observable label
-        if self.raw == 'none':
-            msg = ("'raw' is set to 'none'.\n"
-                   "Update to a valid column name of your experiment.")
+        if self.raw == "none":
+            msg = (
+                "'raw' is set to 'none'.\n"
+                "Update to a valid column name of your experiment."
+            )
             warnings.warn(msg)
 
         # test whether codestring is valid: must have T and M flags
@@ -224,19 +274,19 @@ class Observable(object):
             timing, stref, mode, sjoin = m.groups()
             self.timing = timing
             if stref:
-                if stref == 'root':
-                    self.tref = 'root'
+                if stref == "root":
+                    self.tref = "root"
                 else:  # convert to float
-                    self.tref = float(stref.replace(',', '.'))  # if decimal is ,
+                    self.tref = float(stref.replace(",", "."))  # if decimal is ,
             else:
                 self.tref = None
             self.mode = mode
             self.join_points = int(sjoin)
         else:
-            raise ObservableStringError('Not a valid codestring')
+            raise ObservableStringError("Not a valid codestring")
 
         # try to check whether local fit is performed and its parameters
-        pfit = re.compile('W(\d*[.,]*\d*)')
+        pfit = re.compile("W(\d*[.,]*\d*)")
 
         for item in items[:-1]:
             # local_fit?
@@ -245,32 +295,34 @@ class Observable(object):
                 stime_window, = m.groups()
                 # check that tw_str is not empty
                 if stime_window:
-                    self.time_window = float(stime_window.replace(',', '.'))
+                    self.time_window = float(stime_window.replace(",", "."))
                     self.local_fit = True
             # log scale
-            if item == 'log':
-                self.scale = 'log'
-            if item == 'dot':
+            if item == "log":
+                self.scale = "log"
+            if item == "dot":
                 self.differentiate = True
         return
 
     def as_string_table(self):
         """Human readable output as a table.
         """
-        tab = [['parameter', 'value']]
-        for key in self._attr_names:
+        tab = [["parameter", "value"]]
+        for key in self._ATTR_NAMES:
             val = self.__getattribute__(key)
             tab.append([key, val])
 
-        return tabulate(tab, headers='firstrow')
+        return tabulate(tab, headers="firstrow")
 
-
-    def latexify(self, show_variable=True,
-                 plus_delta=False,
-                 shorten_time_variable=False,
-                 prime_time=False,
-                 as_description=False,
-                 use_name=None):
+    def latexify(
+        self,
+        show_variable=True,
+        plus_delta=False,
+        shorten_time_variable=False,
+        prime_time=False,
+        as_description=False,
+        use_name=None,
+    ):
         """Returns a latexified string for observable
 
         Parameters
@@ -293,35 +345,41 @@ class Observable(object):
         Returns
         -------
         """
-        output = r'$'
+        output = r"$"
         if self.name is not None and not as_description:
             if use_name is None:
-                output += '\\mathrm{{ {} }}'.format(self.name.replace('-', '\, ').replace('_', '\ '))
+                output += "\\mathrm{{ {} }}".format(
+                    self.name.replace("-", "\, ").replace("_", "\ ")
+                )
             else:
-                output += '\\mathrm{{ {} }}'.format(use_name)
+                output += "\\mathrm{{ {} }}".format(use_name)
         else:
             # give all details using raw and operations on it
             if self.differentiate:
-                output += '\\frac{\\mathrm{d}}{\\mathrm{d}t}'
-                if self.scale == 'log':
-                    output += '\\log\\left['  # parenthesis started
-            variable_name = '{}'.format(self.raw)
-            output += '\\mathrm{{ {} }}'.format(variable_name.replace('_', '\ ').replace('-', '\, '))
-            if self.differentiate and self.scale == 'log':
-                output += '\\right]'  # parenthesis closed
-            if self.mode != 'dynamics':
-                output += '_{{\mathrm{{ {} }} }}'.format(self.mode)
-
+                output += "\\frac{\\mathrm{d}}{\\mathrm{d}t}"
+                if self.scale == "log":
+                    output += "\\log\\left["  # parenthesis started
+            variable_name = "{}".format(self.raw)
+            output += "\\mathrm{{ {} }}".format(
+                variable_name.replace("_", "\ ").replace("-", "\, ")
+            )
+            if self.differentiate and self.scale == "log":
+                output += "\\right]"  # parenthesis closed
+            if self.mode != "dynamics":
+                output += "_{{\mathrm{{ {} }} }}".format(self.mode)
 
         if show_variable:
-            time_var = _latexify_time_var(self, prime_time=prime_time,
-                                           shorten_time_variable=shorten_time_variable,
-                                           plus_delta=plus_delta)
-            output += '\\left( {} \\right)'.format(time_var)
+            time_var = _latexify_time_var(
+                self,
+                prime_time=prime_time,
+                shorten_time_variable=shorten_time_variable,
+                plus_delta=plus_delta,
+            )
+            output += "\\left( {} \\right)".format(time_var)
 
         if self.local_fit and as_description:
-            output += '\\ [window: {}]'.format(self.time_window)
-        output += '$'
+            output += "\\ [window: {}]".format(self.time_window)
+        output += "$"
         return output
 
     @property
@@ -330,23 +388,23 @@ class Observable(object):
         """
         return self.latexify(as_description=False, plus_delta=False, prime_time=False)
 
-#    def __str__(self):
-#        return self.label
+    #    def __str__(self):
+    #        return self.label
 
     def __repr__(self):
         name = type(self).__name__
-        chain = name + '('
-        for key in self._attr_names:
+        chain = name + "("
+        for key in self._ATTR_NAMES:
             val = self.__getattribute__(key)
-            chain += '{}={}, '.format(key, repr(val))
-        chain += ')'
+            chain += "{}={}, ".format(key, repr(val))
+        chain += ")"
         return chain
 
 
-def _latexify_time_var(obs, prime_time=False,
-                                shorten_time_variable=False,
-                                plus_delta=False):
-        """Latexify time variable from obs Observable
+def _latexify_time_var(
+    obs, prime_time=False, shorten_time_variable=False, plus_delta=False
+):
+    """Latexify time variable from obs Observable
 
         No $ dollar sign in this expression.
 
@@ -365,49 +423,48 @@ def _latexify_time_var(obs, prime_time=False,
         -------
         str
         """
-        # timing character
-        time_char = ''
-        if shorten_time_variable:
-            if obs.timing == 'g':
-                time_char = 'g'
-            else:
-                time_char = 't'
+    # timing character
+    time_char = ""
+    if shorten_time_variable:
+        if obs.timing == "g":
+            time_char = "g"
         else:
-            if obs.timing == 't':
-                time_char += 't'
-            elif obs.timing == 'b':
-                time_char += 't_{\\mathrm{birth}}'
-            elif obs.timing == 'd':
-                time_char += 't_{\\mathrm{div}}'
-            elif obs.timing == 'm':
-                time_char += ('\\frac{t_{\\mathrm{birth}} + t_{\\mathrm{div}}}'
-                              '{2}')
-            elif obs.timing == 'g':
-                time_char += 'g'  # 'n_{\\mathrm{gen}}'
-        if prime_time:
-            time_char += "^'"
+            time_char = "t"
+    else:
+        if obs.timing == "t":
+            time_char += "t"
+        elif obs.timing == "b":
+            time_char += "t_{\\mathrm{birth}}"
+        elif obs.timing == "d":
+            time_char += "t_{\\mathrm{div}}"
+        elif obs.timing == "m":
+            time_char += "\\frac{t_{\\mathrm{birth}} + t_{\\mathrm{div}}}" "{2}"
+        elif obs.timing == "g":
+            time_char += "g"  # 'n_{\\mathrm{gen}}'
+    if prime_time:
+        time_char += "^'"
 
-        # substract troot
-        to_substract = ''
-        if not shorten_time_variable:
-            if obs.tref is None:
-                to_substract += ''
-            elif obs.tref == 'root':
-                if obs.timing != 'g':
-                    to_substract += '- t^{\\mathrm{root}}_{\mathrm{div}}'
-                else:
-                    to_substract += '- n^{\\mathrm{root}}_{\mathrm{gen}}'
+    # substract troot
+    to_substract = ""
+    if not shorten_time_variable:
+        if obs.tref is None:
+            to_substract += ""
+        elif obs.tref == "root":
+            if obs.timing != "g":
+                to_substract += "- t^{\\mathrm{root}}_{\mathrm{div}}"
             else:
-                if obs.timing != 'g':
-                    to_substract += '- {:.2f}'.format(obs.tref)
-                else:
-                    to_substract += '- n_{{\mathrm{{gen}} }}({:.2f})'.format(obs.tref)
-
-        if not plus_delta:
-            time_var = time_char + to_substract
+                to_substract += "- n^{\\mathrm{root}}_{\mathrm{gen}}"
         else:
-            time_var = time_char + to_substract + '+ \\Delta ' + time_char
-        return time_var
+            if obs.timing != "g":
+                to_substract += "- {:.2f}".format(obs.tref)
+            else:
+                to_substract += "- n_{{\mathrm{{gen}} }}({:.2f})".format(obs.tref)
+
+    if not plus_delta:
+        time_var = time_char + to_substract
+    else:
+        time_var = time_char + to_substract + "+ \\Delta " + time_char
+    return time_var
 
 
 class FunctionalObservable(object):
@@ -433,29 +490,32 @@ class FunctionalObservable(object):
 
     def __init__(self, name=None, f=None, observables=[]):
         if name is None:
-            raise ValueError('name must be a unique name string')
+            raise ValueError("name must be a unique name string")
         self.name = name
         if not callable(f):
-            raise ValueError('f must be callable')
+            raise ValueError("f must be callable")
         self.f = f
         self.source_f = dill.dumps(f)
         try:  # python 3
             from inspect import signature
+
             sig = signature(f)
             n_args = len(sig.parameters)
         except ImportError:  # python 2
             from inspect import getargspec
+
             argspec = getargspec(f)
             n_args = len(argspec.args)
         self.observables = observables
         self.raw_observables = unroll_raw_obs(observables)
         if len(observables) != n_args:
-            msg = ('length of observable list must match number of arguments of f ')
+            msg = "length of observable list must match number of arguments of f "
             raise ValueError(msg)
         for obs in observables:
-            if not (isinstance(obs, Observable) or isinstance(obs, FunctionalObservable)):
-                msg = ('observables argument must be a list of Observables '
-                       'instances')
+            if not (
+                isinstance(obs, Observable) or isinstance(obs, FunctionalObservable)
+            ):
+                msg = "observables argument must be a list of Observables " "instances"
                 raise TypeError(msg)
         return
 
@@ -465,15 +525,15 @@ class FunctionalObservable(object):
         timings = []
         for item in self.observables:
             timings.append(item.timing)
-        if 't' in timings:
-            return 't'
+        if "t" in timings:
+            return "t"
         else:
             return timings[0]  # default
 
     @property
     def tref(self):
         # tref is used only when timing is 'g' (generations)
-        if self.timing == 'g':
+        if self.timing == "g":
             t = self.observables[0].tref
         else:
             t = None
@@ -485,55 +545,63 @@ class FunctionalObservable(object):
         modes = []
         for item in self.observables:
             modes.append(item.mode)
-        if 'dynamics' in modes:
-            return 'dynamics'
+        if "dynamics" in modes:
+            return "dynamics"
         else:
-            return 'cell-cycle'
+            return "cell-cycle"
 
     @property
     def label(self):
         """get unique string identifier"""
-        msg = self.name + '('
+        msg = self.name + "("
         for item in self.observables:
-            msg += item.label + ', '
-        msg += ')'
+            msg += item.label + ", "
+        msg += ")"
         return msg
 
     @property
     def as_latex_string(self):
-#        args = r''
-#        for item in self.observables:
-#            args += item.latexify(show_variable=False,
-#                 plus_delta=False,
-#                 shorten_time_variable=False,
-#                 prime_time=False,
-#                 as_description=False,
-#                 use_name=None) + ', '
-#        args = args.replace('$', '').rstrip(',')
-#        msg = r'$f( {} )$'.format(args)
+        #        args = r''
+        #        for item in self.observables:
+        #            args += item.latexify(show_variable=False,
+        #                 plus_delta=False,
+        #                 shorten_time_variable=False,
+        #                 prime_time=False,
+        #                 as_description=False,
+        #                 use_name=None) + ', '
+        #        args = args.replace('$', '').rstrip(',')
+        #        msg = r'$f( {} )$'.format(args)
         msg = self.latexify(show_variable=True)
         return msg
 
-    def latexify(self, show_variable=True,
-                 plus_delta=False,
-                 shorten_time_variable=False,
-                 prime_time=False,
-                 as_description=False,
-                 use_name=None):
+    def latexify(
+        self,
+        show_variable=True,
+        plus_delta=False,
+        shorten_time_variable=False,
+        prime_time=False,
+        as_description=False,
+        use_name=None,
+    ):
         """Latexify observable name"""
-        output = r'$'
+        output = r"$"
         if use_name is None:
-            output += '\\mathrm{{ {} }}'.format(self.name.replace('-', '\, ').replace('_', '\ '))
+            output += "\\mathrm{{ {} }}".format(
+                self.name.replace("-", "\, ").replace("_", "\ ")
+            )
         else:
-            output += '\\mathrm{{ {} }}'.format(use_name)
+            output += "\\mathrm{{ {} }}".format(use_name)
 
         if show_variable:
-            time_var = _latexify_time_var(self, plus_delta=plus_delta,
-                                          shorten_time_variable=shorten_time_variable,
-                                          prime_time=prime_time)
+            time_var = _latexify_time_var(
+                self,
+                plus_delta=plus_delta,
+                shorten_time_variable=shorten_time_variable,
+                prime_time=prime_time,
+            )
 
-            output += '({})'.format(time_var)
-        output += '$'
+            output += "({})".format(time_var)
+        output += "$"
         return output
 
 
@@ -561,6 +629,7 @@ def unroll_raw_obs(obs):
         for item in obs.observables:
             for elem in unroll_raw_obs(item):
                 yield elem
+
 
 def unroll_func_obs(obs):
     """Returns flattened list of FunctionalObservable instances
@@ -613,8 +682,8 @@ def set_observable_list(*args, **kwargs):
     func_obs = []
     # run through observables used in filtering
     filters = []
-    if 'filters' in kwargs:
-        filters.extend(kwargs['filters'])
+    if "filters" in kwargs:
+        filters.extend(kwargs["filters"])
     for filt in filters:
         for obs in unroll_raw_obs(filt.obs):
             if obs not in raw_obs:
@@ -634,13 +703,18 @@ def set_observable_list(*args, **kwargs):
     return raw_obs, func_obs
 
 
-if __name__ == '__main__':
-    length = Observable('length', raw='length', scale='log')
-    width = Observable('width', raw='width')
+if __name__ == "__main__":
+    length = Observable("length", raw="length", scale="log")
+    width = Observable("width", raw="width")
+
     def volume(x, y):
-        return x * y**2
-    combo = FunctionalObservable('volume', volume, [length, width])
-    divlength = Observable('divlength', raw='length', scale='log',
-                           mode='division', timing='d')
-    newcombo = FunctionalObservable('resc_length', f=lambda x, y: x/y, observables=[length, divlength])
+        return x * y ** 2
+
+    combo = FunctionalObservable("volume", volume, [length, width])
+    divlength = Observable(
+        "divlength", raw="length", scale="log", mode="division", timing="d"
+    )
+    newcombo = FunctionalObservable(
+        "resc_length", f=lambda x, y: x / y, observables=[length, divlength]
+    )
     print(length.label == divlength.as_timelapse().label)

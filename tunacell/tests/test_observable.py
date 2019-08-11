@@ -6,7 +6,7 @@ Testing Observable features.
 from __future__ import print_function
 
 import pytest
-from itertools import product
+from itertools import product, combinations
 
 from tunacell.base.observable import (Observable, ObservableStringError,
                                   FunctionalObservable, set_observable_list,
@@ -55,13 +55,39 @@ def all_params():
 
     return iter_params(t_params)
 
+@pytest.fixture(scope='module')
+def all_attributes():
+    """Fixture to iterate among all attribute combinations, excluding *name*"""
+    def iter_attrs(params):
+        keys, values = zip(*params)
+        for items in product(*values[1:]):
+            yield {key: value for key, value in zip(keys[1:], items)}
+
+    return iter_attrs(t_params)
+
 
 def test_observable_init(all_params):
     """Test Observable initialization"""
     for kwargs in all_params:
         obs = Observable(**kwargs)
-        for attr in obs._attr_names:
+        for attr in obs._ATTR_NAMES:
             assert getattr(obs, attr) == kwargs[attr]
+
+
+def test_observable_equal(all_attributes):
+    for kwargs in all_attributes:
+        obs = Observable(**kwargs, name='this')
+        other = Observable(**kwargs, name='that')  # only name changes
+        assert obs.name != other.name  # we changed its name
+        assert obs == other  # all other attributes are equal
+
+
+def test_observable_unequal(all_attributes):
+    for kwargs, otherkwargs in combinations(all_attributes, 2):
+        assert kwargs != otherkwargs  # combinations should return different dicts
+        obs = Observable(name='observable', **kwargs)
+        other = Observable(name='observable', **otherkwargs)  # same name but at least one different kwarg
+        assert obs != other
 
 
 def test_observable_str(all_params):
@@ -73,7 +99,7 @@ def test_observable_str(all_params):
     for kwargs in all_params:
         obs = Observable(**kwargs)
         nobs = Observable(from_string=str(obs))
-        for attr in obs._attr_names:
+        for attr in obs._ATTR_NAMES:
             if attr == 'time_window' and not obs.local_fit:
                 # check only if local_fit is True,
                 # since when it's false, time_window is not printed in str
@@ -91,7 +117,7 @@ def test_observable_repr(all_params):
     for kwargs in all_params:
         obs = Observable(**kwargs)
         nobs = eval(repr(obs))
-        for attr in obs._attr_names:
+        for attr in obs._ATTR_NAMES:
             assert hasattr(nobs, attr)
             assert getattr(nobs, attr) == getattr(obs, attr)
 
