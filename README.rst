@@ -4,7 +4,7 @@ tunacell
 
 |Build-Status| |Documentation-Status| |PyPI-Version| |License|
 
-.. |Build-Status| image:: https://travis-ci.com/LeBarbouze/tunacell.svg?branch=develop)
+.. |Build-Status| image:: https://travis-ci.com/LeBarbouze/tunacell.svg?branch=develop
    :target: https://travis-ci.com/LeBarbouze/tunacell
    :alt: Travis CI Status
 
