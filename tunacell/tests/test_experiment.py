@@ -5,25 +5,10 @@ Testing Experiment features.
 """
 from __future__ import print_function
 
-import pytest
-import os
-import shutil
-
-import tunacell
 from tunacell.base.experiment import Experiment
 from tunacell.base.container import Container
 
-path_data = os.path.join(os.path.dirname(tunacell.__file__), 'data')
-path_fake_exp = os.path.join(path_data, 'fake')
-
-
-@pytest.fixture(scope='module')
-def fake_exp():
-    exp = Experiment(path_fake_exp, count_items=True)
-    yield exp
-    analysis_path = os.path.join(path_fake_exp, 'analysis')
-    if os.path.exists(analysis_path):
-        shutil.rmtree(analysis_path)
+from .conftest import path_fake_exp
 
 
 def test_load_experiment(fake_exp):
