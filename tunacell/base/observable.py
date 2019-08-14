@@ -105,6 +105,34 @@ class Observable(object):
         values by substracting floating point value (if given as a float), or
         aligns to the colony root cell last time value as origin.
 
+    Attributes
+    ----------
+    name : str
+    raw : str
+    differentiate : boolean
+    scale : str
+    local_fit : boolean
+    time_window : float
+    join_points : int
+    mode : str
+    timing : str
+    tref : float or 'root'
+
+    Methods
+    -------
+    load_from_repr()
+        class method
+    load_list_from_internals()
+        class method
+    as_timelapse()
+        returns a new Observable instance similar to this once for all
+        attributes except the mode and timing, which become 'dynamics"
+        and 't' (time-lapse) respectively
+    latexify()
+    load_from_string()
+    save_in_internals()
+    to_latex_string()
+    to_string_tabme()
     """
 
     _ATTR_NAMES = (
@@ -178,6 +206,18 @@ class Observable(object):
         """As we override the __eq__ method for comparison, we need to state the __hash__ as object parent's __hash__"""
         return super(Observable, self).__hash__()
 
+    #    def __str__(self):
+    #        return self.label
+
+    def __repr__(self):
+        name = type(self).__name__
+        chain = name + "("
+        for key in self._ATTR_NAMES:
+            val = self.__getattribute__(key)
+            chain += "{}={}, ".format(key, repr(val))
+        chain += ")"
+        return chain
+
     @classmethod
     def load_from_repr(cls, representation):
         """Instantiate Observable from a repr
@@ -216,47 +256,6 @@ class Observable(object):
                 if content:
                     res.append(cls.load_from_repr(content))
         return res
-
-    def save_in_internals(self, exp):
-        """Save current instance in internals
-
-        No duplicate observables are stored, so if a previous observable
-        matches current one, only its name is overridden
-
-        Parameters
-        ----------
-        exp : tunacell.base.experiment.Experiment
-        """
-        # first, load the list of observables saved in internals
-        res = Observable.load_list_from_internals(exp)
-        found = False
-        for item in res:
-            if item == self:
-                item.name = self.name  # update name, because user wants to modify
-        if not found:
-            res.append(self)
-        internals = exp.path_internals
-        if not internals.exists():
-            internals.mkdir(parents=True)
-        filename = internals / INTERNALS_OBSERVABLES_BASENAME
-        with open(str(filename), 'w') as f:
-            for item in res:
-                f.write("{}\n".format(repr(item)))
-
-    def as_timelapse(self):
-        """Convert current observable to its dynamic counterpart
-
-        This is needed when computing cell-cycle observables.
-        """
-        if self.mode == "dynamics" and self.timing == "t":
-            # everything's fine
-            return self
-        else:
-            tobs = deepcopy(self)
-            tobs.mode = "dynamics"
-            tobs.timing = "t"
-            tobs.name = "_timelapsed_" + self.name
-            return tobs
 
     @property
     def label(self):
@@ -302,77 +301,20 @@ class Observable(object):
         """Set Observable instance using given codestring"""
         self.load_from_string(value)
 
-    def load_from_string(self, codestring):
-        """Set Observable instance from string code created by `label` method
+    def as_timelapse(self):
+        """Convert current observable to its dynamic counterpart
 
-        Parameters
-        ----------
-        codestring : str
-            must follow some rules for parsing
+        This is needed when computing cell-cycle observables.
         """
-        # set options to default and update if found
-        self.mode = "dynamics"
-        self.timing = "t"
-        self.local_fit = False
-        self.time_window = 0.0
-        self.join_points = 3  # default
-        self.differentiate = False
-        self.scale = "linear"
-        items = codestring.split("_")
-        self.raw = items[-1]  # last item is always raw observable label
-        if self.raw == "none":
-            msg = (
-                "'raw' is set to 'none'.\n"
-                "Update to a valid column name of your experiment."
-            )
-            warnings.warn(msg)
-
-        # test whether codestring is valid: must have T and M flags
-        chain = re.compile(_re_codestring)
-        m = chain.match(codestring)
-        if m:
-            timing, stref, mode, sjoin = m.groups()
-            self.timing = timing
-            if stref:
-                if stref == "root":
-                    self.tref = "root"
-                else:  # convert to float
-                    self.tref = float(stref.replace(",", "."))  # if decimal is ,
-            else:
-                self.tref = None
-            self.mode = mode
-            self.join_points = int(sjoin)
+        if self.mode == "dynamics" and self.timing == "t":
+            # everything's fine
+            return self
         else:
-            raise ObservableStringError("Not a valid codestring")
-
-        # try to check whether local fit is performed and its parameters
-        pfit = re.compile("W(\d*[.,]*\d*)")
-
-        for item in items[:-1]:
-            # local_fit?
-            m = pfit.search(item)
-            if m is not None:
-                stime_window, = m.groups()
-                # check that tw_str is not empty
-                if stime_window:
-                    self.time_window = float(stime_window.replace(",", "."))
-                    self.local_fit = True
-            # log scale
-            if item == "log":
-                self.scale = "log"
-            if item == "dot":
-                self.differentiate = True
-        return
-
-    def as_string_table(self):
-        """Human readable output as a table.
-        """
-        tab = [["parameter", "value"]]
-        for key in self._ATTR_NAMES:
-            val = self.__getattribute__(key)
-            tab.append([key, val])
-
-        return tabulate(tab, headers="firstrow")
+            tobs = deepcopy(self)
+            tobs.mode = "dynamics"
+            tobs.timing = "t"
+            tobs.name = "_timelapsed_" + self.name
+            return tobs
 
     def latexify(
         self,
@@ -442,31 +384,106 @@ class Observable(object):
         output += "$"
         return output
 
-    @property
-    def as_latex_string(self):
-        """Export as LaTeX string. Old format, replaced by latexify
+    def load_from_string(self, codestring):
+        """Set Observable instance from string code created by `label` method
+
+        Parameters
+        ----------
+        codestring : str
+            must follow some rules for parsing
         """
-        return self.latexify(as_description=False, plus_delta=False, prime_time=False)
+        # set options to default and update if found
+        self.mode = "dynamics"
+        self.timing = "t"
+        self.local_fit = False
+        self.time_window = 0.0
+        self.join_points = 3  # default
+        self.differentiate = False
+        self.scale = "linear"
+        items = codestring.split("_")
+        self.raw = items[-1]  # last item is always raw observable label
+        if self.raw == "none":
+            msg = (
+                "'raw' is set to 'none'.\n"
+                "Update to a valid column name of your experiment."
+            )
+            warnings.warn(msg)
 
-    #    def __str__(self):
-    #        return self.label
+        # test whether codestring is valid: must have T and M flags
+        chain = re.compile(_re_codestring)
+        m = chain.match(codestring)
+        if m:
+            timing, stref, mode, sjoin = m.groups()
+            self.timing = timing
+            if stref:
+                if stref == "root":
+                    self.tref = "root"
+                else:  # convert to float
+                    self.tref = float(stref.replace(",", "."))  # if decimal is ,
+            else:
+                self.tref = None
+            self.mode = mode
+            self.join_points = int(sjoin)
+        else:
+            raise ObservableStringError("Not a valid codestring")
 
-    def __repr__(self):
-        name = type(self).__name__
-        chain = name + "("
-        for key in self._ATTR_NAMES:
-            val = self.__getattribute__(key)
-            chain += "{}={}, ".format(key, repr(val))
-        chain += ")"
-        return chain
+        # try to check whether local fit is performed and its parameters
+        pfit = re.compile("W(\d*[.,]*\d*)")
 
-    def add_to_internals(self, exp):
-        """Add to list of observables stored under 'internals' subfolder
+        for item in items[:-1]:
+            # local_fit?
+            m = pfit.search(item)
+            if m is not None:
+                stime_window, = m.groups()
+                # check that tw_str is not empty
+                if stime_window:
+                    self.time_window = float(stime_window.replace(",", "."))
+                    self.local_fit = True
+            # log scale
+            if item == "log":
+                self.scale = "log"
+            if item == "dot":
+                self.differentiate = True
+
+    def save_in_internals(self, exp):
+        """Save current instance in internals
+
+        No duplicate observables are stored, so if a previous observable
+        matches current one, only its name is overridden
 
         Parameters
         ----------
         exp : tunacell.base.experiment.Experiment
         """
+        # first, load the list of observables saved in internals
+        res = Observable.load_list_from_internals(exp)
+        found = False
+        for item in res:
+            if item == self:
+                item.name = self.name  # update name, because user wants to modify
+        if not found:
+            res.append(self)
+        internals = exp.path_internals
+        if not internals.exists():
+            internals.mkdir(parents=True)
+        filename = internals / INTERNALS_OBSERVABLES_BASENAME
+        with open(str(filename), 'w') as f:
+            for item in res:
+                f.write("{}\n".format(repr(item)))
+
+    def to_latex_string(self):
+        """Export as LaTeX string. Old format, replaced by latexify
+        """
+        return self.latexify(as_description=False, plus_delta=False, prime_time=False)
+
+    def to_string_table(self):
+        """Human readable output as a table.
+        """
+        tab = [["parameter", "value"]]
+        for key in self._ATTR_NAMES:
+            val = self.__getattribute__(key)
+            tab.append([key, val])
+        return tabulate(tab, headers="firstrow")
 
 
 def _latexify_time_var(

@@ -49,9 +49,6 @@ from tunacell.filters.containers import (FilterContainerAny,
 logger = logging.getLogger(__name__)
 
 
-
-
-
 # EXPORTING ANALYSIS FILES/FOLDERS
 
 def get_analysis_path(exp, user_abspath=None, write=True):
@@ -186,8 +183,8 @@ def get_observable_path(filter_path, obs, write=True):
         with open(text_file, 'w') as f:
             if isinstance(obs, Observable):
                 f.write('{}\n\n{}\n\n{}\n\ncodestring: {}'.format(repr(obs),
-                                                      obs.as_latex_string,
-                                                      obs.as_string_table(),
+                                                      obs.to_latex_string(),
+                                                      obs.to_string_table(),
                                                       str(obs)))
             elif isinstance(obs, FunctionalObservable):
                 names = ', '.join([arg.name for arg in obs.observables])
@@ -407,7 +404,6 @@ def load_item_from_path(path):
     if 'FunctionalObservable' in rep:
         raise ImpossibleToLoad('FunctionalObservable are not loadable')
     return eval(rep)
-
 
 # other functions
 

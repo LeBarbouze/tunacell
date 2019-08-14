@@ -687,7 +687,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
                   borderaxespad=0.)
 
     # add title
-    titling = r'{}'.format(obs.as_latex_string)
+    titling = r'{}'.format(obs.to_latex_string())
     if units:
         titling += ' ({})'.format(units)
     axes[0].text(0.5, 1 + .2/axe_ysize, titling,
