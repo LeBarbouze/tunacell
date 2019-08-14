@@ -19,6 +19,7 @@ class FilterTree(FilterGeneral):
     "General class for filtering tree objects (treelib.Tree instances)"
 
     _type = "TREE"
+    INTERNAL_BASENAME = "filtertrees.txt"
 
 
 class FilterTreeAny(FilterTree):

@@ -23,6 +23,9 @@ except ImportError:
     from io import StringIO  # python3
 
 
+INTERNALS_FILTERSET_BASENAME = "filtersets.txt"
+
+
 def bounded(arg, lower_bound=None, upper_bound=None):
     """Function that test whether argument is bounded.
 
@@ -144,17 +147,71 @@ class FilterGeneral(object):
     _label = ""  # to be updated
     _type = None  # to be determined
     _obs = []  # declare observables that need to be computed prior to filter
+    INTERNAL_BASENAME = None  # to be fixed for each subclass (cells/lineages/colonies/containers)
 
-    def __call__(self, *args):
-        "Need `func` method -for each filter class- that performs boolean test"
-        return self.func(*args)
+    @classmethod
+    def load_from_repr(cls, representation):
+        """Instantiate FilterGeneral from a repr
+
+        Parameters
+        ----------
+        representation : str
+            only works if it matches repr(FilterGeneral)
+
+        Returns
+        -------
+        Observable
+        """
+        return eval(representation)
+
+    @classmethod
+    def load_list_from_internals(cls, exp):
+        """Load a list of FilterGeneral instances serialized for Experiment *exp*
+
+        Parameters
+        ----------
+        exp : tunacell.base.experiment.Experiment
+
+        Returns
+        -------
+        list of FilterGeneral (or subclasses thereof) instances
+        """
+        res = []
+        internals = exp.path_internals
+        filename = internals / cls.INTERNALS_BASENAME
+        if not filename.exists():
+            return []
+        with open(str(filename), "r") as f:
+            for line in f.readlines():
+                content = line.strip("\n")
+                if content:
+                    res.append(cls.load_from_repr(content))
+        return res
+
+    def __call__(self, *args, **kwargs):
+        """Need `func` method -for each filter class- that performs boolean test
+
+        Parameters
+        ----------
+        *args
+            Variable length argument list.
+        **kwargs
+            Arbitrary keyword arguments.
+        """
+        return self.func(*args, **kwargs)
 
     def _isattr(self, x):
-        "Test whether x is NOt a method"
+        """Test whether x is NOT a method.
+
+        Parameters
+        ----------
+        x
+        """
         return not inspect.ismethod(x)
 
     def __repr__(self):
-        "Return string that can be called upon with built-in `eval` function"
+        """Return string that can be called upon with built-in `eval` function.
+        """
         name = type(self).__name__
         chain = name + "("
         for name, val in inspect.getmembers(self, predicate=self._isattr):
@@ -173,10 +230,17 @@ class FilterGeneral(object):
         except AttributeError as ae:
             raise FilterLabelError(ae)
 
-    def func(self, *args):
-        """This is the boolean operation to define in specific Filter instances
+    def func(self, *args, **kwargs):
+        """This is the boolean operation that must be defined in specific subclasses.
 
         Default operation returns True.
+
+        Parameters
+        ----------
+        *args
+            Variable length argument list.
+        **kwargs
+            Arbitrary keyword arguments.
         """
         return True
 
@@ -204,6 +268,9 @@ class FilterGeneral(object):
         """Provides the list of hidden observables"""
         return self._obs
 
+    def save_in_internals(self, exp):
+        """Save representation of current filter in corresponding internals file"""
+        pass  # TODO: IMPLEMENT
 
 class FilterBoolean(FilterGeneral):
     """General class to implement Boolean operations between filters
