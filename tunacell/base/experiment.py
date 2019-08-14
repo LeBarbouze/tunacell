@@ -316,17 +316,17 @@ class Experiment(object):
         -------
         iterator iver Container instances of current Experiment instance.
         """
-        if filter_for_cells is "from_fset":
+        if filter_for_cells == "from_fset":
             cell_filter = self.fset.cell_filter
-        elif filter_for_cells is None or filter_for_cells is "none":
+        elif filter_for_cells is None or filter_for_cells == "none":
             cell_filter = FilterTRUE()
         elif isinstance(filter_for_cells, FilterCell):
             cell_filter = filter_for_cells
         else:
             raise ValueError('"filter_for_cells" parameter not recognized')
-        if filter_for_containers is "from_fset":
+        if filter_for_containers == "from_fset":
             container_filter = self.fset.container_filter
-        elif filter_for_containers is None or filter_for_containers is "none":
+        elif filter_for_containers is None or filter_for_containers == "none":
             container_filter = FilterTRUE()
         elif isinstance(filter_for_containers, FilterContainer):
             container_filter = filter_for_containers
@@ -427,9 +427,9 @@ class Experiment(object):
         colony : :class:`Colony` instance
             filtering removed outlier cells, containers, and colonies
         """
-        if filter_for_colonies is "from_fset":
+        if filter_for_colonies == "from_fset":
             colony_filter = self.fset.colony_filter
-        elif filter_for_colonies is None or filter_for_colonies is "none":
+        elif filter_for_colonies is None or filter_for_colonies == "none":
             colony_filter = FilterTRUE()
         elif isinstance(filter_for_colonies, FilterTree):
             colony_filter = filter_for_colonies
@@ -475,9 +475,9 @@ class Experiment(object):
         lineage : :class:`Lineage` instance
             filtering removed outlier cells, containers, colonies, and lineages
         """
-        if filter_for_lineages is "from_fset":
+        if filter_for_lineages == "from_fset":
             lineage_filter = self.fset.lineage_filter
-        elif filter_for_lineages is None or filter_for_lineages is "none":
+        elif filter_for_lineages is None or filter_for_lineages == "none":
             lineage_filter = FilterTRUE()
         elif isinstance(filter_for_lineages, FilterLineage):
             lineage_filter = filter_for_lineages
