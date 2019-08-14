@@ -13,8 +13,8 @@ import matplotlib.transforms as transforms
 
 from tunacell.stats.api import load_univariate, UnivariateIOError
 
-def add_data_statistics(axes, parser, obs, conditions,
-                        condition_repr='master'):
+
+def add_data_statistics(axes, parser, obs, conditions, condition_repr="master"):
     """Add dynamics of single observable statistics.
 
     Parameters
@@ -38,9 +38,9 @@ def add_data_statistics(axes, parser, obs, conditions,
     except UnivariateIOError:
         return None, None
     # condition_repr can be either a repr(condition), condition.label, or 'master'
-    use_repr = 'master'
-    human_readable = 'all'
-    if condition_repr != 'master':
+    use_repr = "master"
+    human_readable = "all"
+    if condition_repr != "master":
         for cdt in conditions:
             if condition_repr == repr(cdt):
                 use_repr = condition_repr
@@ -56,28 +56,41 @@ def add_data_statistics(axes, parser, obs, conditions,
     std = item.std
 
     for ax in axes:
-        line_mean, = ax.plot(tt, mm, color='C7', alpha=0.8,
-                             label='average ({} samples)'.format(human_readable))
-        fill_std = ax.fill_between(tt, mm - std, mm + std,
-                                   facecolor='C7', alpha=0.2,
-                                   label='+/-1 standard deviation')
+        line_mean, = ax.plot(
+            tt,
+            mm,
+            color="C7",
+            alpha=0.8,
+            label="average ({} samples)".format(human_readable),
+        )
+        fill_std = ax.fill_between(
+            tt,
+            mm - std,
+            mm + std,
+            facecolor="C7",
+            alpha=0.2,
+            label="+/-1 standard deviation",
+        )
     return line_mean, fill_std
 
 
-def add_timeseries(ax, ts, condition_repr='master',
-                   show_markers=True,
-                   marker='o',
-                   end_points_emphasis=False,
-                   show_lines=True,
-                   linestyle='-',
-                   join_cells=False,
-                   color=None,
-                   alpha=1.,
-                   change_cell_color=False,
-                   use_last_color=True,
-                   report_cids=False,
-                   report_cids_yposAxes=.9,
-                   ):
+def add_timeseries(
+    ax,
+    ts,
+    condition_repr="master",
+    show_markers=True,
+    marker="o",
+    end_points_emphasis=False,
+    show_lines=True,
+    linestyle="-",
+    join_cells=False,
+    color=None,
+    alpha=1.0,
+    change_cell_color=False,
+    use_last_color=True,
+    report_cids=False,
+    report_cids_yposAxes=0.9,
+):
     """Plot timeseries object in ax.
 
     Parameters
@@ -132,13 +145,13 @@ def add_timeseries(ax, ts, condition_repr='master',
     joins : list of Line2D instances
         lines connecting cells when join_cells is True
     """
-    # size settings defined by matplotlib.rcParams 
-    markersize = mpl.rcParams['lines.markersize']
-    markeredgewidth = mpl.rcParams['lines.markeredgewidth']
-    linewidth = mpl.rcParams['lines.linewidth']
+    # size settings defined by matplotlib.rcParams
+    markersize = mpl.rcParams["lines.markersize"]
+    markeredgewidth = mpl.rcParams["lines.markeredgewidth"]
+    linewidth = mpl.rcParams["lines.linewidth"]
 
     # PLOTTING PARAMETERS
-    alpha_connecting = .8
+    alpha_connecting = 0.8
     if not show_markers and not show_lines:
         show_lines = True
     # color to be used
@@ -147,7 +160,7 @@ def add_timeseries(ax, ts, condition_repr='master',
     if color is not None:
         ucolor = color
     # pattern matching
-    pcolor = re.compile('C(\d)')
+    pcolor = re.compile("C(\d)")
 
     # find boundaries on unconditioned timeseries
     x = ts.timeseries.x
@@ -156,9 +169,9 @@ def add_timeseries(ax, ts, condition_repr='master',
     right, top = map(np.nanmax, [x, y])
 
     if len(x) > 1:
-        xstep = np.nanmin(x[1:]-x[:-1])
+        xstep = np.nanmin(x[1:] - x[:-1])
     else:
-        xstep = 5.
+        xstep = 5.0
 
     inits, fins = [], []
     prej = None
@@ -184,9 +197,14 @@ def add_timeseries(ax, ts, condition_repr='master',
                 # check that there were previous data and print, otherwise do nothing
                 if len(fins) > 0:
                     xposData = fins[-1][0]
-                    ax.text(xposData + xstep, report_cids_yposAxes,
-                            '{}'.format(cid),
-                            transform=trans, color='k', alpha=.5)
+                    ax.text(
+                        xposData + xstep,
+                        report_cids_yposAxes,
+                        "{}".format(cid),
+                        transform=trans,
+                        color="k",
+                        alpha=0.5,
+                    )
             continue
 
         # check that data is valid under condition_repr
@@ -211,7 +229,7 @@ def add_timeseries(ax, ts, condition_repr='master',
                     if m:
                         sindex, = m.groups()
                         index = int(sindex)
-                        ncolor = 'C{}'.format((index+1) % 10)
+                        ncolor = "C{}".format((index + 1) % 10)
                 continue
             # COLOR MANAGEMENT
             # if we keep same color, keep same color as previous cell
@@ -224,49 +242,59 @@ def add_timeseries(ax, ts, condition_repr='master',
                 if m:
                     sindex, = m.groups()
                     index = int(sindex)
-                    ncolor = 'C{}'.format((index+1) % 10)
-            dat, = ax.plot(xdata, ydata,
-                           ls='None',
-                           marker=marker,
-                           markersize=markersize,
-                           markeredgewidth=markeredgewidth,
-                           color=color,
-                           alpha=alpha,
-                           label='{}'.format(cid)
-                           )
+                    ncolor = "C{}".format((index + 1) % 10)
+            dat, = ax.plot(
+                xdata,
+                ydata,
+                ls="None",
+                marker=marker,
+                markersize=markersize,
+                markeredgewidth=markeredgewidth,
+                color=color,
+                alpha=alpha,
+                label="{}".format(cid),
+            )
             ucolor = dat.get_color()  # use identical color
             if not appears:
-                dat.set_markerfacecolor('None')
+                dat.set_markerfacecolor("None")
             if not show_markers:
                 dat.set_visible(False)
             # first/last points
             if end_points_emphasis:
                 x, y = xdata[0], ydata[0]
-                firstframe, = ax.plot(x, y, marker='s',
-                                      markersize=markersize + 2.,
-                                      markeredgewidth=markeredgewidth,
-                                      markerfacecolor='None',
-                                      markeredgecolor=ucolor,
-                                      label='{}: first frame'.format(cid)
-                                      )
+                firstframe, = ax.plot(
+                    x,
+                    y,
+                    marker="s",
+                    markersize=markersize + 2.0,
+                    markeredgewidth=markeredgewidth,
+                    markerfacecolor="None",
+                    markeredgecolor=ucolor,
+                    label="{}: first frame".format(cid),
+                )
                 x, y = xdata[-1], ydata[-1]
-                lastframe, = ax.plot(x, y, marker='o',
-                                     markersize=markersize + 2.,
-                                     markeredgewidth=markeredgewidth,
-                                     markerfacecolor='None',
-                                     markeredgecolor=ucolor,
-                                     label='{}: last frame'.format(cid)
-                                     )
+                lastframe, = ax.plot(
+                    x,
+                    y,
+                    marker="o",
+                    markersize=markersize + 2.0,
+                    markeredgewidth=markeredgewidth,
+                    markerfacecolor="None",
+                    markeredgecolor=ucolor,
+                    label="{}: last frame".format(cid),
+                )
             # lines
-            connecting, = ax.plot(xdata, ydata,
-                                  marker=None,
-                                  ls=linestyle,
-                                  lw=linewidth,
-                                  color=ucolor,
-                                  label='connecting {}'.format(cid)
-                                  )
+            connecting, = ax.plot(
+                xdata,
+                ydata,
+                marker=None,
+                ls=linestyle,
+                lw=linewidth,
+                color=ucolor,
+                label="connecting {}".format(cid),
+            )
             if not appears:
-                connecting.set_linestyle('--')
+                connecting.set_linestyle("--")
             if not show_lines:
                 connecting.set_visible(False)
             elif show_markers:
@@ -285,22 +313,33 @@ def add_timeseries(ax, ts, condition_repr='master',
                 else:
                     lines_unvalid.append(connecting)
             if report_cids:
-                xposData = np.percentile(xdata, 35.)
-                ax.text(xposData, report_cids_yposAxes, '{}'.format(cid),
-                        transform=trans, color=color, alpha=.8)
+                xposData = np.percentile(xdata, 35.0)
+                ax.text(
+                    xposData,
+                    report_cids_yposAxes,
+                    "{}".format(cid),
+                    transform=trans,
+                    color=color,
+                    alpha=0.8,
+                )
             # append first/last frame (registered if cell completed its cycle)
             if sl.start is not None:
                 inits.append((xdata[0], ydata[0]))
-                if join_cells and prej is not None and sl.start == prej:  # ensure consecutive
+                if (
+                    join_cells and prej is not None and sl.start == prej
+                ):  # ensure consecutive
                     xjoins, yjoins = zip(*(fins[-1:] + inits[-1:]))
-                    join, = ax.plot(xjoins, yjoins,
-                                    ls=':',
-                                    lw=linewidth,
-                                    alpha=alpha_connecting,
-                                    color=ucolor)
+                    join, = ax.plot(
+                        xjoins,
+                        yjoins,
+                        ls=":",
+                        lw=linewidth,
+                        alpha=alpha_connecting,
+                        color=ucolor,
+                    )
                     joins.append(join)
-#                    if not join_cells:
-#                        join.set_visible(False)
+            #                    if not join_cells:
+            #                        join.set_visible(False)
             if sl.stop is not None:
                 fins.append((xdata[-1], ydata[-1]))
         # there might be no data for current slice, but still the cell exists
@@ -308,11 +347,15 @@ def add_timeseries(ax, ts, condition_repr='master',
             if report_cids:
                 if len(fins) > 0:
                     xposData = fins[-1][0]
-                    ax.text(xposData + xstep, report_cids_yposAxes,
-                            '{}'.format(cid),
-                            transform=trans, color='k', alpha=.5,
-#                            fontsize=fontsize
-                            )
+                    ax.text(
+                        xposData + xstep,
+                        report_cids_yposAxes,
+                        "{}".format(cid),
+                        transform=trans,
+                        color="k",
+                        alpha=0.5,
+                        #                            fontsize=fontsize
+                    )
         prej = sl.stop
 
     return (left, right, bottom, top), (lines_valid, lines_unvalid, joins)

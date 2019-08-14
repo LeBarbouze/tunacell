@@ -45,7 +45,7 @@ class SamplePlot(object):
     def __init__(self, samples, parser=None, conditions=[], label=None):
         self.parser = parser
         self.cset = conditions
-        all_filters = [parser.experiment.fset, ] + conditions
+        all_filters = [parser.experiment.fset] + conditions
         self._all_filters = all_filters  # used later to get all raw, func obs
         self._input_samples = list(samples)
         self._samples = []  # will be filled at make_plot call
@@ -54,7 +54,7 @@ class SamplePlot(object):
         if label is not None:
             self.label = label
         else:
-            self.label = 's{}'.format(today.strftime('%Y%m%d%H%M%S'))
+            self.label = "s{}".format(today.strftime("%Y%m%d%H%M%S"))
 
         self.fig = None  # Figure instance
 
@@ -79,15 +79,15 @@ class SamplePlot(object):
             ts = lin.get_timeseries(obs, raw_obs, func_obs, self.cset)
             samples.append((lin, ts))
         self._samples = samples
-        fig = plot_samples(samples, obs,
-                           conditions=self.cset,
-                           parser=self.parser,
-                           **kwargs)
+        fig = plot_samples(
+            samples, obs, conditions=self.cset, parser=self.parser, **kwargs
+        )
         self.fig = fig
         return
 
-    def data_as_text(self, sep='\t', cell_sep='\n',
-                     timeseries_sep='\n\n', print_labels=True):
+    def data_as_text(
+        self, sep="\t", cell_sep="\n", timeseries_sep="\n\n", print_labels=True
+    ):
         """Produces text output for plotted TimeSeries.
 
         Parameters
@@ -109,28 +109,37 @@ class SamplePlot(object):
         """
         experiment_path = self.parser.experiment.abspath
         if self.obs is None:
-            raise ValueError('observable is not defined')
+            raise ValueError("observable is not defined")
 
-        printout = '# Data of plot {}\n#\n'.format(self.label)
-        info = ('# observable:{}{}'.format(sep, self.obs.name) + '\n'
-                '# experiment:{}{}'.format(sep, experiment_path) + '\n'
-                '# filterset:{}{}'.format(sep, repr(self.parser.fset)) + '\n'
-                '# condition set:{}{}'.format(sep, repr(self.cset)) + '\n')
-        printout += info + '#\n'
+        printout = "# Data of plot {}\n#\n".format(self.label)
+        info = (
+            "# observable:{}{}".format(sep, self.obs.name) + "\n"
+            "# experiment:{}{}".format(sep, experiment_path) + "\n"
+            "# filterset:{}{}".format(sep, repr(self.parser.fset)) + "\n"
+            "# condition set:{}{}".format(sep, repr(self.cset)) + "\n"
+        )
+        printout += info + "#\n"
 
         for index, (lin, ts) in enumerate(self._samples):
             if index == 0 and print_labels:
-                local = ts.as_text(sep=sep, cell_sep=cell_sep,
-                                   print_labels=print_labels)
+                local = ts.as_text(
+                    sep=sep, cell_sep=cell_sep, print_labels=print_labels
+                )
             else:
-                local = ts.as_text(sep=sep, cell_sep=cell_sep,
-                                   print_labels=False)
+                local = ts.as_text(sep=sep, cell_sep=cell_sep, print_labels=False)
 
             printout += local + timeseries_sep
         return printout.lstrip().rstrip()
 
-    def save(self, user_bname=None, user_directory=None, extension='.pdf',
-             add_obs=True, with_data_text=True, **kwargs):
+    def save(
+        self,
+        user_bname=None,
+        user_directory=None,
+        extension=".pdf",
+        add_obs=True,
+        with_data_text=True,
+        **kwargs
+    ):
         """Save figure (and data as text if specified).
 
         Parameters
@@ -154,10 +163,10 @@ class SamplePlot(object):
         Call to save must succede to a make_plot call that defines obs.
         """
         if self.obs is None:
-            raise ValueError('observable is not defined')
+            raise ValueError("observable is not defined")
         exp = self.parser.experiment
         if user_directory is None:
-            path = os.path.join(exp.abspath, 'sampleplots')
+            path = os.path.join(exp.abspath, "sampleplots")
             if not os.path.exists(path):
                 os.makedirs(path)
         else:
@@ -167,49 +176,55 @@ class SamplePlot(object):
         else:
             bname = user_bname
         if add_obs:
-            bname += '-' + self.obs.name
-        figname = os.path.join(path, bname + '-plot' + extension)
+            bname += "-" + self.obs.name
+        figname = os.path.join(path, bname + "-plot" + extension)
         self.figpath = figname
-        self.fig.savefig(figname, bbox_inches='tight')
-        print('Figure saved as {}'.format(figname))
+        self.fig.savefig(figname, bbox_inches="tight")
+        print("Figure saved as {}".format(figname))
         if with_data_text:
-            dataname = os.path.join(path, bname + '-data.txt')
-            with open(dataname, 'w') as f:
+            dataname = os.path.join(path, bname + "-data.txt")
+            with open(dataname, "w") as f:
                 f.write(self.data_as_text(**kwargs))
         return
 
 
-def plot_samples(samples, obs, parser=None, conditions=[],
-                 report_condition='master',
-                 units='',
-                 yscale='linear',
-                 show_markers=True,
-                 marker='o',
-                 show_lines=True,
-                 linestyle='-',
-                 join_cells=False,
-                 end_points_emphasis=False,
-                 color='C0',
-                 change_cell_color=False,
-                 change_lineage_color=False,
-                 change_colony_color=False,
-                 change_container_color=False,
-                 alpha=1.,
-                 superimpose='none',
-                 limit_axes=20,
-                 axe_xsize=6,
-                 xrange_fractional_pad=.1,
-                 axe_xrange=(None, None),  # auto
-                 axe_ysize=1.6,
-                 yrange_fractional_pad=.2,
-                 axe_yrange=(None, None),  # auto
-                 yrange_nticks=2,
-                 report_cids=True,
-                 report_cids_yposAxes=.8,
-                 report_divisions=True,
-                 show_legend=True,
-                 data_statistics=False,
-                 ref_mean=None, ref_var=None):
+def plot_samples(
+    samples,
+    obs,
+    parser=None,
+    conditions=[],
+    report_condition="master",
+    units="",
+    yscale="linear",
+    show_markers=True,
+    marker="o",
+    show_lines=True,
+    linestyle="-",
+    join_cells=False,
+    end_points_emphasis=False,
+    color="C0",
+    change_cell_color=False,
+    change_lineage_color=False,
+    change_colony_color=False,
+    change_container_color=False,
+    alpha=1.0,
+    superimpose="none",
+    limit_axes=20,
+    axe_xsize=6,
+    xrange_fractional_pad=0.1,
+    axe_xrange=(None, None),  # auto
+    axe_ysize=1.6,
+    yrange_fractional_pad=0.2,
+    axe_yrange=(None, None),  # auto
+    yrange_nticks=2,
+    report_cids=True,
+    report_cids_yposAxes=0.8,
+    report_divisions=True,
+    show_legend=True,
+    data_statistics=False,
+    ref_mean=None,
+    ref_var=None,
+):
     """Plot small samples trajectories with various display options.
 
     Main options are the superimposing of timeseries on each subplot, the
@@ -314,7 +329,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
         user can set the variance here
     """
     # check that report_condition is a valid condition
-    condition_repr = 'master'
+    condition_repr = "master"
     if conditions:
         if report_condition in map(repr, conditions):
             condition_repr = report_condition  # default setting
@@ -328,41 +343,41 @@ def plot_samples(samples, obs, parser=None, conditions=[],
                 if report_condition == cdt.label:
                     condition_repr = repr(cdt)
                     condition_human_readable = report_condition
-    if condition_repr == 'master':
-        condition_human_readable = 'No condition'
+    if condition_repr == "master":
+        condition_human_readable = "No condition"
 
     # counting the number of axes and makinf dictionary lineage index: ax index
     numbers = []
     nsuperimpose = 1  # default
-    if superimpose == 'none':  # default setting to visualize tree structure
+    if superimpose == "none":  # default setting to visualize tree structure
         n_axes = len(samples)
         if n_axes > limit_axes:
-            msg = 'Too many lineages ({});'.format(len(samples))
-            msg += ' reducing to first {}'.format(limit_axes)
+            msg = "Too many lineages ({});".format(len(samples))
+            msg += " reducing to first {}".format(limit_axes)
             warnings.warn(msg)
             n_axes = limit_axes
         numbers = [1 for iax in range(n_axes)]
         nsuperimpose = 1
-    elif superimpose == 'all':
+    elif superimpose == "all":
         n_axes = 1
         nsuperimpose = len(samples)
         report_divisions = False
         numbers = [len(samples)]
-    elif superimpose == 'colony':
+    elif superimpose == "colony":
         numbers = _count_colonies(samples)
         n_axes = len(numbers)
         if n_axes > limit_axes:
-            msg = 'Too many lineages ({});'.format(len(samples))
-            msg += ' reducing to first {}'.format(sum(numbers[:limit_axes]))
+            msg = "Too many lineages ({});".format(len(samples))
+            msg += " reducing to first {}".format(sum(numbers[:limit_axes]))
             warnings.warn(msg)
             n_axes = limit_axes
         nsuperimpose = max(numbers)
-    elif superimpose == 'container':
+    elif superimpose == "container":
         numbers = _count_containers(samples)
         n_axes = len(numbers)
         if n_axes > limit_axes:
-            msg = 'Too many lineages ({});'.format(len(samples))
-            msg += ' reducing to first {}'.format(sum(numbers[:limit_axes]))
+            msg = "Too many lineages ({});".format(len(samples))
+            msg += " reducing to first {}".format(sum(numbers[:limit_axes]))
             warnings.warn(msg)
             n_axes = limit_axes
         nsuperimpose = max(numbers)
@@ -373,13 +388,13 @@ def plot_samples(samples, obs, parser=None, conditions=[],
         if n_axes > limit_axes:
             new_lim = limit_axes * superimpose
             n_axes = limit_axes
-            msg = 'Too many lineages ({});'.format(len(samples))
-            msg += ' reducing to first {}'.format(new_lim)
+            msg = "Too many lineages ({});".format(len(samples))
+            msg += " reducing to first {}".format(new_lim)
             warnings.warn(msg)
         nsuperimpose = superimpose
         numbers = [nsuperimpose for iax in range(n_axes)]
     # make dictionary
-#    print(numbers)
+    #    print(numbers)
     index_to_iax = _make_dic(numbers)
 
     # if more than 1 timeseries per ax, discard reporting cids and divisions
@@ -391,12 +406,11 @@ def plot_samples(samples, obs, parser=None, conditions=[],
     at_least_one_timeseries = np.array([False for iax in range(n_axes)])
 
     # setting figure and axes
-    fig, axes = plt.subplots(n_axes, 1,
-                             figsize=(axe_xsize, axe_ysize * n_axes))
+    fig, axes = plt.subplots(n_axes, 1, figsize=(axe_xsize, axe_ysize * n_axes))
 
     # compatibility 1 and >1 axes
     if n_axes == 1:
-        axes = [axes, ]
+        axes = [axes]
 
     # storing min, max values for setting boundaries at the end
     lefts, rights, bottoms, tops = [], [], [], []
@@ -404,30 +418,35 @@ def plot_samples(samples, obs, parser=None, conditions=[],
     # user-defined values
     if ref_mean is not None:
         for ax in axes:
-            ax.axhline(ref_mean, ls='-.', color='C7', alpha=1.)
+            ax.axhline(ref_mean, ls="-.", color="C7", alpha=1.0)
             if ref_var is not None:
-                ax.axhline(ref_mean + np.sqrt(ref_var), ls=':', color='C7')
-                ax.axhline(ref_mean - np.sqrt(ref_var), ls=':', color='C7')
+                ax.axhline(ref_mean + np.sqrt(ref_var), ls=":", color="C7")
+                ax.axhline(ref_mean - np.sqrt(ref_var), ls=":", color="C7")
 
     # plotting values from computed statistics
     data_stat_handles = []
     if data_statistics:
-        statistics_condition_repr = 'master'  # default
+        statistics_condition_repr = "master"  # default
         # data_statistics can be True, repr(condition), condition.label
         if isinstance(data_statistics, str):
             statistics_condition_repr = data_statistics
         if parser is None:
-            raise IOError('Need parser to get fset info')
+            raise IOError("Need parser to get fset info")
         else:
             try:
 
-                res = add_data_statistics(axes, parser, obs, conditions,
-                                          condition_repr=statistics_condition_repr)
+                res = add_data_statistics(
+                    axes,
+                    parser,
+                    obs,
+                    conditions,
+                    condition_repr=statistics_condition_repr,
+                )
                 for item in res:
                     if item is not None:
                         data_stat_handles.append(item)
             except IOError:
-                msg = ('Statistics have not been computed yet.')
+                msg = "Statistics have not been computed yet."
                 warnings.warn(msg)
 
     line2D_valid = None
@@ -438,7 +457,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
     colony_root = None
     iax = None
 
-    pcolor = re.compile('C(\d)')  # pattern matching
+    pcolor = re.compile("C(\d)")  # pattern matching
 
     # looping through samples
     for index, (lineage, ts) in enumerate(samples):
@@ -461,42 +480,44 @@ def plot_samples(samples, obs, parser=None, conditions=[],
             # set color level depending on tree depth of first plotted cell
             cell = lineage.colony.get_node(lineage.idseq[0])
             depth = lineage.colony.depth(node=cell)
-            color = 'C{}'.format(depth % 10)
+            color = "C{}".format(depth % 10)
         elif change_lineage_color:
-            color = 'C{}'.format(index % 10)
+            color = "C{}".format(index % 10)
         elif change_colony_color:
             # test when we change colony
-            boo = (container_lab is not None and
-                   (this_container != container_lab or
-                    this_root != colony_root))
+            boo = container_lab is not None and (
+                this_container != container_lab or this_root != colony_root
+            )
             if boo:
                 # match previous
                 m = pcolor.match(color)
                 if m:
                     scindex, = m.groups()
                     cindex = int(scindex)
-                    color = 'C{}'.format((cindex + 1) % 10)
+                    color = "C{}".format((cindex + 1) % 10)
         elif change_container_color:
             # test when we change colony
-            boo = (container_lab is not None and
-                   this_container != container_lab)
+            boo = container_lab is not None and this_container != container_lab
             if boo:
                 # match previous
                 m = pcolor.match(color)
                 if m:
                     scindex, = m.groups()
                     cindex = int(scindex)
-                    color = 'C{}'.format((cindex + 1) % 10)
+                    color = "C{}".format((cindex + 1) % 10)
 
         # write container label to each new panel
         show_colony_root = False  # needs activation
         if this_iax != iax:
-            show_colony_root = (this_root != colony_root and
-                                superimpose in ['none', 'colony', 1])
-            msg = ''
+            show_colony_root = this_root != colony_root and superimpose in [
+                "none",
+                "colony",
+                1,
+            ]
+            msg = ""
             if show_colony_root:
-                 msg += 'cont. {}, root {}'.format(this_container, this_root)
-                 ax.text(0.01, 0.05, msg, color='C7', alpha=.8, transform=ax.transAxes)
+                msg += "cont. {}, root {}".format(this_container, this_root)
+                ax.text(0.01, 0.05, msg, color="C7", alpha=0.8, transform=ax.transAxes)
         if len(ts.timeseries.clear) > 0:
             at_least_one_timeseries[this_iax] = True
             x = ts.timeseries.clear.x
@@ -505,20 +526,23 @@ def plot_samples(samples, obs, parser=None, conditions=[],
             if np.isnan(x).all() or np.isnan(y).all():
                 continue
             # calling add_timeseries
-            ret = add_timeseries(ax, ts, condition_repr=condition_repr,
-                                 end_points_emphasis=end_points_emphasis,
-                                 show_markers=show_markers,
-                                 marker=marker,
-                                 show_lines=show_lines,
-                                 linestyle=linestyle,
-                                 join_cells=join_cells,
-                                 color=color,
-                                 alpha=alpha,
-                                 change_cell_color=change_cell_color,
-                                 use_last_color=True,
-                                 report_cids=report_cids,
-                                 report_cids_yposAxes=report_cids_yposAxes,
-                                 )
+            ret = add_timeseries(
+                ax,
+                ts,
+                condition_repr=condition_repr,
+                end_points_emphasis=end_points_emphasis,
+                show_markers=show_markers,
+                marker=marker,
+                show_lines=show_lines,
+                linestyle=linestyle,
+                join_cells=join_cells,
+                color=color,
+                alpha=alpha,
+                change_cell_color=change_cell_color,
+                use_last_color=True,
+                report_cids=report_cids,
+                report_cids_yposAxes=report_cids_yposAxes,
+            )
 
             # getting min, max values; possible to get color: dat.get_color()
             limits, lines = ret
@@ -550,31 +574,35 @@ def plot_samples(samples, obs, parser=None, conditions=[],
 
     hrange = right - left
     vrange = top - bottom
-    hfrac = xrange_fractional_pad  # fraction of horizontal blank space to the leftmost, rightmost point
-    vfrac = yrange_fractional_pad  # fraction of vertical blank space to the bottom, top point
+    hfrac = (
+        xrange_fractional_pad
+    )  # fraction of horizontal blank space to the leftmost, rightmost point
+    vfrac = (
+        yrange_fractional_pad
+    )  # fraction of vertical blank space to the bottom, top point
 
     # user-defined limits
     if axe_xrange[0] is not None:
         if axe_xrange[0] > left:
-            warnings.warn('Using non-inclusive user-defined left bound')
+            warnings.warn("Using non-inclusive user-defined left bound")
         left = axe_xrange[0]
     else:
         left = left - hfrac * hrange
     if axe_xrange[1] is not None:
         if axe_xrange[1] < right:
-            warnings.warn('Using non-inclusive user-defined right bound')
+            warnings.warn("Using non-inclusive user-defined right bound")
         right = axe_xrange[1]
     else:
         right = right + hfrac * hrange
     if axe_yrange[0] is not None:
         if axe_xrange[0] > bottom:
-            warnings.warn('Using non-inclusive user-defined bottom bound')
+            warnings.warn("Using non-inclusive user-defined bottom bound")
         bottom = axe_yrange[0]
     else:
         bottom = bottom - vfrac * vrange
     if axe_yrange[1] is not None:
         if axe_xrange[1] < top:
-            warnings.warn('Using non-inclusive user-defined top bound')
+            warnings.warn("Using non-inclusive user-defined top bound")
         top = axe_yrange[1]
     else:
         top = top + vfrac * vrange
@@ -583,7 +611,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
     # locator
     locator = _set_time_axis_ticks(axes[0], obs, bounds=(left, right))
     for ax in axes:
-#        ax.xaxis.set_major_locator(ticker.MultipleLocator(60))
+        #        ax.xaxis.set_major_locator(ticker.MultipleLocator(60))
         ax.xaxis.set_major_locator(locator)
 
     # erase labels for intermediate layers
@@ -591,23 +619,22 @@ def plot_samples(samples, obs, parser=None, conditions=[],
         ax.set_xticklabels([])
 
     for iax, ax in enumerate(axes):
-        ax.tick_params(axis='x', direction='in')
+        ax.tick_params(axis="x", direction="in")
         ax.set_xlim(left=left, right=right)
         ax.set_ylim(bottom=bottom, top=top)
-        if yscale == 'log':
-            ax.set_yscale('log')
+        if yscale == "log":
+            ax.set_yscale("log")
         if not at_least_one_timeseries[iax]:
             ax.text(0.4, 0.4, "NO DATA", transform=ax.transAxes)
 
     if len(axes) > 1:
         for ax in axes[:-1]:
-            ax.spines['bottom'].set_visible(False)
-            ax.tick_params(axis='x', colors='C7')
+            ax.spines["bottom"].set_visible(False)
+            ax.tick_params(axis="x", colors="C7")
         for ax in axes[1:]:
-            ax.spines['top'].set_color('C7')
+            ax.spines["top"].set_color("C7")
 
-        axes[0].tick_params(axis='x', direction='in', bottom='on',
-                            labelbottom='off')
+        axes[0].tick_params(axis="x", direction="in", bottom="on", labelbottom="off")
 
     yfmt = ticker.ScalarFormatter()
     yfmt.set_powerlimits((-1, 3))
@@ -620,7 +647,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
     ax.yaxis.set_major_formatter(yfmt)
     yfmt.set_locs(ax.get_yticks())
     yticklocs = yfmt.locs
-#    print(yticklocs)
+    #    print(yticklocs)
     yticklabels = [yfmt.pprint_val(item) for item in yticklocs]
 
     # use first ax locations and formetter
@@ -628,12 +655,15 @@ def plot_samples(samples, obs, parser=None, conditions=[],
         ax.yaxis.set_major_locator(ticker.FixedLocator(yticklocs))
         ax.yaxis.set_ticklabels(yticklabels)
 
-    axes[-1].set_xlabel('Time (mins)', x=.95, horizontalalignment='right',
-                        fontsize='medium')
+    axes[-1].set_xlabel(
+        "Time (mins)", x=0.95, horizontalalignment="right", fontsize="medium"
+    )
 
     # now that limits have been set : report for divisions
     if report_divisions:
-        line2D_join = _report_divisions(samples, axes, line2D_join, index_to_iax, limit_axes)
+        line2D_join = _report_divisions(
+            samples, axes, line2D_join, index_to_iax, limit_axes
+        )
 
     # add legend
     if show_legend:
@@ -646,11 +676,11 @@ def plot_samples(samples, obs, parser=None, conditions=[],
             valid.update_from(line2D_valid)
             lab_from_data = valid.get_label()
             color = valid.get_color()
-            output_lab = 'tracks'
+            output_lab = "tracks"
             if report_cids:
-                output_lab += ' (e.g. cell {})'.format(lab_from_data)
-            if report_condition != 'master':
-                output_lab += ', {}: YES'.format(clab)
+                output_lab += " (e.g. cell {})".format(lab_from_data)
+            if report_condition != "master":
+                output_lab += ", {}: YES".format(clab)
             valid.set_label(output_lab)
             valid.set_color(color)
             handles.append(valid)
@@ -660,11 +690,11 @@ def plot_samples(samples, obs, parser=None, conditions=[],
             unvalid.update_from(line2D_unvalid)
             lab_from_data = unvalid.get_label()
             color = unvalid.get_color()
-            output_lab = 'tracks'
+            output_lab = "tracks"
             if report_cids:
-                output_lab += ' (e.g. cell {})'.format(lab_from_data)
-            if report_condition != 'master':
-                output_lab += ', {}: NO'.format(clab)
+                output_lab += " (e.g. cell {})".format(lab_from_data)
+            if report_condition != "master":
+                output_lab += ", {}: NO".format(clab)
             unvalid.set_label(output_lab)
             unvalid.set_color(color)
             handles.append(unvalid)
@@ -673,7 +703,7 @@ def plot_samples(samples, obs, parser=None, conditions=[],
             join = mlines.Line2D([], [])
             join.update_from(line2D_join)
             color = join.get_color()
-            lab = 'connections at division'
+            lab = "connections at division"
             join.set_label(lab)
             join.set_color(color)
             handles.append(join)
@@ -681,20 +711,27 @@ def plot_samples(samples, obs, parser=None, conditions=[],
         data_stat_labs = [item.get_label() for item in data_stat_handles]
         handles += data_stat_handles
         labels += data_stat_labs
-        ax.legend(handles=handles, labels=labels,
-                  loc='upper left',
-                  bbox_to_anchor=(0, -.5/axe_ysize),
-                  borderaxespad=0.)
+        ax.legend(
+            handles=handles,
+            labels=labels,
+            loc="upper left",
+            bbox_to_anchor=(0, -0.5 / axe_ysize),
+            borderaxespad=0.0,
+        )
 
     # add title
-    titling = r'{}'.format(obs.to_latex_string())
+    titling = r"{}".format(obs.to_latex_string())
     if units:
-        titling += ' ({})'.format(units)
-    axes[0].text(0.5, 1 + .2/axe_ysize, titling,
-                size='large',
-                horizontalalignment='center',
-                verticalalignment='bottom',
-                transform=axes[0].transAxes)
+        titling += " ({})".format(units)
+    axes[0].text(
+        0.5,
+        1 + 0.2 / axe_ysize,
+        titling,
+        size="large",
+        horizontalalignment="center",
+        verticalalignment="bottom",
+        transform=axes[0].transAxes,
+    )
 
     fig.subplots_adjust(hspace=0)
 
@@ -725,7 +762,7 @@ def _report_divisions(samples, axes, line2D_join, index_to_iax, limit_axes):
     line2D_join : Line2D instance
         used to get styling in main function
     """
-    color = 'C7'  # uniform color for tree visualization
+    color = "C7"  # uniform color for tree visualization
     vjoin = None
     for index, (lineage, ts) in enumerate(samples):
         # let's pick the corresponding axe
@@ -743,7 +780,7 @@ def _report_divisions(samples, axes, line2D_join, index_to_iax, limit_axes):
             y = ts.timeseries.clear.y
 
             # visualisation of cell divisions, works only when superimpose='none'
-            logging.debug('reporting cell division')
+            logging.debug("reporting cell division")
             # getting parameters
             if line2D_join is not None:
                 jlw = line2D_join.get_linewidth()
@@ -751,11 +788,11 @@ def _report_divisions(samples, axes, line2D_join, index_to_iax, limit_axes):
                 jalpha = line2D_join.get_alpha()
             # default
             else:
-                jlw = 1.
-                jls = ':'
-                jalpha = .8
+                jlw = 1.0
+                jls = ":"
+                jalpha = 0.8
             # styling options dict
-            styling = {'lw': jlw, 'ls': jls, 'color': color, 'alpha': jalpha}
+            styling = {"lw": jlw, "ls": jls, "color": color, "alpha": jalpha}
             # get first cell
             if len(lineage.idseq) > 0:
                 cid = lineage.idseq[0]
@@ -764,7 +801,7 @@ def _report_divisions(samples, axes, line2D_join, index_to_iax, limit_axes):
                     pid = cell.bpointer
                     pvals = None  # must be set to Coordinates instances if found
                     # get index corresponding to pid AND last parent value
-                    for pi, (plin, pts) in enumerate(samples[:index+1]):
+                    for pi, (plin, pts) in enumerate(samples[: index + 1]):
                         # check that colonies match
                         if plin.colony == lineage.colony:
                             # parse previous lineage idseq to find pid
@@ -772,39 +809,53 @@ def _report_divisions(samples, axes, line2D_join, index_to_iax, limit_axes):
                                 # get parent values
                                 if pid == plinid:
                                     parent_iax = index_to_iax[pi]
-                                    logging.debug('cid: {} (in axe {}), pid: {} (in axe {})'.format(cid, this_iax,pid, parent_iax))
+                                    logging.debug(
+                                        "cid: {} (in axe {}), pid: {} (in axe {})".format(
+                                            cid, this_iax, pid, parent_iax
+                                        )
+                                    )
                                     pslice = pts.slices[pindex]
-#                                    x_pvals = pts.timeseries.x[pts.slices[pindex]]
-#                                    y_pvals = pts.timeseries.y[pts.slices[pindex]]
-#                                    pvals = Coordinates(x_pvals, y_pvals, x_name=pts.timeseries.x_name, y_name=pts.timeseries.y_name)
+                                    #                                    x_pvals = pts.timeseries.x[pts.slices[pindex]]
+                                    #                                    y_pvals = pts.timeseries.y[pts.slices[pindex]]
+                                    #                                    pvals = Coordinates(x_pvals, y_pvals, x_name=pts.timeseries.x_name, y_name=pts.timeseries.y_name)
                                     pvals = pts.timeseries[pslice].clear
                                     break
                             if pid in plin.idseq:
                                 break
                     # it works only when pid is in a previous lineage
                     if pi < index:
-                        logging.debug('current lineage index {}, parent lineage index {}'.format(index, pi))
+                        logging.debug(
+                            "current lineage index {}, parent lineage index {}".format(
+                                index, pi
+                            )
+                        )
                         i_top = index_to_iax[pi]
                         # get transData and inverse transAxe
                         # last valid parent y value in transAxes coords
                         if len(pvals) > 0:
-                            dispx, dispy = axes[i_top].transData.transform((pvals.x[-1], pvals.y[-1]))
+                            dispx, dispy = axes[i_top].transData.transform(
+                                (pvals.x[-1], pvals.y[-1])
+                            )
                             inv = axes[i_top].transAxes.inverted()
                             _, ymax = inv.transform((dispx, dispy))
                         # when no valid values, point to center y
                         else:
-                            ymax = .5  # in transAxes coordinates
+                            ymax = 0.5  # in transAxes coordinates
                         # logging.debug('in parent cell axe, ymax={}'.format(ymax))
-                        vjoin = axes[i_top].axvline(cell.birth_time, ymax=ymax, **styling)
+                        vjoin = axes[i_top].axvline(
+                            cell.birth_time, ymax=ymax, **styling
+                        )
                         i_bottom = index_to_iax[index]
                         # first valid cell y value in transAxes coords
                         if len(x) > 0:
-                            dispx, dispy = axes[i_bottom].transData.transform((x[0], y[0]))
+                            dispx, dispy = axes[i_bottom].transData.transform(
+                                (x[0], y[0])
+                            )
                             inv = axes[i_bottom].transAxes.inverted()
                             _, ymin = inv.transform((dispx, dispy))
                         # when no valid values, point to center y
                         else:
-                            ymin = .5  # in transAxes coords
+                            ymin = 0.5  # in transAxes coords
                         # logging.debug('in current cell axe, ymin={}'.format(ymin))
                         axes[i_bottom].axvline(cell.birth_time, ymin=ymin, **styling)
 
@@ -875,7 +926,7 @@ def _make_dic(numbers):
         if k == 0:
             sl = range(cumul[k])
         else:
-            sl = range(cumul[k-1], cumul[k])
+            sl = range(cumul[k - 1], cumul[k])
         for item in sl:
             dic[item] = k
     return dic

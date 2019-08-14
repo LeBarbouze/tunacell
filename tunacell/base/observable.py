@@ -26,7 +26,9 @@ import dill
 from tabulate import tabulate
 
 
-INTERNALS_OBSERVABLES_BASENAME = 'observables.txt'  # file to store the list of observables in experiment/internals/observables.txt
+INTERNALS_OBSERVABLES_BASENAME = (
+    "observables.txt"
+)  # file to store the list of observables in experiment/internals/observables.txt
 _re_codestring = "T([a-z])([a-z]*\d*[\.,]*\d*)M([a-z\-]+)J(\d+)"
 
 
@@ -467,7 +469,7 @@ class Observable(object):
         if not internals.exists():
             internals.mkdir(parents=True)
         filename = internals / INTERNALS_OBSERVABLES_BASENAME
-        with open(str(filename), 'w') as f:
+        with open(str(filename), "w") as f:
             for item in res:
                 f.write("{}\n".format(repr(item)))
 

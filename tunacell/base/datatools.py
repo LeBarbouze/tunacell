@@ -37,16 +37,16 @@ class Coordinates(object):
     @classmethod
     def from_array(cls, array):
         """Load a Coordinates instance from a Numpy 2d structured array"""
-        x_name = 'x'
-        y_name = 'y'
+        x_name = "x"
+        y_name = "y"
         if array.dtype.names is not None:
             x_name, y_name = array.dtype.names[:2]
         if len(array) == 0:
             return Coordinates(np.array([]), np.array([]), x_name, y_name)
         if len(array[0]) < 2:
-            raise ValueError('must be a 2 column array')
+            raise ValueError("must be a 2 column array")
         if len(array[0]) > 2:
-            warnings.warn('Taking first 2 columns from multicol array')
+            warnings.warn("Taking first 2 columns from multicol array")
         if array.dtype.names is not None:
             x = array[x_name]
             y = array[y_name]
@@ -55,21 +55,24 @@ class Coordinates(object):
             y = array[:, 1]
         return Coordinates(x, y, x_name, y_name)
 
-    def __init__(self, x, y, x_name='x', y_name='y'):
-#        if np.any(np.isnan(x)):
-#            msg = 'NaN value(s) detected in x-array: please remove beforehand'
-#            raise ValueError(msg)
+    def __init__(self, x, y, x_name="x", y_name="y"):
+        #        if np.any(np.isnan(x)):
+        #            msg = 'NaN value(s) detected in x-array: please remove beforehand'
+        #            raise ValueError(msg)
         if len(x) != len(y):
-            msg = ('Arrays of different lengths! Check x and y input\n'
-                   'x : {}'.format(x) + '\n'
-                   'y : {}'.format(y))
+            msg = (
+                "Arrays of different lengths! Check x and y input\n"
+                "x : {}".format(x) + "\n"
+                "y : {}".format(y)
+            )
             raise ValueError(msg)
         self._x = np.array(x)
         self.x_name = x_name
         self._y = np.array(y)
         self.y_name = y_name
-        self.valid = np.where(np.logical_and(np.logical_not(np.isnan(x)),
-                                             np.logical_not(np.isnan(y))))
+        self.valid = np.where(
+            np.logical_and(np.logical_not(np.isnan(x)), np.logical_not(np.isnan(y)))
+        )
         return
 
     @property
@@ -99,39 +102,48 @@ class Coordinates(object):
     @property
     def clear(self):
         """Returns coordinates cleared off NaNs"""
-        return Coordinates(self.clear_x, self.clear_y,
-                           x_name=self.x_name, y_name=self.y_name)
+        return Coordinates(
+            self.clear_x, self.clear_y, x_name=self.x_name, y_name=self.y_name
+        )
 
     def __getitem__(self, val):
         """Return the sliced Coordinates"""
-        return Coordinates(self.x[val], self.y[val],
-                           x_name=self.x_name, y_name=self.y_name)
-    
+        return Coordinates(
+            self.x[val], self.y[val], x_name=self.x_name, y_name=self.y_name
+        )
+
     def __len__(self):
         """Returns the number of coordinates"""
         return len(self.x)
 
     def as_array(self):
-        array = np.array(list(zip(self.x, self.y)),
-                         dtype=[(self.x_name, 'f8'), (self.y_name, 'f8')])
+        array = np.array(
+            list(zip(self.x, self.y)), dtype=[(self.x_name, "f8"), (self.y_name, "f8")]
+        )
         return array
 
     def __str__(self):
         return str(self.as_array())
-    
+
     def __repr__(self):
         return repr(self.as_array())
 
 
-
 # NEW LOCAL FIT ESTIMATE USING ARRAYS
 
-def compute_rates(x, y, x_break=None,
-                  anterior_x=[], anterior_y=[],
-                  scale='log',
-                  time_window=15., dt=5.,
-                  join_points=3,
-                  testing=False):
+
+def compute_rates(
+    x,
+    y,
+    x_break=None,
+    anterior_x=[],
+    anterior_y=[],
+    scale="log",
+    time_window=15.0,
+    dt=5.0,
+    join_points=3,
+    testing=False,
+):
     """Computes rates of array y against x by local fits over shifting window.
 
     Results are evaluated at coordinate array x by linear interpolation, so
@@ -187,19 +199,20 @@ def compute_rates(x, y, x_break=None,
     """
     # check array lengths and associate cleaning ordinate NaNs
     coords = Coordinates(x, y)
-    nans_coords = len(x) * [np.nan, ]
+    nans_coords = len(x) * [np.nan]
     anteriors = Coordinates(anterior_x, anterior_y)
-    nans_anteriors = len(anterior_x) * [np.nan, ]
+    nans_anteriors = len(anterior_x) * [np.nan]
 
     # define x_break by convention
     if x_break is None:
-        x_break = coords.x[0] - dt/2.  # artificial birth time (CONVENTION)
+        x_break = coords.x[0] - dt / 2.0  # artificial birth time (CONVENTION)
 
     #  operators and their inverse
-    if scale == 'log':
+    if scale == "log":
         y_operator = np.log
         y_inv_operator = np.exp
-    elif scale == 'linear':
+    elif scale == "linear":
+
         def y_operator(vals):
             return vals
 
@@ -218,16 +231,20 @@ def compute_rates(x, y, x_break=None,
     period = np.amin(coords.clear_x[1:] - coords.clear_x[:-1])
 
     # number of points per time window
-    n_points = int(np.round(time_window/period, decimals=0))
+    n_points = int(np.round(time_window / period, decimals=0))
     if testing:
-        print('Local fits will be performed over {} points'.format(n_points))
+        print("Local fits will be performed over {} points".format(n_points))
     if n_points < 2:
-        msg = ('Trying to perform linear fit over less than 2 points. '
-               'Please use a larger time_window parameter.')
+        msg = (
+            "Trying to perform linear fit over less than 2 points. "
+            "Please use a larger time_window parameter."
+        )
         raise LocalFitError(msg)
     elif n_points == 2:
-        msg = ('Performing linear fit over 2 points: '
-               'for rate computation experimental errors are not smoothed')
+        msg = (
+            "Performing linear fit over 2 points: "
+            "for rate computation experimental errors are not smoothed"
+        )
         warnings.warn(msg)
 
     # define the number of points for estimates at cell birth, parent division
@@ -236,10 +253,9 @@ def compute_rates(x, y, x_break=None,
     else:
         n_joints = join_points
     if testing:
-        print('For values at division/birth:')
-        print('  try to fit over {} points (local fits)'.format(n_points))
-        print('  but allows to reduce up to {} points'.format(
-                join_points))
+        print("For values at division/birth:")
+        print("  try to fit over {} points (local fits)".format(n_points))
+        print("  but allows to reduce up to {} points".format(join_points))
         print()
 
     # auxiliary variables
@@ -254,9 +270,11 @@ def compute_rates(x, y, x_break=None,
         op_y_break = i + r * x_break
 
     if testing:
-        msg = ('Data to fit:\n'
-               'x : {}'.format(coords.clear_x) + '\n'
-               'y : {}'.format(coords.clear_y))
+        msg = (
+            "Data to fit:\n"
+            "x : {}".format(coords.clear_x) + "\n"
+            "y : {}".format(coords.clear_y)
+        )
         print(msg)
 
     # try to use anterior values : compute break offset
@@ -270,24 +288,26 @@ def compute_rates(x, y, x_break=None,
         #   2. initial value is determined
         cdt2 = op_y_break is not None
         if cdt1 and cdt2:
-            r, i = np.polyfit(anteriors.clear_x[-n_joints:],
-                              op_ay[-n_joints:], 1)
+            r, i = np.polyfit(anteriors.clear_x[-n_joints:], op_ay[-n_joints:], 1)
             op_ay_break = i + r * x_break
             if testing:
-                msg = ('Extrapolated anterior value at break:\n '
-                       'break time, value: '
-                       '{}, {}'.format(x_break, y_inv_operator(op_ay_break)))
+                msg = (
+                    "Extrapolated anterior value at break:\n "
+                    "break time, value: "
+                    "{}, {}".format(x_break, y_inv_operator(op_ay_break))
+                )
                 print(msg)
-                msg = ('Anterior data used for fitting:\n'
-                       'x : {}'.format(anteriors.clear_x) + '\n'
-                       'y : {}'.format(anteriors.clear_y))
+                msg = (
+                    "Anterior data used for fitting:\n"
+                    "x : {}".format(anteriors.clear_x) + "\n"
+                    "y : {}".format(anteriors.clear_y)
+                )
                 print(msg)
             # adjust values by translating
             offset = op_ay_break - op_y_break
             trans_op_ay = op_ay - offset
     if testing:
-        msg = ('Translated, operated anterior values are:\n'
-               'y\' {}'.format(trans_op_ay))
+        msg = "Translated, operated anterior values are:\n" "y' {}".format(trans_op_ay)
         print(msg)
         print()
 
@@ -302,21 +322,21 @@ def compute_rates(x, y, x_break=None,
 
     fit_x = np.zeros_like(all_x)
     fit_op_y = np.zeros_like(all_x)  # fitted values
-    rate_op_y = np.zeros_like(all_x)   # rates of local fits
+    rate_op_y = np.zeros_like(all_x)  # rates of local fits
 
     # sliding window
     for index, t in enumerate(all_x):
-        t_start = t - period/2.  # convention
+        t_start = t - period / 2.0  # convention
         t_stop = t_start + time_window
         # time of evaluation
-        time_eval = (t_start + t_stop)/2.
+        time_eval = (t_start + t_stop) / 2.0
         fit_x[index] = time_eval
         # check that at least one time point is larger than break point
         if t_stop <= x_break:
             fit_op_y[index] = np.nan
             rate_op_y[index] = np.nan
             if testing:
-                msg = ('+ window range does not intercept x range: next')
+                msg = "+ window range does not intercept x range: next"
                 print(msg)
             continue
         # reduce to points to fit
@@ -324,15 +344,15 @@ def compute_rates(x, y, x_break=None,
         upper = all_x <= t_stop
         boo = np.logical_and(lower, upper)
         if testing:
-            print('+ window:', end=' ')
-            print('{} < t < {} '.format(t_start, t_stop), end=' ')
-            print('({} points)'.format(len(all_x[boo])))
+            print("+ window:", end=" ")
+            print("{} < t < {} ".format(t_start, t_stop), end=" ")
+            print("({} points)".format(len(all_x[boo])))
         # check if n_points > 3
         if len(all_x[boo]) < n_points:
             if testing:
-                print('Not enough points on this time window')
-                print('({} instead of {})'.format(len(all_x[boo]), n_points))
-                print('next')
+                print("Not enough points on this time window")
+                print("({} instead of {})".format(len(all_x[boo]), n_points))
+                print("next")
             # not enough point in this window: insert NaN
             rate_op_y[index] = np.nan
             fit_op_y[index] = np.nan
@@ -341,30 +361,44 @@ def compute_rates(x, y, x_break=None,
             fit_op_y[index] = rate * time_eval + intercept
             rate_op_y[index] = rate
             if testing:
-                msg = ('time          : {}'.format(time_eval) + '\n'
-                       'fitted value  : {}'.format(fit_op_y[index]) + '\n'
-                       'computed rate : {}'.format(rate))
+                msg = (
+                    "time          : {}".format(time_eval) + "\n"
+                    "fitted value  : {}".format(fit_op_y[index]) + "\n"
+                    "computed rate : {}".format(rate)
+                )
                 print(msg)
 
     # fit and rates coordinates that will be interpolated (if possible)
     fit_op_coords = Coordinates(fit_x, fit_op_y)
     rate_coords = Coordinates(fit_x, rate_op_y)
     # interpolation may be defined over both x range and anterior_x range
-    out_y = np.array(len(coords.x) * [np.nan, ])  # initialize to NaNs
-    out_anterior_y = np.array(len(anteriors.x) * [np.nan, ])
-    out_rate = np.array(len(coords.x) * [np.nan, ])
-    out_anterior_rate = np.array(len(anteriors.x) * [np.nan, ])
+    out_y = np.array(len(coords.x) * [np.nan])  # initialize to NaNs
+    out_anterior_y = np.array(len(anteriors.x) * [np.nan])
+    out_rate = np.array(len(coords.x) * [np.nan])
+    out_anterior_rate = np.array(len(anteriors.x) * [np.nan])
     if len(fit_op_coords.clear_x) > 1:  # at least 2 points to interpolate
-        f = interp1d(fit_op_coords.clear_x, fit_op_coords.clear_y,
-                     kind='linear', assume_sorted=True, bounds_error=False)
+        f = interp1d(
+            fit_op_coords.clear_x,
+            fit_op_coords.clear_y,
+            kind="linear",
+            assume_sorted=True,
+            bounds_error=False,
+        )
         # valid data points: interpolation at initial x coordinates
         out_y[coords.valid] = y_inv_operator(f(coords.clear_x))
         if len(anteriors.valid) > 0 and offset is not None:
-            out_anterior_y[anteriors.valid] = y_inv_operator(f(anteriors.clear_x) + offset)
+            out_anterior_y[anteriors.valid] = y_inv_operator(
+                f(anteriors.clear_x) + offset
+            )
 
     if len(rate_coords.clear_x) > 1:
-        f = interp1d(rate_coords.clear_x, rate_coords.clear_y, kind='linear',
-                     assume_sorted=True, bounds_error=False)
+        f = interp1d(
+            rate_coords.clear_x,
+            rate_coords.clear_y,
+            kind="linear",
+            assume_sorted=True,
+            bounds_error=False,
+        )
         # valid data points: interpolation at initial x coordinates
         out_rate[coords.valid] = f(coords.clear_x)
         if len(anteriors.valid) > 0 and offset is not None:
@@ -389,9 +423,9 @@ class TooRemoteFromTarget(ExtrapolationError):
     pass
 
 
-def extrapolate_endpoints(x, y, x_target,
-                          scale='log', join_points=3,
-                          distance_max=None):
+def extrapolate_endpoints(
+    x, y, x_target, scale="log", join_points=3, distance_max=None
+):
     """Extrapolate y values at x_target
 
     Parameters
@@ -423,33 +457,32 @@ def extrapolate_endpoints(x, y, x_target,
         when closest x to x_target is further away than distance_max
     """
     if x_target is None or np.isnan(x_target):
-        raise NoTarget('x_target: {} is not a number'.format(x_target))
+        raise NoTarget("x_target: {} is not a number".format(x_target))
     npts = join_points
-    if scale == 'log':
+    if scale == "log":
         y_operator = np.log
         y_inv_operator = np.exp
-    elif scale == 'linear':
+    elif scale == "linear":
         y_operator = lambda x: x
         y_inv_operator = lambda x: x
 
     coords = Coordinates(x, y)
 
     if len(coords.clear_x) < join_points:
-        raise TooFewPoints('{} < {}'.format(len(coords.clear_x), join_points))
+        raise TooFewPoints("{} < {}".format(len(coords.clear_x), join_points))
 
     op_values = y_operator(coords.clear_y)
 
     # when target is inside : interpolate
     if np.amin(coords.clear_x) <= x_target <= np.amax(coords.clear_x):
-        f = interp1d(coords.clear_x, op_values, kind='linear',
-                     bounds_error=False)
+        f = interp1d(coords.clear_x, op_values, kind="linear", bounds_error=False)
         return y_inv_operator(f(x_target))
 
     # othgerwise we extrapolate
     if distance_max is not None:
         dist = np.amin(np.abs(coords.clear_x - x_target))
         if dist > distance_max:
-            msg = ('Distance to target: {} > {}'.format(dist, distance_max))
+            msg = "Distance to target: {} > {}".format(dist, distance_max)
             raise TooRemoteFromTarget(msg)
     if x_target > np.amax(coords.clear_x):
         rate, intercept = np.polyfit(coords.clear_x[-npts:], op_values[-npts:], 1)
@@ -461,9 +494,10 @@ def extrapolate_endpoints(x, y, x_target,
 
 # List of operator acting on Coordinates
 
+
 def _cycle_linear(coords):
     if len(coords.valid) < 2:
-        raise ValueError('Not enough valid coordinates')
+        raise ValueError("Not enough valid coordinates")
     a, b = np.polyfit(coords.clear_x, coords.clear_y, 1)
     return a, b
 
@@ -474,8 +508,8 @@ def _cycle_log(coords):
 
 
 def logarithm(coords):
-#    if len(coords.valid) < 2:
-#        raise ValueError('Not enough valid coordinates')
+    #    if len(coords.valid) < 2:
+    #        raise ValueError('Not enough valid coordinates')
     return Coordinates(coords.x, np.log(coords.y))
 
 
@@ -496,17 +530,17 @@ def derivative(coords):
         finite differences interpolated at original times where values are
         non nans.
     """
-    out_y = np.array(len(coords.x) * [np.nan, ])
+    out_y = np.array(len(coords.x) * [np.nan])
     clears = coords.clear
     # one need at least three valid values to get estimates of 2 points
     if len(clears) < 3:
         return Coordinates(coords.x, out_y)  # return only nans, deal with it
     delta_x = additive_increments(clears.x)
     delta_y = additive_increments(clears.y)
-    new_x = (clears.x[1:] + clears.x[:-1])/2.
-    new_y = delta_y/delta_x
+    new_x = (clears.x[1:] + clears.x[:-1]) / 2.0
+    new_y = delta_y / delta_x
     # interpolate to associate to initial times : at least 2 valid points
-    f = interp1d(new_x, new_y, kind='linear', assume_sorted=True, bounds_error=False)
+    f = interp1d(new_x, new_y, kind="linear", assume_sorted=True, bounds_error=False)
     out_y[coords.valid] = f(coords.clear_x)
     return Coordinates(coords.x, out_y)
 
@@ -517,6 +551,7 @@ def logderivative(coords):
 
 
 #  list of operators acting on 1-D arrays
+
 
 def additive_increments(ar):
     """Computes step-wise additive increments.
@@ -530,8 +565,8 @@ def additive_increments(ar):
     1d Numpy ndarray, n-1 items
     """
     a = ar[1:]
-    b = ar[:len(ar)-1]
-    return a-b
+    b = ar[: len(ar) - 1]
+    return a - b
 
 
 def multiplicative_increments(ar):
@@ -546,11 +581,12 @@ def multiplicative_increments(ar):
     1d Numpy ndarray, n-1 items
     """
     a = ar[1:]
-    b = ar[:len(ar)-1]
-    return a/b
+    b = ar[: len(ar) - 1]
+    return a / b
 
 
 # functions acting on structured arrays
+
 
 def compute_secondary_observables(data):
     """Computes secondary observables and extends matrix of observables.
@@ -565,41 +601,30 @@ def compute_secondary_observables(data):
     out -- structured array
         new fields are added (check `out.dtype.names`)
     """
-    ell, w, fluo, area, time = map(np.array,
-                                   zip(*data[['length',
-                                              'width',
-                                              'fluo',
-                                              'area',
-                                              'time']])
-                                   )
+    ell, w, fluo, area, time = map(
+        np.array, zip(*data[["length", "width", "fluo", "area", "time"]])
+    )
     if len(time) > 1:
-        delta_t = time[1]-time[0]
-        age = (time - time[0] + delta_t/2.)/(time[-1] - time[0] + delta_t)
+        delta_t = time[1] - time[0]
+        age = (time - time[0] + delta_t / 2.0) / (time[-1] - time[0] + delta_t)
     else:
         age = np.nan
     volume = spherocylinder_volume(ell, w)
-    concentration = fluo/volume
-    density = fluo/area
-    ALratio = area/ell
-    out = append_fields(data,
-                        ['volume',
-                         'concentration',
-                         'density',
-                         'ALratio',
-                         'age'],
-                        [volume,
-                         concentration,
-                         density,
-                         ALratio,
-                         age],
-                        usemask=False, fill_value=np.nan)
+    concentration = fluo / volume
+    density = fluo / area
+    ALratio = area / ell
+    out = append_fields(
+        data,
+        ["volume", "concentration", "density", "ALratio", "age"],
+        [volume, concentration, density, ALratio, age],
+        usemask=False,
+        fill_value=np.nan,
+    )
     return out
 
 
-
-
-
 # specific functions
+
 
 def spherocylinder_volume(length, width):
     """Returns volume of sphero-cylinder.
@@ -621,10 +646,10 @@ def spherocylinder_volume(length, width):
     length is `h + 2*R`
     width is `2*R`
     """
-    return np.pi/4.*width**2*(length-width/3.)
+    return np.pi / 4.0 * width ** 2 * (length - width / 3.0)
 
 
-def gaussian_smooth(xdata, ydata, sigma=1., x=None):
+def gaussian_smooth(xdata, ydata, sigma=1.0, x=None):
     """Returns Gaussian smoothed signal.
 
     Arguments
@@ -645,10 +670,10 @@ def gaussian_smooth(xdata, ydata, sigma=1., x=None):
     yy = np.expand_dims(ydata, axis=1)
 
     def g(t, t0, s):
-        return np.exp(-(t-t0)**2/(2.*s**2))/(np.sqrt(2.*np.pi)*s)
+        return np.exp(-(t - t0) ** 2 / (2.0 * s ** 2)) / (np.sqrt(2.0 * np.pi) * s)
 
     def num(t):
-        return np.sum(g(t, xx, sigma)*yy, axis=0)
+        return np.sum(g(t, xx, sigma) * yy, axis=0)
 
     def den(t):
         return np.sum(g(t, xx, sigma), axis=0)
@@ -657,10 +682,10 @@ def gaussian_smooth(xdata, ydata, sigma=1., x=None):
         u = np.array(x)
     else:
         u = xdata
-    return zip(u, num(u)/den(u))
+    return zip(u, num(u) / den(u))
 
 
-def smooth_timeseries(t, x, option='mean', sigma=1.):
+def smooth_timeseries(t, x, option="mean", sigma=1.0):
     """Smooth timeseries.
 
     Arguments
@@ -683,34 +708,34 @@ def smooth_timeseries(t, x, option='mean', sigma=1.):
     """
     nbr = len(t)
     y = np.zeros_like(x)
-    if option == 'gaussian':
+    if option == "gaussian":
         return zip(*gaussian_smooth(t, x, sigma=sigma))
-    if option == 'mean':
-        for k in range(1, nbr-1):
-            y[k] = np.mean(x[k-1:k+2])
+    if option == "mean":
+        for k in range(1, nbr - 1):
+            y[k] = np.mean(x[k - 1 : k + 2])
         y[0] = np.mean(x[:2])
         y[-1] = np.mean(x[-2:])
         return t, y
 
 
-def get_smooth_cell_timeseries(cell, observable='width'):
+def get_smooth_cell_timeseries(cell, observable="width"):
     """Returns local 3-points averaged data."""
-    time, obs = zip(*cell.data[['time', observable]])
+    time, obs = zip(*cell.data[["time", observable]])
     smobs = []
     if len(time) > 2:
         # average over 3 points within segment
-        smobs = [np.mean(obs[i-1:i+2]) for i in range(1, len(obs)-1)]
+        smobs = [np.mean(obs[i - 1 : i + 2]) for i in range(1, len(obs) - 1)]
         # parent
         parent = cell.parent
         if parent and parent.data is not None:
-            pt, pobs = zip(*parent.data[['time', observable]])
+            pt, pobs = zip(*parent.data[["time", observable]])
             smobs.insert(0, np.mean([pobs[-1], obs[0], obs[1]]))
         else:
             # average over first two points
             smobs.insert(0, np.mean(obs[:2]))
         nextobs = []
         for ch in cell.childs:
-            chtimes, chobs = zip(*ch.data[['time', observable]])
+            chtimes, chobs = zip(*ch.data[["time", observable]])
             nextobs.append(chobs[0])
         if nextobs:
             smobs.append(np.mean([obs[-2], obs[-1], np.mean(nextobs)]))
@@ -722,7 +747,7 @@ def get_smooth_cell_timeseries(cell, observable='width'):
         return zip(time, obs)
 
 
-def show_jumps(t, x, threshold=3., mode='multiplicative'):
+def show_jumps(t, x, threshold=3.0, mode="multiplicative"):
     """Show data jump over given threshold
 
     Arguments
@@ -753,32 +778,41 @@ def show_jumps(t, x, threshold=3., mode='multiplicative'):
     tdata = np.array(t)
     xdata = np.array(x)
     valids = np.array([False for i in range(len(t))])
-    for k in range(len(t)-1):
+    for k in range(len(t) - 1):
         try:
-            delta_t = tdata[k+1] - tdata[k]
-            dot_log = (xdata[k+1]-xdata[k])/(xdata[k] * delta_t)
-            if dot_log > threshold*np.log(2.):
-                valids[k+1] = True
+            delta_t = tdata[k + 1] - tdata[k]
+            dot_log = (xdata[k + 1] - xdata[k]) / (xdata[k] * delta_t)
+            if dot_log > threshold * np.log(2.0):
+                valids[k + 1] = True
         except ZeroDivisionError:
             continue
     return valids
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     x = np.arange(50, dtype=float)
-    y = np.array(len(x) * [np.nan, ])
+    y = np.array(len(x) * [np.nan])
     anterior_x = np.arange(-20, 0, dtype=int)
-    anterior_y = np.array(len(anterior_x) * [np.nan, ])
-    anterior_y[np.arange(-20, 0, 5, dtype=int)] = 4.
-    y[np.arange(0, len(x), 5, dtype=int)] = 2.
-    r, f, ar, af, xx, yy = compute_rates(x, y, x_break=-.5, scale='linear',
-                                         anterior_x=anterior_x,
-                                         anterior_y=anterior_y,
-                                         dt=1, time_window=15., testing=True)
-    coords = Coordinates(np.concatenate([anterior_x, x]),
-                         np.concatenate([af, f]),
-                         x_name='time', y_name='value')
+    anterior_y = np.array(len(anterior_x) * [np.nan])
+    anterior_y[np.arange(-20, 0, 5, dtype=int)] = 4.0
+    y[np.arange(0, len(x), 5, dtype=int)] = 2.0
+    r, f, ar, af, xx, yy = compute_rates(
+        x,
+        y,
+        x_break=-0.5,
+        scale="linear",
+        anterior_x=anterior_x,
+        anterior_y=anterior_y,
+        dt=1,
+        time_window=15.0,
+        testing=True,
+    )
+    coords = Coordinates(
+        np.concatenate([anterior_x, x]),
+        np.concatenate([af, f]),
+        x_name="time",
+        y_name="value",
+    )
     array = coords.as_array()
-    print(array['time'])
-    print(array['value'])
-    
+    print(array["time"])
+    print(array["value"])

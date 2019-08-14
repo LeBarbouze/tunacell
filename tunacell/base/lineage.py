@@ -94,9 +94,10 @@ class Lineage(object):
         genref = 0
         for cid in self.idseq:
             gens.append(self.colony.level(cid))
-        gens = np.array(gens, dtype='i4')
+        gens = np.array(gens, dtype="i4")
         if tref is not None:
             from tunacell.filters.cells import FilterTimeInCycle
+
             check = FilterTimeInCycle(tref=tref)
             found = False
             # search from last cell in the past until root
@@ -109,7 +110,7 @@ class Lineage(object):
                     genref = self.colony.level(cid)
                     break
             if not found:
-                msg = 'No cell found in ancestry at {}'.format(tref)
+                msg = "No cell found in ancestry at {}".format(tref)
                 raise NoAncestry(msg)
         return gens - genref
 
@@ -138,19 +139,21 @@ class Lineage(object):
         # add the master entry (which will be a sequence of True values)
         select_ids = {}
         # master mask gets all True
-        select_ids['master'] = np.array([True for _ in self.idseq])
+        select_ids["master"] = np.array([True for _ in self.idseq])
         # add as many entries as there are conditions
         for fset in cset:
             # we have to make a logical AND between different filter types
             col = self.colony
             cont = col.container
             # check True for upstream structures: container, colony, lineage
-            boo = (fset.container_filter(cont) and
-                   fset.colony_filter(col) and
-                   fset.lineage_filter(self))
+            boo = (
+                fset.container_filter(cont)
+                and fset.colony_filter(col)
+                and fset.lineage_filter(self)
+            )
             # cell selections
             # initialize all to False
-            arrbool = np.array(len(self.idseq) * [False, ])
+            arrbool = np.array(len(self.idseq) * [False])
             # perform tests only if upstream tests where True
             if boo:
                 for index, cell in enumerate(self.cellseq):
@@ -181,7 +184,7 @@ class Lineage(object):
             obs_name = obs.name  # simpler string if provided by user
         else:
             obs_name = label
-        
+
         # obs must be either a member of raw_obs, or a member of func_obs
         if isinstance(obs, Observable):
             if obs not in raw_obs:
@@ -190,7 +193,7 @@ class Lineage(object):
             if obs not in func_obs:
                 func_obs.append(obs)
         else:
-            raise TypeError('obs must be one of {Observable, FunctionalObservable}')
+            raise TypeError("obs must be one of {Observable, FunctionalObservable}")
 
         # compute timelapsed raw obs for all cells in lineage
         for cell in self.cellseq:
@@ -198,12 +201,12 @@ class Lineage(object):
                 cell.build(sobs.as_timelapse())
         # now that all timelapse observables have been computed, there cannot
         # be overlap between different cell in data evaluation,
-        #and we protect against future build
+        # and we protect against future build
         time_bounds = []
         for cell in self.cellseq:
             # compute those that are of cell-cycle mode
             for sobs in raw_obs:
-                if sobs.mode != 'dynamics':
+                if sobs.mode != "dynamics":
                     cell.build(sobs)
                 # protect against future build for raw observable
                 cell.protect_against_build(sobs)
@@ -215,15 +218,15 @@ class Lineage(object):
             if cell.birth_time is not None:
                 tleft = cell.birth_time
             elif len(cell.data) > 0:
-                tleft = np.amin(cell.data['time'])
+                tleft = np.amin(cell.data["time"])
             else:
                 tleft = np.infty
             if cell.division_time is not None:
                 tright = cell.division_time
             elif len(cell.data) > 0:
-                tright = np.amax(cell.data['time'])
+                tright = np.amax(cell.data["time"])
             else:
-                tright = - np.infty
+                tright = -np.infty
             time_bounds.append((tleft, tright))
 
         # boolean tests
@@ -234,29 +237,31 @@ class Lineage(object):
         colony = self.colony
         container = colony.container
         # at this point all _sdata are ready for action. Distinguish modes
-        if obs.mode == 'dynamics':
+        if obs.mode == "dynamics":
             # get time reference for translating times
             if obs.tref is not None:
-                if obs.tref == 'root':
+                if obs.tref == "root":
                     root = colony.get_node(colony.root)
                     if root.data is not None and len(root.data) > 0:
-                        tref = root.data['time'][-1]  # last time of root
+                        tref = root.data["time"][-1]  # last time of root
                     else:
-                        tref = 0.
+                        tref = 0.0
                 elif isinstance(obs.tref, float) or isinstance(obs.tref, int):
                     tref = float(obs.tref)
                 else:
-                    tref = 0.
+                    tref = 0.0
             else:
-                tref = 0.
+                tref = 0.0
             # build array
             count = 0
             for cell in self.cellseq:
                 if len(cell.data) > 0:
-                    coords = Coordinates(cell.data['time'] - tref,
-                                         cell._sdata[label],
-                                         x_name='time',
-                                         y_name=obs_name)
+                    coords = Coordinates(
+                        cell.data["time"] - tref,
+                        cell._sdata[label],
+                        x_name="time",
+                        y_name=obs_name,
+                    )
                     arrays.append(coords.clear.as_array())  # remove NaNs
                     size = len(arrays[-1])
                     index_cycles.append((count, count + size - 1))
@@ -268,28 +273,31 @@ class Lineage(object):
         # otherwise it's of 'cycle' mode
         else:
             for index, cell in enumerate(self.cellseq):
-                if obs.timing == 'g':
+                if obs.timing == "g":
                     try:
                         gens = self.get_generations(tref=obs.tref)
                         tt = gens[index]
                     except NoAncestry:
                         # return empty TimeSeries
                         # TODO : should be filtered upstream?
-                        coords = Coordinates([], [], x_name='g', y_name=obs.name)
-                        new = TimeSeries(ts=coords, ids=self.idseq[:],
-                                         index_cycles=[None for _ in self.idseq],
-                                         select_ids=select_ids,
-                                         container_label=container.label,
-                                         experiment_label=container.exp.label)
+                        coords = Coordinates([], [], x_name="g", y_name=obs.name)
+                        new = TimeSeries(
+                            ts=coords,
+                            ids=self.idseq[:],
+                            index_cycles=[None for _ in self.idseq],
+                            select_ids=select_ids,
+                            container_label=container.label,
+                            experiment_label=container.exp.label,
+                        )
                         return new
                 # time value
-                elif obs.timing == 'b':
+                elif obs.timing == "b":
                     tt = cell.birth_time
-                elif obs.timing == 'd':
+                elif obs.timing == "d":
                     tt = cell.division_time
-                elif obs.timing == 'm':
+                elif obs.timing == "m":
                     try:
-                        tt = (cell.division_time + cell.birth_time)/2.
+                        tt = (cell.division_time + cell.birth_time) / 2.0
                     except TypeError:
                         tt = None
 
@@ -301,22 +309,27 @@ class Lineage(object):
             if len(arrays) == 0:
                 coords = Coordinates([], [], x_name=obs.timing, y_name=obs.name)
             else:
-                coords = Coordinates(*list(zip(*arrays)), x_name=obs.timing, y_name=obs.name)
-        timeseries = TimeSeries(ts=coords, ids=self.idseq[:],
-                                time_bounds=time_bounds,
-                                index_cycles=index_cycles,
-                                select_ids=select_ids,
-                                container_label=container.label,
-                                experiment_label=container.exp.label)
+                coords = Coordinates(
+                    *list(zip(*arrays)), x_name=obs.timing, y_name=obs.name
+                )
+        timeseries = TimeSeries(
+            ts=coords,
+            ids=self.idseq[:],
+            time_bounds=time_bounds,
+            index_cycles=index_cycles,
+            select_ids=select_ids,
+            container_label=container.label,
+            experiment_label=container.exp.label,
+        )
         return timeseries
 
     def split(self):
         "Returns slices to retrieve each cell's data"
         slices = []
         start = 0
-        refid = self.data[0]['cellID']
+        refid = self.data[0]["cellID"]
         for index, line in enumerate(self.data[1:], start=1):
-            cid = line['cellID']
+            cid = line["cellID"]
             if cid != refid:
                 stop = index
                 slices.append(slice(start, stop))
@@ -327,12 +340,12 @@ class Lineage(object):
         return slices
 
     def __repr__(self):
-        label = ''
+        label = ""
         if self.colony is not None:
             if self.colony.container is not None:
-                label += 'From Container: {}'.format(self.colony.container.label)
-            label += ', colony with root id: {}'.format(self.colony.root)
-        label += '\nCell ids: {}'.format(' > '.join(self.idseq)) + '\n'
+                label += "From Container: {}".format(self.colony.container.label)
+            label += ", colony with root id: {}".format(self.colony.root)
+        label += "\nCell ids: {}".format(" > ".join(self.idseq)) + "\n"
         return label
 
 

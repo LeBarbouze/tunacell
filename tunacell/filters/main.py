@@ -16,6 +16,7 @@ from __future__ import print_function
 import inspect  # introspection module
 import numpy as np
 import collections
+
 try:
     from StringIO import StringIO  # python2
 except ImportError:
@@ -43,6 +44,7 @@ def bounded(arg, lower_bound=None, upper_bound=None):
     Boolean
     """
     import collections
+
     # case : if we have an iterable, check bound on min, max values
     if isinstance(arg, collections.Iterable):
         if len(arg) == 0:  # empty sequence: False
@@ -69,12 +71,12 @@ def bounded(arg, lower_bound=None, upper_bound=None):
             upper = arg < upper_bound
         else:
             upper = True
-    return (lower and upper)
+    return lower and upper
 
 
 def intersect(values, lower_bound=None, upper_bound=None):
     if not isinstance(values, list):
-        values = [values, ]
+        values = [values]
     tmin = np.amin(values)
     tmax = np.amax(values)
     if lower_bound is not None:
@@ -90,7 +92,7 @@ def intersect(values, lower_bound=None, upper_bound=None):
 
 def included(values, lower_bound=None, upper_bound=None):
     if not isinstance(values, list):
-        values = [values, ]
+        values = [values]
     tmin = np.amin(values)
     tmax = np.amax(values)
     if lower_bound is not None:
@@ -116,16 +118,19 @@ class FilterTypeError(FilterError):
 
 class FilterParamsError(FilterError):
     """Exception when parameters are not set for a given test."""
+
     pass
 
 
 class FilterLabelError(FilterError):
     """Exception when label is not (properly) set."""
+
     pass
 
 
 class FilterArgError(FilterError):
     """Exception raised when Argument format is not suitable."""
+
     pass
 
 
@@ -135,7 +140,8 @@ class FilterGeneral(object):
     Important property is to make the instance callable, and define with a
     human readable label the action of filter.
     """
-    _label = ''  # to be updated
+
+    _label = ""  # to be updated
     _type = None  # to be determined
     _obs = []  # declare observables that need to be computed prior to filter
 
@@ -150,11 +156,11 @@ class FilterGeneral(object):
     def __repr__(self):
         "Return string that can be called upon with built-in `eval` function"
         name = type(self).__name__
-        chain = name + '('
+        chain = name + "("
         for name, val in inspect.getmembers(self, predicate=self._isattr):
-            if name[0] != '_' and name != 'label':
-                chain += '{}={}, '.format(name, repr(val))
-        chain += ')'
+            if name[0] != "_" and name != "label":
+                chain += "{}={}, ".format(name, repr(val))
+        chain += ")"
         return chain
 
     def __str__(self):
@@ -163,7 +169,7 @@ class FilterGeneral(object):
             if isinstance(var, str):
                 return var
             else:
-                raise FilterLabelError('No string representation')
+                raise FilterLabelError("No string representation")
         except AttributeError as ae:
             raise FilterLabelError(ae)
 
@@ -177,7 +183,7 @@ class FilterGeneral(object):
     @property
     def label(self):
         "Get label of applied filter(s)"
-        if hasattr(self, '_label'):
+        if hasattr(self, "_label"):
             return self._label
         else:
             return None
@@ -186,9 +192,11 @@ class FilterGeneral(object):
     def label(self, arg):
         "Set/update label"
         if not isinstance(arg, str):
-            raise FilterArgError('The argument of the label setter \
-                                 should be string/unicode')
-        self._label = self._type + ', ' + arg
+            raise FilterArgError(
+                "The argument of the label setter \
+                                 should be string/unicode"
+            )
+        self._label = self._type + ", " + arg
         return
 
     @property
@@ -207,10 +215,10 @@ class FilterBoolean(FilterGeneral):
     def __repr__(self):
         "specific repr since FilterGeneral.__repr__ does not work"
         name = type(self).__name__
-        chain = name + '('
+        chain = name + "("
         for filt in self._sequence:
-            chain += '{}, '.format(repr(filt))
-        chain += ')'
+            chain += "{}, ".format(repr(filt))
+        chain += ")"
         return chain
 
     def _update_obs(self):
@@ -226,7 +234,7 @@ class FilterBoolean(FilterGeneral):
     @property
     def label(self):
         "Get label of applied filter(s)"
-        if hasattr(self, '_label'):
+        if hasattr(self, "_label"):
             return self._label
         else:
             return None
@@ -235,8 +243,10 @@ class FilterBoolean(FilterGeneral):
     def label(self, arg):
         "Set/update label"
         if not isinstance(arg, str):
-            raise FilterArgError('The argument of the label setter \
-                                 should be string/unicode')
+            raise FilterArgError(
+                "The argument of the label setter \
+                                 should be string/unicode"
+            )
         self._label = arg
         return
 
@@ -249,8 +259,8 @@ class FilterTRUE(FilterBoolean):
     """
 
     def __init__(self):
-        self._type = 'ANY'
-        self.label = 'Always True'
+        self._type = "ANY"
+        self.label = "Always True"
         return
 
     def func(self, *args):
@@ -274,6 +284,7 @@ class FilterAND(FilterBoolean):
     -----
     Defines a FilterTrue
     """
+
     def __init__(self, *filters):
         # register sequence of filters
         self._sequence = []
@@ -282,39 +293,39 @@ class FilterAND(FilterBoolean):
             if isinstance(filt, FilterAND):
                 for ffilt in filt._sequence:
                     self._sequence.append(ffilt)
-                    if ffilt._type not in types and ffilt._type != 'ANY':
+                    if ffilt._type not in types and ffilt._type != "ANY":
                         types.append(ffilt._type)
             elif isinstance(filt, collections.Iterable):
                 for ffilt in filt:
                     if not isinstance(ffilt, FilterGeneral):
-                        msg = ('arg: {} is not a Filter'.format(ffilt))
+                        msg = "arg: {} is not a Filter".format(ffilt)
                         raise FilterTypeError(msg)
                     self._sequence.append(ffilt)
-                    if ffilt._type not in types and ffilt._type != 'ANY':
+                    if ffilt._type not in types and ffilt._type != "ANY":
                         types.append(ffilt._type)
             elif isinstance(filt, FilterGeneral):
                 self._sequence.append(filt)
-                if filt._type not in types and filt._type != 'ANY':
+                if filt._type not in types and filt._type != "ANY":
                     types.append(filt._type)
             else:
-                raise FilterTypeError('arg: {} is not a Filter'.format(filt))
+                raise FilterTypeError("arg: {} is not a Filter".format(filt))
         if len(types) > 1:
             raise FilterTypeError
         elif len(types) == 0:
-            self._type = 'ANY'
+            self._type = "ANY"
         else:
             self._type = types[0]
         # set initial label
-        label = ''
+        label = ""
         # loop to complete label and check other things
         for index, filt in enumerate(self._sequence, start=0):
             if index == 0:
-                indent = ' '*4
+                indent = " " * 4
             else:
-                indent = 'AND '
+                indent = "AND "
             for line in StringIO(filt.label):
                 label += indent + line
-            label += '\n'
+            label += "\n"
         self.label = label.rstrip()
         # pulls up observable list from content
         self._update_obs()
@@ -346,39 +357,39 @@ class FilterOR(FilterBoolean):
             if isinstance(filt, FilterOR):
                 for ffilt in filt._sequence:
                     self._sequence.append(ffilt)
-                    if ffilt._type not in types and ffilt._type != 'ANY':
+                    if ffilt._type not in types and ffilt._type != "ANY":
                         types.append(ffilt._type)
             elif isinstance(filt, collections.Iterable):
                 for ffilt in filt:
                     if not isinstance(ffilt, FilterGeneral):
-                        msg = ('arg: {} is not a Filter'.format(ffilt))
+                        msg = "arg: {} is not a Filter".format(ffilt)
                         raise FilterTypeError(msg)
                     self._sequence.append(ffilt)
-                    if ffilt._type not in types and ffilt._type != 'ANY':
+                    if ffilt._type not in types and ffilt._type != "ANY":
                         types.append(ffilt._type)
             elif isinstance(filt, FilterGeneral):
                 self._sequence.append(filt)
-                if filt._type not in types and filt._type != 'ANY':
+                if filt._type not in types and filt._type != "ANY":
                     types.append(filt._type)
             else:
-                raise FilterTypeError('arg: {} is not a Filter'.format(filt))
+                raise FilterTypeError("arg: {} is not a Filter".format(filt))
         if len(types) > 1:
             raise FilterTypeError
         elif len(types) == 0:
-            self._type = 'ANY'
+            self._type = "ANY"
         else:
             self._type = types[0]
         # set initial label
-        label = ''
+        label = ""
         # loop to complete label and check other things
         for index, filt in enumerate(self._sequence):
             if index == 0:
-                indent = ' '*3
+                indent = " " * 3
             else:
-                indent = 'OR '
+                indent = "OR "
             for line in StringIO(filt.label):
                 label += indent + line
-            label += '\n'
+            label += "\n"
         self.label = label.rstrip()
         # pulls up observable list from content
         self._update_obs()
@@ -401,12 +412,13 @@ class FilterNOT(FilterBoolean):
     ----------
     filter : :class:`FilterGeneral` instance
     """
+
     def __init__(self, filt):
         if not isinstance(filt, FilterGeneral):
-            raise FilterTypeError('arg: {} is not a Filter'.format(filt))
-        self._sequence = [filt, ]
+            raise FilterTypeError("arg: {} is not a Filter".format(filt))
+        self._sequence = [filt]
         self._type = filt._type
-        self.label = 'NOT [' + filt.label + ']'
+        self.label = "NOT [" + filt.label + "]"
         # pulls up observable list from content
         self._update_obs()
         return
@@ -419,11 +431,14 @@ class FilterNOT(FilterBoolean):
 class FilterSet(object):
     """Collects filters of each type in a single object"""
 
-    def __init__(self, label=None,
-                 filtercell=FilterTRUE(),
-                 filterlineage=FilterTRUE(),
-                 filtertree=FilterTRUE(),
-                 filtercontainer=FilterTRUE()):
+    def __init__(
+        self,
+        label=None,
+        filtercell=FilterTRUE(),
+        filterlineage=FilterTRUE(),
+        filtertree=FilterTRUE(),
+        filtercontainer=FilterTRUE(),
+    ):
         """Instantiate a filter set.
 
         Parameters
@@ -448,17 +463,24 @@ class FilterSet(object):
         self.container_filter = filtercontainer
         self._collect_hidden_obs()
 
-        self._named_list = [('label', self.label),
-                            ('filtercell', self.cell_filter),
-                            ('filterlineage', self.lineage_filter),
-                            ('filtertree', self.colony_filter),
-                            ('filtercontainer', self.container_filter)]
+        self._named_list = [
+            ("label", self.label),
+            ("filtercell", self.cell_filter),
+            ("filterlineage", self.lineage_filter),
+            ("filtertree", self.colony_filter),
+            ("filtercontainer", self.container_filter),
+        ]
         return
 
     def _collect_hidden_obs(self):
         """Returns the list of hidden observables (needed for computations)"""
         self._obs = []
-        for filt in [self.cell_filter, self.lineage_filter, self.colony_filter, self.container_filter]:
+        for filt in [
+            self.cell_filter,
+            self.lineage_filter,
+            self.colony_filter,
+            self.container_filter,
+        ]:
             for suppl_obs in filt._obs:
                 if suppl_obs not in self._obs:
                     self._obs.append(suppl_obs)
@@ -471,26 +493,29 @@ class FilterSet(object):
 
     def __repr__(self):
         name = type(self).__name__
-        chain = name + '('
+        chain = name + "("
         for (name, item) in self._named_list:
-            chain += '{}={}, '.format(name, repr(item))
-        chain += ')'
+            chain += "{}={}, ".format(name, repr(item))
+        chain += ")"
         return chain
 
     def __str__(self):
-        label = ''
+        label = ""
         if self.label is not None:
-            label += 'label: {}\n'.format(self.label)
-        for filt in [self.cell_filter, self.lineage_filter, self.colony_filter,
-                     self.container_filter]:
-            if filt._type == 'ANY':
+            label += "label: {}\n".format(self.label)
+        for filt in [
+            self.cell_filter,
+            self.lineage_filter,
+            self.colony_filter,
+            self.container_filter,
+        ]:
+            if filt._type == "ANY":
                 continue
             for index, line in enumerate(StringIO(str(filt))):
                 if index == 0:
-                    label += '* '
+                    label += "* "
                 else:
-                    label += '  '
+                    label += "  "
                 label += line
-            label += '\n'
+            label += "\n"
         return label.rstrip()
-    

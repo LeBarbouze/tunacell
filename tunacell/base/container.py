@@ -12,6 +12,7 @@ import numpy as np
 import logging
 
 import sys
+
 if sys.version_info[0] < 3:
     import pathlib2 as pathlib
 else:
@@ -109,14 +110,14 @@ class Container(object):
         self.trees = []
 
         # cases against filetype
-        if self.filetype == 'text':
+        if self.filetype == "text":
             # identify absolute path to container file
             self.label = path.stem
             # Inherits datatype from Experiment datatype
             self.datatype = exp.datatype
-        elif self.filetype == 'supersegger':
+        elif self.filetype == "supersegger":
             self.label = path.stem
-        elif self.filetype == 'simu':
+        elif self.filetype == "simu":
             pass
 
         # metadata
@@ -124,8 +125,9 @@ class Container(object):
         # acquisition period
         self.period = self.metadata.period
 
-    def read_data(self, build=True, prefilt=None, extend_observables=False,
-                  report_NaNs=True):
+    def read_data(
+        self, build=True, prefilt=None, extend_observables=False, report_NaNs=True
+    ):
         """Read the damn file
 
         Parameters
@@ -141,22 +143,25 @@ class Container(object):
         self.trees = []
 
         # TEXT FILETYPE
-        if self.filetype == 'text':
+        if self.filetype == "text":
             # Read cells from file
-            arr = text.get_array(str(self.abspath), self.datatype, delimiter='\t')
-        elif self.filetype == 'supersegger':
+            arr = text.get_array(str(self.abspath), self.datatype, delimiter="\t")
+        elif self.filetype == "supersegger":
             arr = supersegger.load_container(self.abspath)
-        elif self.filetype == 'simu':
+        elif self.filetype == "simu":
             pass
 
         self.data = arr
 
         if build:
-            if self.filetype == 'text':
-                self.cells = text.build_cells(arr, container=self,
-                                              extend_observables=extend_observables,
-                                              report_NaNs=report_NaNs)
-            elif self.filetype == 'supersegger':
+            if self.filetype == "text":
+                self.cells = text.build_cells(
+                    arr,
+                    container=self,
+                    extend_observables=extend_observables,
+                    report_NaNs=report_NaNs,
+                )
+            elif self.filetype == "supersegger":
                 self.cells = supersegger.build_cells(arr, container=self)
 
             self._build(prefilt=prefilt)
@@ -184,14 +189,14 @@ class Container(object):
         """
         if self.cells is not None:
             filiate_from_bpointer(self.cells)
-#            for cell in self.cells:
-#                childs = []
-#                for cc in self.cells:
-#                    if cc.bpointer == cell.identifier:
-#                        childs.append(cc)
-#                        cc.parent = cell
-#                        cc.set_division_event()
-#                cell.childs = childs
+        #            for cell in self.cells:
+        #                childs = []
+        #                for cc in self.cells:
+        #                    if cc.bpointer == cell.identifier:
+        #                        childs.append(cc)
+        #                        cc.parent = cell
+        #                        cc.set_division_event()
+        #                cell.childs = childs
         return
 
     def prefilter(self, filt=None, verbose=False):
@@ -219,10 +224,10 @@ class Container(object):
         """
         erased = []
         if verbose:
-            msg = 'Prior to filter, we have {} cells.'.format(len(self.cells))
+            msg = "Prior to filter, we have {} cells.".format(len(self.cells))
             print(msg)
         # check for supplementary observables to be computed
-        raw_obs, func_obs = set_observable_list(filters=[filt, ])
+        raw_obs, func_obs = set_observable_list(filters=[filt])
 
         # compute suppl obs for all cells
         if raw_obs:
@@ -241,7 +246,7 @@ class Container(object):
                     for ch in cell.childs:
                         ch.bpointer = None
         if verbose:
-            msg = '{} cells do not pass filter.'.format(len(erased))
+            msg = "{} cells do not pass filter.".format(len(erased))
             print(msg)
         for cell in erased:
             self.cells.remove(cell)  # otherwise would be considered root
@@ -252,20 +257,20 @@ class Container(object):
             for obs in raw_obs:
                 del cell._sdata[obs.label]
         if verbose:
-            msg = 'After filtering, we get {} cells.'.format(len(self.cells))
+            msg = "After filtering, we get {} cells.".format(len(self.cells))
             print(msg)
-#        self.metadata.filters.append(repr(boofunc))
+        #        self.metadata.filters.append(repr(boofunc))
         return
 
     def make_trees(self):
         """Build trees from list of cells."""
         self.trees = build_recursively_from_cells(self.cells, container=self)
-#        self.trees = []
-#        for cell in self.cells:
-#            if cell.bpointer is None:  # test whether cell is root
-#                tree = Colony(container=self)
-#                tree.add_cell_recursive(cell)
-#                self.trees.append(tree)
+        #        self.trees = []
+        #        for cell in self.cells:
+        #            if cell.bpointer is None:  # test whether cell is root
+        #                tree = Colony(container=self)
+        #                tree.add_cell_recursive(cell)
+        #                self.trees.append(tree)
         return
 
     # TODO : postfiltering does not work with filter involving observables
@@ -296,8 +301,8 @@ class Container(object):
         """
         new_trees = []
         if verbose:
-            print('Starting postfiltering\n')
-            print('Prior to filtering: {0} trees.'.format(len(self.trees)))
+            print("Starting postfiltering\n")
+            print("Prior to filtering: {0} trees.".format(len(self.trees)))
 
         for t in self.trees:
             outliers = []
@@ -310,9 +315,9 @@ class Container(object):
                         outliers.append(n)
 
             # sort outliers from leaves to root
-            soutliers = sorted(outliers,
-                               key=lambda x: t.level(x.identifier),
-                               reverse=True)
+            soutliers = sorted(
+                outliers, key=lambda x: t.level(x.identifier), reverse=True
+            )
 
             # with such ordering, no need for recursive action
             for n in soutliers:
@@ -333,10 +338,10 @@ class Container(object):
         self.cells = [cell for tree in self.trees for cell in tree.all_nodes()]
 
         if verbose and filt is not None:
-            msg = 'Post-filtering on cells: '
-            msg += '{0} trees.'.format(len(self.trees))
+            msg = "Post-filtering on cells: "
+            msg += "{0} trees.".format(len(self.trees))
             print(msg)
-#        self.metadata.filters.append(repr(boofunc))
+        #        self.metadata.filters.append(repr(boofunc))
         return
 
     def get_cells(self):
@@ -361,7 +366,7 @@ class Container(object):
             msg += " in this container {}".format(self.label)
             raise ParsingContainerError(msg)
 
-    def iter_colonies(self, filter_for_colonies='from_fset', size=None, shuffle=False):
+    def iter_colonies(self, filter_for_colonies="from_fset", size=None, shuffle=False):
         """Iterates through (already constructed colonies).
 
         Parameters
@@ -372,9 +377,9 @@ class Container(object):
            maximal number of colonies before stopping iteration
         shuffle : bool
         """
-        if filter_for_colonies is 'from_fset':
+        if filter_for_colonies is "from_fset":
             colony_filter = self.exp.fset.colony_filter
-        elif filter_for_colonies is None or filter_for_colonies is 'none':
+        elif filter_for_colonies is None or filter_for_colonies is "none":
             colony_filter = FilterTRUE()
         elif isinstance(filter_for_colonies, FilterTree):
             colony_filter = filter_for_colonies
@@ -395,20 +400,20 @@ class Container(object):
         return
 
     def __repr__(self):
-        msg = 'Container root: {}\n'.format(self.abspath)
+        msg = "Container root: {}\n".format(self.abspath)
         if self.cells is not None:
-            msg += 'Cells: {}\n'.format(len(self.cells))
-#            msg += '\n'.join([repr(c) for c in self.cells])
+            msg += "Cells: {}\n".format(len(self.cells))
+        #            msg += '\n'.join([repr(c) for c in self.cells])
         else:
-            msg += 'NO CELL\n'
+            msg += "NO CELL\n"
         if self.trees is not None:
-            msg += 'Trees: {}\n'.format(len(self.trees))
+            msg += "Trees: {}\n".format(len(self.trees))
         else:
-            msg += 'NO TREE\n'
+            msg += "NO TREE\n"
         msg += repr(self.metadata)
         return msg
 
-    def write_raw_text(self, path='.'):
+    def write_raw_text(self, path="."):
         """Write data to text files.
 
         This function should be equivalent to copying text files...
@@ -418,25 +423,25 @@ class Container(object):
         for cell in cells:
             arrays.append(cell.data)
         array = np.concatenate(arrays)
-        fn = os.path.join(path, self.label + '.txt')
+        fn = os.path.join(path, self.label + ".txt")
         fmt = []
-        p = re.compile('(\w)(\d+)')
+        p = re.compile("(\w)(\d+)")
         for key, value in self.datatype:
             m = p.search(value)
             if m:
                 kind, size = m.groups()
                 # strings
-                if kind == 'S':
-                    add = '%{}c'.format(size)
+                if kind == "S":
+                    add = "%{}c".format(size)
                 # integers
-                elif kind in ['u', 'i']:
-                    add = '%d'
+                elif kind in ["u", "i"]:
+                    add = "%d"
                 else:
-                    add = '%.8e'
+                    add = "%.8e"
             else:
-                add = '%.8e'
+                add = "%.8e"
             fmt.append(add)
-        np.savetxt(fn, array, fmt=fmt, delimiter='\t')
+        np.savetxt(fn, array, fmt=fmt, delimiter="\t")
         return
 
 

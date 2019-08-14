@@ -37,9 +37,9 @@ class Parser(object):
 
     def __init__(self, exp=None, filter_set=None):
         if exp is None:
-            print('Use parser.load_experiment() to load from path to file')
+            print("Use parser.load_experiment() to load from path to file")
         else:
-            if hasattr(exp, 'iter_containers'):
+            if hasattr(exp, "iter_containers"):
                 self._experiment = exp
             else:
                 self.load_experiment(exp)
@@ -49,7 +49,7 @@ class Parser(object):
             fset = FilterSet()
             self.fset = fset
         else:
-            raise TypeError('filter_set is not a FilterSet instance')
+            raise TypeError("filter_set is not a FilterSet instance")
         self._sample_list = []  # used for small sample visualization
         return
 
@@ -69,7 +69,7 @@ class Parser(object):
         self._experiment = exp
         return
 
-    def load_experiment(self, path, filetype='text'):
+    def load_experiment(self, path, filetype="text"):
         """Loads an experiment from path to file.
 
         Parameters
@@ -104,7 +104,7 @@ class Parser(object):
         if sample_id not in self._sample_list:
             self._sample_list.append(sample_id)
         else:
-            print('Sample {} already stored'.format(sample_id))
+            print("Sample {} already stored".format(sample_id))
         return
 
     def _add_random_sample(self, container_label=None):
@@ -128,18 +128,26 @@ class Parser(object):
             while empty:
                 path = np.random.choice(exp.containers)
                 label = path.stem
-                container = exp.get_container(label, read=True,
-                                              build=True, prefilt=filtcell,
-                                              extend_observables=False,
-                                              report_NaNs=True)
+                container = exp.get_container(
+                    label,
+                    read=True,
+                    build=True,
+                    prefilt=filtcell,
+                    extend_observables=False,
+                    report_NaNs=True,
+                )
                 empty = len(container.cells) == 0
         else:
             try:
                 err = None
-                container = exp.get_container(container_label, read=True,
-                                              build=True, prefilt=filtcell,
-                                              extend_observables=False,
-                                              report_NaNs=True)
+                container = exp.get_container(
+                    container_label,
+                    read=True,
+                    build=True,
+                    prefilt=filtcell,
+                    extend_observables=False,
+                    report_NaNs=True,
+                )
                 label = container.label
             except ParsingContainerError as e:
                 err = e
@@ -154,15 +162,15 @@ class Parser(object):
                 self._add_random_sample(None)
                 return
         cell = np.random.choice(container.cells)
-        item['container_label'] = label
-        item['cellID'] = cell.identifier
+        item["container_label"] = label
+        item["cellID"] = cell.identifier
         # we're just checking that current item has not be drawn previously
         if item not in self._sample_list:
             self._add_atomic_sample(item)
         # try again dude
         # COMMENTED SINCE IT CAN LOOP INDEFINITELY
-#        else:
-#            self._add_random_sample(container_label=container_label)
+        #        else:
+        #            self._add_random_sample(container_label=container_label)
         return
 
     def add_sample(self, *args):
@@ -198,21 +206,25 @@ class Parser(object):
                     label, ext = os.path.splitext(os.path.basename(label))
                 elif isinstance(arg, dict):
                     try:
-                        label = arg['container_label']
-                        cid = str(arg['cellID'])
+                        label = arg["container_label"]
+                        cid = str(arg["cellID"])
                     except KeyError as k:
                         msg = k
-                        msg += '\nCheck input.'
+                        msg += "\nCheck input."
                         warnings.warn(msg)
                         return
-                label = label.replace('data_', '')
+                label = label.replace("data_", "")
                 try:
                     # a Parsing error is thrown if label is incorrect
-                    container = exp.get_container(label, read=True,
-                                                  build=True, prefilt=filtcell,
-                                                  extend_observables=False,
-                                                  report_NaNs=True)
-                    item['container_label'] = label
+                    container = exp.get_container(
+                        label,
+                        read=True,
+                        build=True,
+                        prefilt=filtcell,
+                        extend_observables=False,
+                        report_NaNs=True,
+                    )
+                    item["container_label"] = label
                     # we'll throw another Parsing error if cell not found
                     found = False
                     for cell in container.cells:
@@ -220,14 +232,14 @@ class Parser(object):
                             found = True
                             break
                     if not found:
-                        msg = 'cell {} not found in'.format(cid)
-                        msg += ' container {}'.format(label)
+                        msg = "cell {} not found in".format(cid)
+                        msg += " container {}".format(label)
                         raise ParsingContainerError(msg)
-                    item['cellID'] = cid
+                    item["cellID"] = cid
                 # catching Parsing errors and stopping
                 except ParsingContainerError as pe:
-                    msg = '{}'.format(pe)
-                    msg += '\nCheck input.'
+                    msg = "{}".format(pe)
+                    msg += "\nCheck input."
                     warnings.warn(msg)
                     return  # exit
                 self._add_atomic_sample(item)
@@ -237,7 +249,7 @@ class Parser(object):
     def samples(self):
         return self._sample_list
 
-    def get_sample(self, index, level='cell'):
+    def get_sample(self, index, level="cell"):
         """Return sample corresponding to index.
 
         Parameters
@@ -252,11 +264,11 @@ class Parser(object):
             structure level corresponding to sample id
         """
         sample = self.samples[index]
-        if level == 'cell':
+        if level == "cell":
             out = self.get_cell(sample)
-        elif level == 'lineage':
+        elif level == "lineage":
             out = self.get_lineage(sample)
-        elif level == 'colony':
+        elif level == "colony":
             out = self.get_colony(sample)
         return out
 
@@ -277,14 +289,18 @@ class Parser(object):
             sample_id = self.samples[sample_id]
         exp = self.experiment
         filtcells = self.fset.cell_filter
-        label = sample_id['container_label']
-        container = exp.get_container(label, read=True, build=True,
-                                      prefilt=filtcells,
-                                      extend_observables=True,
-                                      report_NaNs=True)
+        label = sample_id["container_label"]
+        container = exp.get_container(
+            label,
+            read=True,
+            build=True,
+            prefilt=filtcells,
+            extend_observables=True,
+            report_NaNs=True,
+        )
         out = None
         for cell in container.cells:
-            if cell.identifier == sample_id['cellID']:
+            if cell.identifier == sample_id["cellID"]:
                 out = cell
                 break
         return out
@@ -306,14 +322,18 @@ class Parser(object):
             sample_id = self.samples[sample_id]
         exp = self.experiment
         filtcells = self.fset.cell_filter
-        label = sample_id['container_label']
-        container = exp.get_container(label, read=True, build=True,
-                                      prefilt=filtcells,
-                                      extend_observables=True,
-                                      report_NaNs=True)
+        label = sample_id["container_label"]
+        container = exp.get_container(
+            label,
+            read=True,
+            build=True,
+            prefilt=filtcells,
+            extend_observables=True,
+            report_NaNs=True,
+        )
         out = None
         for colony in container.trees:
-            if colony.contains(sample_id['cellID']):
+            if colony.contains(sample_id["cellID"]):
                 out = colony
                 break
         return out
@@ -337,7 +357,7 @@ class Parser(object):
         ptl = colony.paths_to_leaves()
         candidates = []
         for path in ptl:
-            if sample_id['cellID'] in path:
+            if sample_id["cellID"] in path:
                 candidates.append(path)
         candidates.sort(key=lambda x: len(x), reverse=True)
         lineage = Lineage(colony, candidates[0])
@@ -359,11 +379,15 @@ class Parser(object):
             sample_id = self.samples[sample_id]
         exp = self.experiment
         filtcells = self.fset.cell_filter
-        label = sample_id['container_label']
-        container = exp.get_container(label, read=True, build=True,
-                                      prefilt=filtcells,
-                                      extend_observables=True,
-                                      report_NaNs=True)
+        label = sample_id["container_label"]
+        container = exp.get_container(
+            label,
+            read=True,
+            build=True,
+            prefilt=filtcells,
+            extend_observables=True,
+            report_NaNs=True,
+        )
         return container
 
     def clear_samples(self):
@@ -375,27 +399,30 @@ class Parser(object):
         """Remove sample of index in sample list."""
         item = self._sample_list.pop(index)
         if verbose:
-            print('Item pointed by: ')
-            print('Container: {}, cellID: {} '.format(item['container_label'],
-                                                      item['cellID']))
-            print('has been removed from sample list.')
+            print("Item pointed by: ")
+            print(
+                "Container: {}, cellID: {} ".format(
+                    item["container_label"], item["cellID"]
+                )
+            )
+            print("has been removed from sample list.")
         return
 
     def info_samples(self):
         """Table output showing stored samples."""
         if not self._sample_list:
-            print('No samples have been added yet. Use .add_sample().')
+            print("No samples have been added yet. Use .add_sample().")
             return
         else:
-            tab = [['index', 'container', 'cell']]
+            tab = [["index", "container", "cell"]]
             for index, sample_id in enumerate(self._sample_list):
-                tab.append([index, sample_id['container_label'], sample_id['cellID']])
-            return tabulate(tab, headers='firstrow')
+                tab.append([index, sample_id["container_label"], sample_id["cellID"]])
+            return tabulate(tab, headers="firstrow")
 
     def __repr__(self):
         return self.info_samples()
 
-    def iter_containers(self, mode='samples', size=None):
+    def iter_containers(self, mode="samples", size=None):
         """Iterate through valid containers.
 
         Parameters
@@ -411,11 +438,14 @@ class Parser(object):
             filtering removed outlier cells, containers
         """
         parsed_container_names = []
-        if mode == 'samples':
+        if mode == "samples":
             count = 0
             for sample_id in self.samples:
                 container = self.get_container(sample_id)
-                if self.fset.container_filter(container) and container.label not in parsed_container_names:
+                if (
+                    self.fset.container_filter(container)
+                    and container.label not in parsed_container_names
+                ):
                     parsed_container_names.append(container.label)
                     yield container
                     count += 1
@@ -423,7 +453,7 @@ class Parser(object):
                         break
         return
 
-    def iter_colonies(self, mode='samples', size=None):
+    def iter_colonies(self, mode="samples", size=None):
         """Iterate through valid colonies.
 
         Parameters
@@ -441,7 +471,7 @@ class Parser(object):
         """
         colfilt = self.fset.colony_filter
         parsed_colony_roots = []
-        if mode == 'samples':
+        if mode == "samples":
             count = 0
             for sample_id in self.samples:
                 colony = self.get_colony(sample_id)
@@ -453,7 +483,7 @@ class Parser(object):
                         break
         return
 
-    def iter_lineages(self, mode='samples', size=None):
+    def iter_lineages(self, mode="samples", size=None):
         """Iterate through valid lineages.
 
         Parameters
@@ -470,18 +500,21 @@ class Parser(object):
             filtering removed outlier cells, containers, colonies, and lineages
         """
         parsed_lineage_idseqs = []
-        if mode == 'samples':
+        if mode == "samples":
             count = 0
             for sample_id in self.samples:
                 lineage = self.get_lineage(sample_id)
-                if self.fset.lineage_filter(lineage) and lineage.idseq not in parsed_lineage_idseqs:
+                if (
+                    self.fset.lineage_filter(lineage)
+                    and lineage.idseq not in parsed_lineage_idseqs
+                ):
                     parsed_lineage_idseqs.append(lineage.idseq)
                     yield lineage
                     count += 1
                     if size is not None and count >= size:
                         break
 
-    def iter_cells(self, mode='samples', size=None):
+    def iter_cells(self, mode="samples", size=None):
         """Iterate through valid cells.
 
         Parameters
@@ -497,7 +530,7 @@ class Parser(object):
         cell : :class:`Cell` instance
             filtering removed outlier cells, containers, colonies, and lineages
         """
-        if mode == 'samples':
+        if mode == "samples":
             count = 0
             for sample_id in self.samples:
                 cell = self.get_cell(sample_id)

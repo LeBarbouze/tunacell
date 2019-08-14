@@ -113,8 +113,10 @@ class Experiment(object):
         # let's go
         self.abspath = os.path.abspath(os.path.expanduser(path))
         self.path_root = pathlib.Path(self.abspath)  # same as abspath, but as a Path
-        self.path_internals = self.path_root / 'internals'  # defines path to internals folder
-        self.path_analysis = self.path_root / 'analysis'
+        self.path_internals = (
+            self.path_root / "internals"
+        )  # defines path to internals folder
+        self.path_analysis = self.path_root / "analysis"
         # remove extension
         label, extension = os.path.splitext(os.path.basename(self.abspath))
         self.label = label

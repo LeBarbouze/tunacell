@@ -84,13 +84,13 @@ class UnivariateConditioned(object):
         if applied_filter is not None:
             self.condition = repr(applied_filter)  # can be called later...
         else:
-            self.condition = 'master'
+            self.condition = "master"
         # define attributes that store data
         self.onepoint = None  # Numpy structured array (time, count, av, sd)
         self.count_two = None  # 2d array
         self.autocorr = None  # 2d array
 
-        self._keys = ('array', 'count_two', 'autocorr')
+        self._keys = ("array", "count_two", "autocorr")
         self.stationary = None  # StationaryUnivariateConditioned instance
         self.two = {}  # stores cross-correlation results: key=str(other obs)
         self.two_stationary = {}
@@ -112,21 +112,21 @@ class UnivariateConditioned(object):
     @property
     def time(self):
         if self.onepoint is not None:
-            return self.onepoint['time']
+            return self.onepoint["time"]
         else:
             return None
 
     @property
     def count_one(self):
         if self.onepoint is not None:
-            return self.onepoint['counts']
+            return self.onepoint["counts"]
         else:
             return None
 
     @property
     def average(self):
         if self.onepoint is not None:
-            return self.onepoint['average']
+            return self.onepoint["average"]
         else:
             return None
 
@@ -154,45 +154,47 @@ class UnivariateConditioned(object):
             leave to None to canonical analysis path under the experiment
             analysis folder
         """
-        ext = '.tsv'
-        add_name = '_' + self.univariate.region.name
+        ext = ".tsv"
+        add_name = "_" + self.univariate.region.name
         condition_path = self._get_path(user_root=path, write=True)
-        ffmt = '%.8e'  # floating point numbers
-        ifmt = '%d'  # integers
-        bname = 'onepoint' + add_name + ext
+        ffmt = "%.8e"  # floating point numbers
+        ifmt = "%d"  # integers
+        bname = "onepoint" + add_name + ext
         fname = os.path.join(condition_path, bname)
         names = self.onepoint.dtype.names
-        header = '\t'.join(names)
-        fmt = [ifmt if 'count' in n_ else ffmt for n_ in names]
-        np.savetxt(fname, self.onepoint, fmt=fmt,
-                   delimiter='\t', comments='', header=header)
+        header = "\t".join(names)
+        fmt = [ifmt if "count" in n_ else ffmt for n_ in names]
+        np.savetxt(
+            fname, self.onepoint, fmt=fmt, delimiter="\t", comments="", header=header
+        )
 
-        for key in ['count_two', 'autocorr']:
+        for key in ["count_two", "autocorr"]:
             array = self[key]
             bname = key + add_name + ext
             fname = os.path.join(condition_path, bname)
-            if 'count' in key:
+            if "count" in key:
                 fmt = ifmt
             else:
                 fmt = ffmt
-            np.savetxt(fname, array, fmt=fmt, delimiter='\t')
+            np.savetxt(fname, array, fmt=fmt, delimiter="\t")
         return
 
     def read_text(self, path=None):
         """Initialize object by reading text output."""
-        ext = '.tsv'
-        add_name = '_' + self.univariate.region.name
+        ext = ".tsv"
+        add_name = "_" + self.univariate.region.name
         condition_path = self._get_path(user_root=path, write=False)
         # read
-        bname = 'onepoint' + add_name + ext
+        bname = "onepoint" + add_name + ext
         fname = os.path.join(condition_path, bname)
         if not os.path.exists(fname):
             raise analysis.MissingFileError(fname)
-        array = np.genfromtxt(fname, delimiter='\t',
-                              dtype=(float, int, float, float), names=True)
+        array = np.genfromtxt(
+            fname, delimiter="\t", dtype=(float, int, float, float), names=True
+        )
         self.onepoint = array
-        for key in ['count_two', 'autocorr']:
-            if 'count' in key:
+        for key in ["count_two", "autocorr"]:
+            if "count" in key:
                 dtype = int
             else:
                 dtype = float
@@ -200,16 +202,16 @@ class UnivariateConditioned(object):
             fname = os.path.join(condition_path, bname)
             if not os.path.exists(fname):
                 raise analysis.MissingFileError(fname)
-            array = np.genfromtxt(fname, delimiter='\t', dtype=dtype)
+            array = np.genfromtxt(fname, delimiter="\t", dtype=dtype)
             self[key] = array
         return
 
     def __setitem__(self, key, val):
         if key not in self._keys:
             msg = 'key "{}" is not valid.'.format(key)
-            msg += '\nChoose a key in following list:'
+            msg += "\nChoose a key in following list:"
             for key in self._keys:
-                msg += '\n- {}'.format(key)
+                msg += "\n- {}".format(key)
             warnings.warn(msg)
             val = None
         else:
@@ -219,9 +221,9 @@ class UnivariateConditioned(object):
     def __getitem__(self, key):
         if key not in self._keys:
             msg = 'key "{}" is not valid.'.format(key)
-            msg += '\nChoose a key in following list:'
+            msg += "\nChoose a key in following list:"
             for key in self._keys:
-                msg += '\n- {}'.format(key)
+                msg += "\n- {}".format(key)
             warnings.warn(msg)
             val = None
         else:
@@ -231,30 +233,31 @@ class UnivariateConditioned(object):
     def info(self):
         """Prints info on stored data."""
         if self.time is None:
-            msg = (' NO VALUES')
+            msg = " NO VALUES"
             return msg
-        msg = (' One-point arrays' + '\n'
-               '  Times:' + '\n'
-               '   {}'.format(self.time) + '\n'
-               '   ({} values)'.format(len(self.time)) + '\n'
-               '   min value {}'.format(np.amin(self.time)) + '\n'
-               '   max value {}'.format(np.amax(self.time)) + '\n'
-               '  Sample counts:' + '\n'
-               '   {}'.format(self.count_one) + '\n'
-               '   ({} values)'.format(len(self.count_one)) + '\n'
-               '   min value {}'.format(np.amin(self.count_one)) + '\n'
-               '   max value {}'.format(np.amax(self.count_one)) + '\n'
-               '   average   {}'.format(np.mean(self.count_one)) + '\n'
-               '  Sample average:' + '\n'
-               '   {}'.format(self.average) + '\n'
-               '   ({} values)'.format(len(self.average)) + '\n'
-               '   min value {}'.format(np.amin(self.average)) + '\n'
-               '   max value {}'.format(np.amax(self.average)) + '\n'
-               '   average   {}'.format(np.mean(self.average)) + '\n'
-               ' Two-point matrices:' + '\n'
-               '   Sample counts:' + '\n'
-               '    shape    {}'.format(self.count_two.shape) + '\n'
-               )
+        msg = (
+            " One-point arrays" + "\n"
+            "  Times:" + "\n"
+            "   {}".format(self.time) + "\n"
+            "   ({} values)".format(len(self.time)) + "\n"
+            "   min value {}".format(np.amin(self.time)) + "\n"
+            "   max value {}".format(np.amax(self.time)) + "\n"
+            "  Sample counts:" + "\n"
+            "   {}".format(self.count_one) + "\n"
+            "   ({} values)".format(len(self.count_one)) + "\n"
+            "   min value {}".format(np.amin(self.count_one)) + "\n"
+            "   max value {}".format(np.amax(self.count_one)) + "\n"
+            "   average   {}".format(np.mean(self.count_one)) + "\n"
+            "  Sample average:" + "\n"
+            "   {}".format(self.average) + "\n"
+            "   ({} values)".format(len(self.average)) + "\n"
+            "   min value {}".format(np.amin(self.average)) + "\n"
+            "   max value {}".format(np.amax(self.average)) + "\n"
+            "   average   {}".format(np.mean(self.average)) + "\n"
+            " Two-point matrices:" + "\n"
+            "   Sample counts:" + "\n"
+            "    shape    {}".format(self.count_two.shape) + "\n"
+        )
         return msg
 
     def _onepoint_as_dataframe(self):
@@ -263,16 +266,19 @@ class UnivariateConditioned(object):
     def _twopoint_as_dataframe(self):
         # unroll
         n_items = len(self.time)
-        row_times = np.concatenate([np.array(n_items * [self.time[i], ]) for i in range(n_items)])
+        row_times = np.concatenate(
+            [np.array(n_items * [self.time[i]]) for i in range(n_items)]
+        )
         col_times = np.concatenate([self.time for item in range(n_items)])
         counts = self.count_two.flatten()
         autocov = self.autocorr.flatten()
-        names = ['time-row', 'time-col', 'counts', 'autocovariance']
-        data = {'time-row': row_times,
-                'time-col': col_times,
-                'counts': counts,
-                'autocovariance': autocov,
-                }
+        names = ["time-row", "time-col", "counts", "autocovariance"]
+        data = {
+            "time-row": row_times,
+            "time-col": col_times,
+            "counts": counts,
+            "autocovariance": autocov,
+        }
         return pd.DataFrame(data, columns=names)
 
     def display_onepoint(self, item_max=10):
@@ -332,14 +338,14 @@ class Univariate(object):
         when a parameter is missing (prints out which parameter)
     """
 
-    def __init__(self, exp, obs, eval_times=None, region='ALL', cset=[]):
+    def __init__(self, exp, obs, eval_times=None, region="ALL", cset=[]):
         self.obs = obs
         self.exp = exp
         self.cset = cset
         if eval_times is None:
             self._read_eval_times()
             if self.eval_times is None:
-                raise UnivariateInitError('missing eval_times')
+                raise UnivariateInitError("missing eval_times")
         else:
             self.eval_times = eval_times
         self.cset = cset
@@ -350,15 +356,15 @@ class Univariate(object):
             self.region = regs.get(region)
         else:
             regs = Regions(exp)
-            self.region = regs.get('ALL')
+            self.region = regs.get("ALL")
         # create as many nodes as there are conditions in cset
         self._items = {}
         self._condition_labels = []
         # Instantiate the master UnivariateConditioned (no condition)
         master = UnivariateConditioned(self, applied_filter=None)
         # store it as 'master'
-        self._items['master'] = master
-        self._condition_labels.append('master')
+        self._items["master"] = master
+        self._condition_labels.append("master")
         # create for each provided condition in cset
         self._add_conditions(cset)
         return
@@ -371,7 +377,7 @@ class Univariate(object):
         cset : list of :class:`FilterSet` instances
         """
         for cdt in cset:
-            cdt_repr = '{}'.format(repr(cdt))
+            cdt_repr = "{}".format(repr(cdt))
             self._condition_labels.append(cdt_repr)
             self._items[cdt_repr] = UnivariateConditioned(self, cdt)
         return
@@ -382,16 +388,16 @@ class Univariate(object):
         This one can be applied after reading data so as to update eval_times
         """
         master = self.master
-        logger.debug('Reading evaluation times from master')
+        logger.debug("Reading evaluation times from master")
         try:
             master.read_text()
             self.eval_times = master.time
-            logger.debug('Evaluation times import successful')
+            logger.debug("Evaluation times import successful")
         except (analysis.MissingFileError, analysis.MissingFolderError):
-            msg = 'Nothing to read there. Think of computing instead'
+            msg = "Nothing to read there. Think of computing instead"
             print(msg)
             self.eval_times = None
-            logger.debug('Evaluation times import failure')
+            logger.debug("Evaluation times import failure")
         return
 
     def __getitem__(self, key):
@@ -404,35 +410,37 @@ class Univariate(object):
     @property
     def master(self):
         """There's always a master (no condition)"""
-        return self['master']
+        return self["master"]
 
     def _get_obs_path(self, user_root=None, write=False):
         """Get observable path"""
         obs = self.obs
         exp = self.exp
         fset = self.exp.fset
-        analysis_path = analysis.get_analysis_path(exp, user_abspath=user_root,
-                                               write=write)
+        analysis_path = analysis.get_analysis_path(
+            exp, user_abspath=user_root, write=write
+        )
         res = analysis.get_filter_path(analysis_path, fset, write=write)
         index_filter, filter_path = res
         obs_path = analysis.get_observable_path(filter_path, obs, write=write)
         return obs_path
 
     def __str__(self):
-        msg = ('--------------------------' + '\n'
-               'STATISTICS OF THE DYNAMICS' + '\n'
-               '--------------------------' + '\n'
-               '' + '\n'
-               'OBSERVABLE: {}'.format(self.obs.label) + '\n'
-               'CONDITIONS:' + '\n'
-               '  * `master` (no condition)' + '\n'
-               )
+        msg = (
+            "--------------------------" + "\n"
+            "STATISTICS OF THE DYNAMICS" + "\n"
+            "--------------------------" + "\n"
+            "" + "\n"
+            "OBSERVABLE: {}".format(self.obs.label) + "\n"
+            "CONDITIONS:" + "\n"
+            "  * `master` (no condition)" + "\n"
+        )
         for condition_label in self._condition_labels[1:]:
-            msg += '  * `{}`'.format(condition_label) + '\n'
-        msg += 'BINNING:\n{}'.format(self.indexify)
-        msg += '\n'
-        msg += 'Showing info for `master`:' + '\n'
-        msg += str(self._items['master'].info())
+            msg += "  * `{}`".format(condition_label) + "\n"
+        msg += "BINNING:\n{}".format(self.indexify)
+        msg += "\n"
+        msg += "Showing info for `master`:" + "\n"
+        msg += str(self._items["master"].info())
         return msg
 
     def export_text(self, analysis_folder=None):
@@ -462,19 +470,19 @@ class Univariate(object):
 
         """
         # read each condition
-        logger.debug('Trying to import from text files...')
+        logger.debug("Trying to import from text files...")
         try:
             for key, val in self._items.items():
-                logger.debug('Reading {} ..'.format(key))
+                logger.debug("Reading {} ..".format(key))
                 val.read_text(analysis_folder)
-                logger.debug('..successful')
+                logger.debug("..successful")
         except (analysis.MissingFileError, analysis.MissingFolderError) as missing:
-            logger.debug('..failure: file is missing')
+            logger.debug("..failure: file is missing")
             raise UnivariateIOError(missing)
         except analysis.MismatchFileError as err:
-            logger.debug('..failure: filename mismatch at level {}'.format(err.level))
-            if err.level == 'observable':
-                raise ObservableNameError('Obs name taken by a different observable')
+            logger.debug("..failure: filename mismatch at level {}".format(err.level))
+            if err.level == "observable":
+                raise ObservableNameError("Obs name taken by a different observable")
         # update eval_times
         self._read_eval_times()
         return
@@ -510,19 +518,20 @@ class StationaryUnivariateConditioned(object):
         a collection of StationaryUnivariateConditioned
         instances where export/import are defined.
     """
+
     def __init__(self, statunivariate, applied_filter=None, array=None):
         self.statunivariate = statunivariate
-        self.basename = 'stationary'
+        self.basename = "stationary"
         # add region label
-        self.basename += '_' + self.statunivariate.region.name
+        self.basename += "_" + self.statunivariate.region.name
         # add computation options
-        self.basename += '_' + self.statunivariate.options.as_string_code()
+        self.basename += "_" + self.statunivariate.options.as_string_code()
         # condition
         self.applied_filter = applied_filter
         if applied_filter is not None:
             self.condition = repr(applied_filter)
         else:
-            self.condition = 'master'
+            self.condition = "master"
         self.array = array  # should be a 3 column array of dtype:
         # [('time_interval', 'f8'),('counts', 'i4'), ('autocorrelation', 'f8')]
         return
@@ -530,82 +539,84 @@ class StationaryUnivariateConditioned(object):
     @property
     def time(self):
         if self.array is not None:
-            return self.array['time_interval']
+            return self.array["time_interval"]
         else:
             return None
 
     @property
     def counts(self):
         if self.array is not None:
-            return self.array['counts']
+            return self.array["counts"]
         else:
             return None
 
     @property
     def autocorr(self):
         if self.array is not None:
-            return self.array['auto_correlation']
+            return self.array["auto_correlation"]
         else:
             return None
 
-    def write_text(self, path='.'):
+    def write_text(self, path="."):
         """Write array to file."""
         # get observable path that should exist already
         cdt_univ = self.statunivariate.univariate[self.condition]
         cdt_path = cdt_univ._get_path(write=False)
         # otherwise a text.MissingFolder will be raised here
         if self.array is None:
-            print('Nothing to write')
+            print("Nothing to write")
             return
-        ffmt = '%.8e'  # floating point numbers
-        ifmt = '%d'  # integers
-        item_path = os.path.join(cdt_path, self.basename + '.tsv')
+        ffmt = "%.8e"  # floating point numbers
+        ifmt = "%d"  # integers
+        item_path = os.path.join(cdt_path, self.basename + ".tsv")
         names = self.array.dtype.names
-        header = '\t'.join(names)
-        fmt = [ifmt if 'counts' in n_ else ffmt for n_ in names]
-        np.savetxt(item_path, self.array, fmt=fmt,
-                   delimiter='\t', comments='', header=header)
+        header = "\t".join(names)
+        fmt = [ifmt if "counts" in n_ else ffmt for n_ in names]
+        np.savetxt(
+            item_path, self.array, fmt=fmt, delimiter="\t", comments="", header=header
+        )
         return
 
-    def read_text(self, path='.'):
+    def read_text(self, path="."):
         """Initialize object by reading text output."""
         # get observable path that should exist already
         cdt_univ = self.statunivariate.univariate[self.condition]
         cdt_path = cdt_univ._get_path(write=False)
-        item_path = os.path.join(cdt_path, self.basename + '.tsv')
+        item_path = os.path.join(cdt_path, self.basename + ".tsv")
         if not os.path.exists(item_path):
             raise analysis.MissingFileError(item_path)
-        arr = np.genfromtxt(item_path, delimiter='\t',
-                            dtype=(float, int, float, float),
-                            names=True)
+        arr = np.genfromtxt(
+            item_path, delimiter="\t", dtype=(float, int, float, float), names=True
+        )
         self.array = arr
         return
 
     def info(self):
         """Return string giving info on stored data."""
         if self.array is None:
-            msg = (' NO VALUES')
+            msg = " NO VALUES"
             return msg
-        times = self.array['time_interval']
-        counts = self.array['counts']
-        autocorrs = self.array['auto_correlation']
-        msg = ('  Time intervals:' + '\n'
-               '   {}'.format(times) + '\n'
-               '   ({} values)'.format(len(times)) + '\n'
-               '   min value {}'.format(np.amin(times)) + '\n'
-               '   max value {}'.format(np.amax(times)) + '\n'
-               '  Sample counts:' + '\n'
-               '   {}'.format(counts) + '\n'
-               '   min value {}'.format(np.amin(counts)) + '\n'
-               '   max value {}'.format(np.amax(counts)) + '\n'
-               '   average   {}'.format(np.mean(counts)) + '\n'
-               '  Autocorrelation values:' + '\n'
-               '   {}'.format(autocorrs) + '\n'
-               '   ({} values)'.format(len(autocorrs)) + '\n'
-               '   min value {}'.format(np.amin(autocorrs)) + '\n'
-               '   max value {}'.format(np.amax(autocorrs)) + '\n'
-               '   average   {}'.format(np.mean(autocorrs)) + '\n'
-               )
+        times = self.array["time_interval"]
+        counts = self.array["counts"]
+        autocorrs = self.array["auto_correlation"]
+        msg = (
+            "  Time intervals:" + "\n"
+            "   {}".format(times) + "\n"
+            "   ({} values)".format(len(times)) + "\n"
+            "   min value {}".format(np.amin(times)) + "\n"
+            "   max value {}".format(np.amax(times)) + "\n"
+            "  Sample counts:" + "\n"
+            "   {}".format(counts) + "\n"
+            "   min value {}".format(np.amin(counts)) + "\n"
+            "   max value {}".format(np.amax(counts)) + "\n"
+            "   average   {}".format(np.mean(counts)) + "\n"
+            "  Autocorrelation values:" + "\n"
+            "   {}".format(autocorrs) + "\n"
+            "   ({} values)".format(len(autocorrs)) + "\n"
+            "   min value {}".format(np.amin(autocorrs)) + "\n"
+            "   max value {}".format(np.amax(autocorrs)) + "\n"
+            "   average   {}".format(np.mean(autocorrs)) + "\n"
+        )
         return msg
 
 
@@ -665,7 +676,7 @@ class StationaryUnivariate(object):
             self.region = region
         else:
             regs = Regions(univariate.exp)
-            self.region = regs.get('ALL')  # get default region
+            self.region = regs.get("ALL")  # get default region
         if options is not None:
             self.options = options
         else:
@@ -686,10 +697,10 @@ class StationaryUnivariate(object):
         # alias
         SUnic = StationaryUnivariateConditioned
         # add item for no conditions, 'master'
-        self._items['master'] = SUnic(self, applied_filter=None, array=None)
-        self._condition_labels.append('master')
+        self._items["master"] = SUnic(self, applied_filter=None, array=None)
+        self._condition_labels.append("master")
         for cdt in univariate.cset:
-            cdt_repr = '{}'.format(repr(cdt))
+            cdt_repr = "{}".format(repr(cdt))
             self._condition_labels.append(cdt_repr)
             self._items[cdt_repr] = SUnic(self, applied_filter=cdt, array=None)
         return
@@ -707,22 +718,23 @@ class StationaryUnivariate(object):
     @property
     def master(self):
         """There's always a master (no condition)"""
-        return self['master']
+        return self["master"]
 
     def __str__(self):
-        msg = ('-----------------------------------------------' + '\n'
-               'STATISTICS OF THE DYNAMICS: STATIONARY ANALYSIS' + '\n'
-               '-----------------------------------------------' + '\n'
-               '' + '\n'
-               'OBSERVABLE: {}'.format(self.obs.label) + '\n'
-               'CONDITIONS:' + '\n'
-               '  * `master` (no condition)' + '\n'
-               )
+        msg = (
+            "-----------------------------------------------" + "\n"
+            "STATISTICS OF THE DYNAMICS: STATIONARY ANALYSIS" + "\n"
+            "-----------------------------------------------" + "\n"
+            "" + "\n"
+            "OBSERVABLE: {}".format(self.obs.label) + "\n"
+            "CONDITIONS:" + "\n"
+            "  * `master` (no condition)" + "\n"
+        )
         for condition_label in self._condition_labels[1:]:
-            msg += '  * `{}`'.format(condition_label) + '\n'
-        msg += '\n'
-        msg += 'Showing info for `master`:' + '\n'
-        msg += str(self._items['master'])
+            msg += "  * `{}`".format(condition_label) + "\n"
+        msg += "\n"
+        msg += "Showing info for `master`:" + "\n"
+        msg += str(self._items["master"])
         return msg
 
     def export_text(self, analysis_folder=None):
@@ -739,12 +751,13 @@ class StationaryUnivariate(object):
         if self.dataframe is not None:
             exp = self.univariate.exp
             fset = self.univariate.exp.fset
-            analysis_path = analysis.get_analysis_path(exp, user_abspath=analysis_folder,
-                                                   write=True)
+            analysis_path = analysis.get_analysis_path(
+                exp, user_abspath=analysis_folder, write=True
+            )
             res = analysis.get_filter_path(analysis_path, fset, write=True)
             index_filter, filter_path = res
-            basename = 'data_{}_{}'.format(self.label, self.obs.name)
-            text_file = os.path.join(filter_path, basename + '.csv')
+            basename = "data_{}_{}".format(self.label, self.obs.name)
+            text_file = os.path.join(filter_path, basename + ".csv")
             self.dataframe.to_csv(text_file, index=False)
         return
 
@@ -754,12 +767,13 @@ class StationaryUnivariate(object):
                 val.read_text(analysis_folder)
             exp = self.univariate.exp
             fset = self.univariate.exp.fset
-            analysis_path = analysis.get_analysis_path(exp, user_abspath=analysis_folder,
-                                                   write=False)
+            analysis_path = analysis.get_analysis_path(
+                exp, user_abspath=analysis_folder, write=False
+            )
             res = analysis.get_filter_path(analysis_path, fset, write=False)
             index_filter, filter_path = res
-            basename = 'data_{}_{}'.format(self.label, self.obs.name)
-            text_file = os.path.join(filter_path, basename + '.csv')
+            basename = "data_{}_{}".format(self.label, self.obs.name)
+            text_file = os.path.join(filter_path, basename + ".csv")
             df = pd.read_csv(text_file, index_col=False)
             # convert column dtypes
             for col_name in df.columns:

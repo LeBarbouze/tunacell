@@ -11,6 +11,7 @@ from scipy.io import loadmat
 import numpy as np
 
 import sys
+
 if sys.version_info[0] < 3:
     import pathlib2 as pathlib
 else:
@@ -33,7 +34,7 @@ def find_containers(path):
     """
     if not isinstance(path, pathlib.Path):
         path = pathlib.Path(path).expanduser().absolute()
-    containers = [item for item in path.glob('xy*') if item.is_dir()]
+    containers = [item for item in path.glob("xy*") if item.is_dir()]
     return containers
 
 
@@ -55,11 +56,11 @@ def load_container(path):
     """
     if not isinstance(path, pathlib.Path):
         path = pathlib.Path(path).expanduser().absolute()
-    clist = path / 'clist.mat'
+    clist = path / "clist.mat"
     return loadmat(str(clist))
 
 
-def read_header(mat, which='def3D'):
+def read_header(mat, which="def3D"):
     """Reads header for 3D data
 
     Parameters
@@ -92,10 +93,10 @@ def read_ids(mat):
     dict
         cell ID: parent cell ID relationship
     """
-    header = read_header(mat, which='def')
-    idx = header.index('Cell ID')
-    pidx = header.index('Mother ID')
-    data_ids = mat['data'][:, [idx, pidx]].astype('int')
+    header = read_header(mat, which="def")
+    idx = header.index("Cell ID")
+    pidx = header.index("Mother ID")
+    data_ids = mat["data"][:, [idx, pidx]].astype("int")
     return {i: j for (i, j) in data_ids}
 
 
@@ -120,7 +121,7 @@ def build_cell_data(data, id2pid, header, time_array=None, period=None):
     arr : Numpy structured array
     """
     # get observable index of cellID
-    idx = header.index('Cell ID')
+    idx = header.index("Cell ID")
     # restrict to valid entries
     where, = np.where(np.logical_not(np.isnan(data[idx, :])))
     reduced = data[:, where]
@@ -129,26 +130,26 @@ def build_cell_data(data, id2pid, header, time_array=None, period=None):
     # build array of evaluation time
     if time_array is None:
         if period is None:
-            raise ValueError('provide at least one defined argument')
+            raise ValueError("provide at least one defined argument")
         time = period * where
     else:
         time = time_array[where]
     # convert ids to array of int
-    ids = reduced[idx].astype('int')
+    ids = reduced[idx].astype("int")
     if len(np.unique(ids)) > 1:
-        raise ValueError('multiple ids for single cell')
+        raise ValueError("multiple ids for single cell")
     cid = np.unique(ids)[0]
     pid = id2pid[cid]
     pids = pid * np.ones_like(ids)
     # names for structured array
-    names = 'cellID,parentID,time'
-    formats='int,int,float'
+    names = "cellID,parentID,time"
+    formats = "int,int,float"
     arrays = [ids, pids, time]
     for i in range(nobs):
         if i == idx:
             continue
-        names += ',{}'.format(header[i])
-        formats += ',float'
+        names += ",{}".format(header[i])
+        formats += ",float"
         arrays.append(reduced[i, :])
     # build record array
     arr = np.core.records.fromarrays(arrays, names=names, formats=formats)
@@ -175,15 +176,19 @@ def build_cells(mat, container):
     # builds dict of cell Id to parent ID
     dict_ids = read_ids(mat)
     # loop over cells in data3D
-    header3D = read_header(mat, which='def3D')
-    data3D = mat['data3D']
+    header3D = read_header(mat, which="def3D")
+    data3D = mat["data3D"]
     ncells, nobs, nframes = data3D.shape
     for k in range(ncells):
-        arr = build_cell_data(data3D[k, :, :], dict_ids, header3D,
-                              time_array=None,
-                              period=container.period)
-        cid = arr['cellID'][0]
-        pid = arr['parentID'][0]
+        arr = build_cell_data(
+            data3D[k, :, :],
+            dict_ids,
+            header3D,
+            time_array=None,
+            period=container.period,
+        )
+        cid = arr["cellID"][0]
+        pid = arr["parentID"][0]
         new = Cell(identifier=cid, container=container)
         new.data = arr
         if pid in dict_ids:  # points to parent if and only if itself a recorded cell

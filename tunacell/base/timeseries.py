@@ -32,9 +32,17 @@ class TimeSeries(object):
        ids
     """
 
-    def __init__(self, ts=[], ids=[], index_cycles=[], slices=None,
-                 time_bounds=[], select_ids={}, container_label=None,
-                 experiment_label=None):
+    def __init__(
+        self,
+        ts=[],
+        ids=[],
+        index_cycles=[],
+        slices=None,
+        time_bounds=[],
+        select_ids={},
+        container_label=None,
+        experiment_label=None,
+    ):
         # ts is a Coordinates instance
         self.container_label = container_label
         self.experiment_label = experiment_label
@@ -48,11 +56,10 @@ class TimeSeries(object):
                 _x_name, _y_name = ts.dtype.names[:2]  # take only first 2 cols
             else:
                 _arr = ts
-                _x_name, _y_name = 'x', 'y'
+                _x_name, _y_name = "x", "y"
             _x = _arr[:, 0]
             _y = _arr[:, 1]
-            self._timeseries = Coordinates(_x, _y,
-                                           x_name=_x_name, y_name=_y_name)
+            self._timeseries = Coordinates(_x, _y, x_name=_x_name, y_name=_y_name)
         # ... list of couples
         elif isinstance(ts, collections.Iterable):
             _ts = list(ts)
@@ -60,7 +67,9 @@ class TimeSeries(object):
             self._timeseries = Coordinates(_x, _y)
         self.time_bounds = time_bounds
         self.slices = []
-        if index_cycles:  # array indices corresponding to (first, last) frame for each cell
+        if (
+            index_cycles
+        ):  # array indices corresponding to (first, last) frame for each cell
             self.index_cycles = index_cycles
             slices = []
             for item in index_cycles:
@@ -71,7 +80,7 @@ class TimeSeries(object):
                 else:
                     i, j = item
                     if j is not None:
-                        slices.append(slice(i, j+1))
+                        slices.append(slice(i, j + 1))
                     else:
                         slices.append(slice(i, None))
             self.slices = slices
@@ -91,11 +100,12 @@ class TimeSeries(object):
         if len(select_ids.keys()) > 0:  # master is already defined
             self.selections = select_ids
         else:  # nothing is defined, we define master here
-            self.selections = {'master': [True for _ in self.ids]}
+            self.selections = {"master": [True for _ in self.ids]}
         return
 
-    def use_condition(self, condition_label='master',
-                      sharp_tleft=None, sharp_tright=None):
+    def use_condition(
+        self, condition_label="master", sharp_tleft=None, sharp_tright=None
+    ):
         """Get conditioned timeseries.
 
         Parameter
@@ -132,25 +142,27 @@ class TimeSeries(object):
         else:
             _x = []
             _y = []
-        out = Coordinates(_x, _y, x_name=self.timeseries.x_name,
-                          y_name=self.timeseries.y_name)
+        out = Coordinates(
+            _x, _y, x_name=self.timeseries.x_name, y_name=self.timeseries.y_name
+        )
         return out
 
     @property
     def timeseries(self):
         return self._timeseries
-#
-#    @timeseries.setter
-#    def timeseries(self, ts):
-#        self._timeseries = ts
 
-#    def __getitem__(self, key):
-#        return self.timeseries[key]
+    #
+    #    @timeseries.setter
+    #    def timeseries(self, ts):
+    #        self._timeseries = ts
+
+    #    def __getitem__(self, key):
+    #        return self.timeseries[key]
 
     def __repr__(self):
         return repr(self.timeseries)
 
-    def as_text(self, sep='\t', cell_sep='\n', print_labels=False):
+    def as_text(self, sep="\t", cell_sep="\n", print_labels=False):
         """Export TimeSeries as text arrays
 
         Parameters
@@ -162,24 +174,28 @@ class TimeSeries(object):
         print_labels : bool {False, True}
             first line is labels, followed by empty line
         """
-        printout = ''
-        labels = [self.timeseries.x_name,
-                  self.timeseries.y_name,
-                  'cellID',
-                  'containerID',
-                  'experimentID']
+        printout = ""
+        labels = [
+            self.timeseries.x_name,
+            self.timeseries.y_name,
+            "cellID",
+            "containerID",
+            "experimentID",
+        ]
         if print_labels and labels is not None:
-            printout += '\t'.join(labels) + '\n'
-        printout += '\n'
+            printout += "\t".join(labels) + "\n"
+        printout += "\n"
         for index, sl in enumerate(self.slices):
-            chunk = ''
+            chunk = ""
             x = self.timeseries.x[sl]
             y = self.timeseries.y[sl]
             ids = len(x) * [self.ids[index]]
-            container_id = len(x) * [self.container_label, ]
-            exp_id = len(x) * [self.experiment_label, ]
+            container_id = len(x) * [self.container_label]
+            exp_id = len(x) * [self.experiment_label]
             for line in zip(x, y, ids, container_id, exp_id):
-                chunk += '{}'.format(sep).join(['{}'.format(item) for item in line]) + '\n'
+                chunk += (
+                    "{}".format(sep).join(["{}".format(item) for item in line]) + "\n"
+                )
             printout += chunk
             printout += cell_sep
         return printout.lstrip().rstrip()  # remove empty lines at beginning/end
@@ -188,11 +204,11 @@ class TimeSeries(object):
         dic = {}
         dic[self.timeseries.x_name] = []  # self.timeseries.x
         dic[self.timeseries.y_name] = []  # self.timeseries.y
-        dic['cellID'] = []
-        dic['containerID'] = []
-        dic['experimentID'] = []
+        dic["cellID"] = []
+        dic["containerID"] = []
+        dic["experimentID"] = []
         for key in self.selections.keys():
-            if key == 'master':
+            if key == "master":
                 continue
             dic[key] = []
         size = 0
@@ -209,16 +225,16 @@ class TimeSeries(object):
             _y = self.timeseries.y[sl]
             dic[self.timeseries.x_name].extend(_x)
             dic[self.timeseries.y_name].extend(_y)
-            dic['cellID'].extend(len(_x) * [self.ids[index], ])
-            dic['containerID'].extend(len(_x) * [self.container_label, ])
-            dic['experimentID'].extend(len(_x) * [self.experiment_label, ])
+            dic["cellID"].extend(len(_x) * [self.ids[index]])
+            dic["containerID"].extend(len(_x) * [self.container_label])
+            dic["experimentID"].extend(len(_x) * [self.experiment_label])
             # True/False for each
             for key, values in self.selections.items():
                 # master: all True, useless to printout
-                if key == 'master':
+                if key == "master":
                     continue
                 val = values[index]
-                dic[key].extend(len(_x) * [val, ])
+                dic[key].extend(len(_x) * [val])
             size += len(_x)
         df = pd.DataFrame(dic, index=range(start_index, start_index + size))
         return df

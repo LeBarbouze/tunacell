@@ -3,7 +3,7 @@
 
 
 # version to be used in setup and docs
-__version__ = '0.2.2'
+__version__ = "0.2.2"
 
 
 # API level classes

@@ -88,18 +88,18 @@ def load_metadata(experiment_path):
     for bn in ls:
         fn = os.path.join(experiment_path, bn)
         if os.path.isfile(fn):
-            if 'metadata' in os.path.basename(fn):
+            if "metadata" in os.path.basename(fn):
                 path = fn
                 _, ext = os.path.splitext(fn)
                 break
     if path is None:
         raise MetadataNotFound()
-    if ext in ['.yml', '.yaml']:
+    if ext in [".yml", ".yaml"]:
         md = load_from_yaml(path)
-    elif ext == '.csv':
-        md = load_from_csv(path, sep=',')
-    elif ext == '.tsv':
-        md = load_from_csv(path, sep='\t')
+    elif ext == ".csv":
+        md = load_from_csv(path, sep=",")
+    elif ext == ".tsv":
+        md = load_from_csv(path, sep="\t")
     return md
 
 
@@ -115,13 +115,13 @@ def load_from_yaml(path_to_yaml_file):
     -------
     :class:`Metadata` instance
     """
-    with open(path_to_yaml_file, 'r') as f:
+    with open(path_to_yaml_file, "r") as f:
         docs = list(yaml.load_all(f, Loader=yaml.SafeLoader))
     md = Metadata(docs)
     return md
 
 
-def load_from_csv(filename, sep=','):
+def load_from_csv(filename, sep=","):
     """Builds metadata from csv files
 
     Parameters
@@ -141,14 +141,14 @@ def load_from_csv(filename, sep=','):
     label, and/or container file labels.
     """
     list_dict = []
-    with open(filename, 'r') as f:
+    with open(filename, "r") as f:
         reader = csv.DictReader(f)
         for row in reader:
             local_dict = {}
             for k, v in row.items():
-                if k == 'level':
-                    local_dict[v] = row['label']
-                elif k == 'label':
+                if k == "level":
+                    local_dict[v] = row["label"]
+                elif k == "label":
                     continue
                 else:
                     local_dict[k] = v
@@ -170,8 +170,10 @@ def _update_local_dict(local_dict, new_items):
     """
     for key, value in new_items.items():
         if key in local_dict.keys():
-            warnings.warn('Multiple values for one key, last value is kept.\n'
-                          ' Check input file to remove duplicate entries.')
+            warnings.warn(
+                "Multiple values for one key, last value is kept.\n"
+                " Check input file to remove duplicate entries."
+            )
             local_dict[key] = value
 
 
@@ -205,6 +207,7 @@ class Metadata(object):
     period : float (or int)
         minimal period found in experiment level (when multiple periods are saved)
     """
+
     def __init__(self, iter_dict):
         # parse iter_dict argument and build internal dict representation
         self._iter_dict = list(iter_dict)  # store input as a list of dicts
@@ -222,29 +225,31 @@ class Metadata(object):
             if dic is None:
                 continue
             dic = _prune_dict(dic)  # remove empty string values
-            if 'experiment' in dic:
-                self._ddict['experiment'] = dic
+            if "experiment" in dic:
+                self._ddict["experiment"] = dic
             else:
-                labs = dic['container']
+                labs = dic["container"]
                 if isinstance(labs, list):
                     container_labs = labs
                 else:  # labs is only one label
-                    container_labs = [labs, ]
+                    container_labs = [labs]
                 for lab in container_labs:
                     if lab in self._ddict.keys():
                         _update_local_dict(self._ddict[lab], dic)
                     else:
                         self._ddict[lab] = dic
         # check that experiment level has been found
-        if 'experiment' not in self._ddict.keys():
-            raise MetadataMissingMainLabel('Missing experiment input')
+        if "experiment" not in self._ddict.keys():
+            raise MetadataMissingMainLabel("Missing experiment input")
 
     def _setup_meta(self):
-        self.experiment = LocalMetadata(self._ddict['experiment'], self._ddict['experiment'])
+        self.experiment = LocalMetadata(
+            self._ddict["experiment"], self._ddict["experiment"]
+        )
         self.locals = {}
         for key, value in self._ddict.items():
-            if key != 'experiment':
-                self.locals[key] = LocalMetadata(value, self._ddict['experiment'])
+            if key != "experiment":
+                self.locals[key] = LocalMetadata(value, self._ddict["experiment"])
 
     def from_container(self, container_label):
         """Get LocalMetadata instance corresponding to container label"""
@@ -267,13 +272,15 @@ class Metadata(object):
         There might be more than acquisition periods when more than 1
         channel are used; the smallest is taken as bare reference for now
         """
-        reduced = [(k, v) for k, v in self._ddict['experiment'].items() if 'period' in k]
+        reduced = [
+            (k, v) for k, v in self._ddict["experiment"].items() if "period" in k
+        ]
         sorted_ = sorted(reduced, key=lambda x: x[1], reverse=False)
         return float(sorted_[0][1])
 
     def __getitem__(self, key):
         """Use parameter key to retrieve metadata in experiment level"""
-        if key == 'period':
+        if key == "period":
             return self.period
         return self.experiment[key]
 
@@ -330,12 +337,12 @@ class LocalMetadata(object):
     @property
     def period(self):
         """Returns period"""
-        reduced = [(k, v) for k, v in self._dict.items() if 'period' in k]
+        reduced = [(k, v) for k, v in self._dict.items() if "period" in k]
         if reduced:
             sorted_ = sorted(reduced, key=lambda x: x[1], reverse=False)
             return float(sorted_[0][1])
         else:
-            return float(self._experiment['period'])
+            return float(self._experiment["period"])
 
     def __str__(self):
         """String output based on yaml.dump"""
@@ -362,10 +369,9 @@ def load_counts(experiment_abspath):
     pass
 
 
-
-if __name__ == '__main__':
-    md = load_from_yaml('/home/joachim/tmptunacell/test_yaml.yml')
-#    print(md)
-    output_stream = open('/home/joachim/tmptunacell/myyaml.yml', 'w')
+if __name__ == "__main__":
+    md = load_from_yaml("/home/joachim/tmptunacell/test_yaml.yml")
+    #    print(md)
+    output_stream = open("/home/joachim/tmptunacell/myyaml.yml", "w")
     print(md.to_yaml(output_stream))
     output_stream.close()

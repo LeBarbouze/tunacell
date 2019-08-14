@@ -11,9 +11,14 @@ import warnings
 import treelib as tlib
 
 from tunacell.base.observable import Observable, FunctionalObservable
-from tunacell.base.datatools import (Coordinates, compute_rates,
-                                 extrapolate_endpoints,
-                                 derivative, logderivative, ExtrapolationError)
+from tunacell.base.datatools import (
+    Coordinates,
+    compute_rates,
+    extrapolate_endpoints,
+    derivative,
+    logderivative,
+    ExtrapolationError,
+)
 
 
 class CellError(Exception):
@@ -144,14 +149,14 @@ class Cell(tlib.Node):
         "method to call when parent is identified"
         previous_frame = None
         if (self.parent is not None) and (self.parent.data is not None):
-            previous_frame = self.parent.data['time'][-1]
+            previous_frame = self.parent.data["time"][-1]
 
         first_frame = None
         if self.data is not None:
-            first_frame = self.data['time'][0]
+            first_frame = self.data["time"][0]
 
         if previous_frame is not None and first_frame is not None:
-            div_time = (previous_frame + first_frame)/2.  # halfway
+            div_time = (previous_frame + first_frame) / 2.0  # halfway
             self.birth_time = div_time
             self.parent.division_time = div_time
 
@@ -162,29 +167,28 @@ class Cell(tlib.Node):
         if self.parent:
             pid = str(self.parent.identifier)
         else:
-            pid = '-'
+            pid = "-"
         if self.childs:
-            ch = ','.join(['{}'.format(c.identifier) for c in self.childs])
+            ch = ",".join(["{}".format(c.identifier) for c in self.childs])
         else:
-            ch = '-'
-        return cid+';p:'+pid+';ch:'+ch
+            ch = "-"
+        return cid + ";p:" + pid + ";ch:" + ch
 
     def info(self):
         dic = {}
-        dic['a. Identifier'] = '{}'.format(self.identifier)
-        pid = 'None'
+        dic["a. Identifier"] = "{}".format(self.identifier)
+        pid = "None"
         if self.parent:
-            pid = '{}'.format(self.parent.identifier)
-        dic['b. Parent id'] = pid
-        chids = 'None'
+            pid = "{}".format(self.parent.identifier)
+        dic["b. Parent id"] = pid
+        chids = "None"
         if self.childs:
-            chids = ', '.join(['{}'.format(ch.identifier)
-                               for ch in self.childs])
-        dic['c. Childs'] = chids
-        dic['d. Birth time'] = '{}'.format(self.birth_time)
-        dic['e. Division time'] = '{}'.format(self.division_time)
+            chids = ", ".join(["{}".format(ch.identifier) for ch in self.childs])
+        dic["c. Childs"] = chids
+        dic["d. Birth time"] = "{}".format(self.birth_time)
+        dic["e. Division time"] = "{}".format(self.division_time)
         if self.data is not None:
-            dic['f. N_frames'] = '{}'.format(len(self.data))
+            dic["f. N_frames"] = "{}".format(len(self.data))
         return dic
 
     def protect_against_build(self, obs):
@@ -203,12 +207,12 @@ class Cell(tlib.Node):
             arrays = [self._sdata[item.label] for item in obs.observables]
             self._sdata[obs.label] = obs.f(*arrays)
         elif isinstance(obs, Observable):
-            if obs.mode == 'dynamics':
+            if obs.mode == "dynamics":
                 self.build_timelapse(obs)
             else:
                 self.compute_cyclized(obs)
         else:
-            raise TypeError('obs must be of type Observable or FunctionalObservable')
+            raise TypeError("obs must be of type Observable or FunctionalObservable")
 
     def build_timelapse(self, obs):
         """Builds timeseries corresponding to observable of mode 'dynamics'.
@@ -247,53 +251,55 @@ class Cell(tlib.Node):
         """
         label = str(obs.label)
         raw = obs.raw
-        coords = Coordinates(self.data['time'], self.data[raw])
+        coords = Coordinates(self.data["time"], self.data[raw])
         if self.parent is not None and len(self.parent.data) > 0:
-            anteriors = Coordinates(self.parent.data['time'],
-                                    self.parent.data[raw])
+            anteriors = Coordinates(self.parent.data["time"], self.parent.data[raw])
         else:
-            anteriors = Coordinates(np.array([], dtype=float),
-                                    np.array([], dtype=float))
+            anteriors = Coordinates(
+                np.array([], dtype=float), np.array([], dtype=float)
+            )
         # if empty, return empty array of appropriate type
         if len(self.data) == 0:  # there is no data, but it has some dtype
-            return Coordinates(np.array([], dtype=float),
-                               np.array([], dtype=float))
+            return Coordinates(np.array([], dtype=float), np.array([], dtype=float))
 
         dt = self.container.period
         if dt is None:
             # automatically finds dt
             if len(self.data) > 1:
-                arr = self.data['time']
+                arr = self.data["time"]
                 time_increments = arr[1:] - arr[:-1]
                 dt = np.round(np.amin(np.abs(time_increments)), decimals=2)
 
         # case : no local fit, use data, or finite differences
         if not obs.local_fit:
             if obs.differentiate:
-                if obs.scale == 'linear':
+                if obs.scale == "linear":
                     new = derivative(coords)
-                elif obs.scale == 'log':
+                elif obs.scale == "log":
                     new = logderivative(coords)
-                        
+
             else:
                 new = coords
             self._sdata[label] = new.y
 
         # case : local estimates using  compute_rates
         else:
-            r, f, ar, af, xx, yy = compute_rates(coords.x, coords.y,
-                                                 x_break=self.birth_time,
-                                                 anterior_x=anteriors.x,
-                                                 anterior_y=anteriors.y,
-                                                 scale=obs.scale,
-                                                 time_window=obs.time_window,
-                                                 dt=dt,
-                                                 join_points=obs.join_points)
+            r, f, ar, af, xx, yy = compute_rates(
+                coords.x,
+                coords.y,
+                x_break=self.birth_time,
+                anterior_x=anteriors.x,
+                anterior_y=anteriors.y,
+                scale=obs.scale,
+                time_window=obs.time_window,
+                dt=dt,
+                join_points=obs.join_points,
+            )
             if obs.differentiate:
                 to_cell = r
                 to_parent = ar
                 if len(ar) != len(anteriors.x):
-                    print('This is awkward')
+                    print("This is awkward")
             else:
                 to_cell = f
                 to_parent = af
@@ -304,7 +310,9 @@ class Cell(tlib.Node):
                 else:
                     existing = self.parent._sdata[label]
                     # if existing is nan, try to put addedum values
-                    self.parent._sdata[label] = np.where(np.isnan(existing), to_parent, existing)
+                    self.parent._sdata[label] = np.where(
+                        np.isnan(existing), to_parent, existing
+                    )
         return
 
     def compute_cyclized(self, obs):
@@ -339,12 +347,12 @@ class Cell(tlib.Node):
         scale = obs.scale
         npts = obs.join_points
         label = obs.label
-        if obs.mode == 'dynamics':
-            raise ValueError('Called build_cyclized for dynamics mode')
+        if obs.mode == "dynamics":
+            raise ValueError("Called build_cyclized for dynamics mode")
         # associate timelapse counterpart
         cobs = obs.as_timelapse()
         clabel = cobs.label
-        time = self.data['time']
+        time = self.data["time"]
         # if it has been computed already, the clabel key exists in sdata
         try:
             array = self._sdata[clabel]
@@ -353,33 +361,37 @@ class Cell(tlib.Node):
             self.build_timelapse(cobs)
             array = self._sdata[clabel]
         # get value
-        try:                
-            if obs.mode == 'birth':
-                value = extrapolate_endpoints(time, array, self.birth_time,
-                                              scale=scale, join_points=npts)
-            elif obs.mode == 'division':
-                value = extrapolate_endpoints(time, array, self.division_time,
-                                              scale=scale, join_points=npts)
-            elif 'net-increase' in obs.mode:
-                dval = extrapolate_endpoints(time, array, self.division_time,
-                                              scale=scale, join_points=npts)
-                bval = extrapolate_endpoints(time, array, self.birth_time,
-                                              scale=scale, join_points=npts)
-                if obs.mode == 'net-increase-additive':
+        try:
+            if obs.mode == "birth":
+                value = extrapolate_endpoints(
+                    time, array, self.birth_time, scale=scale, join_points=npts
+                )
+            elif obs.mode == "division":
+                value = extrapolate_endpoints(
+                    time, array, self.division_time, scale=scale, join_points=npts
+                )
+            elif "net-increase" in obs.mode:
+                dval = extrapolate_endpoints(
+                    time, array, self.division_time, scale=scale, join_points=npts
+                )
+                bval = extrapolate_endpoints(
+                    time, array, self.birth_time, scale=scale, join_points=npts
+                )
+                if obs.mode == "net-increase-additive":
                     value = dval - bval
-                elif obs.mode == 'net-increase-multiplicative':
-                    value = dval/bval
-            elif obs.mode == 'average':
+                elif obs.mode == "net-increase-multiplicative":
+                    value = dval / bval
+            elif obs.mode == "average":
                 value = np.nanmean(array)
-            elif obs.mode == 'rate':
+            elif obs.mode == "rate":
                 if len(array) < 2:
                     value = np.nan  # not enough values to estimate rate
-                if obs.scale == 'log':
+                if obs.scale == "log":
                     array = np.log(array)
                 value, intercept = np.polyfit(time, array, 1)
         except ExtrapolationError as err:
-#            msg = '{}'.format(err)
-#            warnings.warn(msg)
+            #            msg = '{}'.format(err)
+            #            warnings.warn(msg)
             value = np.nan  # missing information
         self._sdata[label] = value
         return

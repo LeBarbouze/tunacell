@@ -54,7 +54,7 @@ def set_dynamics(iter_timeseries, single, eval_times):
     UnivariateConditioned instances, one for each condition, plus one
     for the unconditioned data ('master').
     """
-    if single.region.name == 'ALL':
+    if single.region.name == "ALL":
         tmin = None
         tmax = None
     else:
@@ -66,17 +66,17 @@ def set_dynamics(iter_timeseries, single, eval_times):
     # add counters for each condition
     for condition_lab in single._condition_labels:
         rec = {}
-        rec['ones'] = np.zeros(len(eval_times))
-        rec['count_ones'] = np.zeros(len(eval_times), dtype=int)
-        rec['twos'] = np.zeros((len(eval_times), len(eval_times)))
-        rec['count_twos'] = np.zeros((len(eval_times), len(eval_times)),
-                                     dtype=int)
+        rec["ones"] = np.zeros(len(eval_times))
+        rec["count_ones"] = np.zeros(len(eval_times), dtype=int)
+        rec["twos"] = np.zeros((len(eval_times), len(eval_times)))
+        rec["count_twos"] = np.zeros((len(eval_times), len(eval_times)), dtype=int)
         records[condition_lab] = rec
     for ts in iter_timeseries:
         # loop over registered conditions in TimeSeries instance
         for condition_lab in ts.selections.keys():
-            coords = ts.use_condition(condition_label=condition_lab,
-                                      sharp_tleft=tmin, sharp_tright=tmax)
+            coords = ts.use_condition(
+                condition_label=condition_lab, sharp_tleft=tmin, sharp_tright=tmax
+            )
             if len(coords.clear_x) == 0:
                 continue
             x = coords.clear_x
@@ -86,35 +86,40 @@ def set_dynamics(iter_timeseries, single, eval_times):
     # read individual counters and build results as 1d and 2d arrays
     for ic, condition_lab in enumerate(single._condition_labels):
         # average values
-        one = records[condition_lab]['ones']
-        count_one = records[condition_lab]['count_ones']
+        one = records[condition_lab]["ones"]
+        count_one = records[condition_lab]["count_ones"]
 
         mean = np.zeros_like(one)
         ok = np.where(np.logical_not(count_one == 0))
-        mean[ok] = one[ok]/count_one[ok]
+        mean[ok] = one[ok] / count_one[ok]
         mean[count_one == 0] = np.nan
 
         # matrix of covariances
-        two = records[condition_lab]['twos']
-        count_two = records[condition_lab]['count_twos']
+        two = records[condition_lab]["twos"]
+        count_two = records[condition_lab]["count_twos"]
 
         outer = np.zeros_like(two)
         ok = np.where(np.logical_not(count_two == 0))
-        outer[ok] = two[ok]/count_two[ok]
+        outer[ok] = two[ok] / count_two[ok]
         outer[count_two == 0] = np.nan
         # correct for mean
         mouter = np.outer(mean, mean)
         autocov = outer - mouter
 
-        array = np.zeros(len(eval_times), dtype=[('time', 'f8'),
-                                                 ('counts', 'u8'),
-                                                 ('average', 'f8'),
-                                                 ('std_dev', 'f8')])
+        array = np.zeros(
+            len(eval_times),
+            dtype=[
+                ("time", "f8"),
+                ("counts", "u8"),
+                ("average", "f8"),
+                ("std_dev", "f8"),
+            ],
+        )
 
-        array['time'] = eval_times
-        array['counts'] = count_one
-        array['average'] = mean
-        array['std_dev'] = np.sqrt(np.diag(autocov))
+        array["time"] = eval_times
+        array["counts"] = count_one
+        array["average"] = mean
+        array["std_dev"] = np.sqrt(np.diag(autocov))
 
         # retrieve UnivariateConditioned instance
         conditioned_single = single._items[condition_lab]
@@ -154,32 +159,37 @@ def update(time_array, value_array, eval_times, rec):
         arr[:] = np.nan
         arr[ok] = val[0]
     else:
-        f = interp1d(t, val, kind='linear', assume_sorted=True,
-                     bounds_error=False)
+        f = interp1d(t, val, kind="linear", assume_sorted=True, bounds_error=False)
         arr = f(eval_times)
     # check whether it's not all NaNs
     if np.all(np.isnan(arr)):
         return
     # find where it's not NaNs
     ok = np.where(np.logical_not(np.isnan(arr)))
-    one = rec['ones']
+    one = rec["ones"]
     one[ok] = one[ok] + arr[ok]
-    count_one = rec['count_ones']
+    count_one = rec["count_ones"]
     count_one[ok] = count_one[ok] + 1
     # same for the outer product
     outer = np.outer(arr, arr)
     ok = np.where(np.logical_not(np.isnan(outer)))
-    two = rec['twos']
+    two = rec["twos"]
     two[ok] = two[ok] + outer[ok]
-    count_two = rec['count_twos']
+    count_two = rec["count_twos"]
     count_two[ok] = count_two[ok] + 1
     return
 
 
 # %% Computation of the stationary autocorrelation function
-def set_stationary_autocorrelation(iter_timeseries, univariate, stationary,
-                                   tmin=None, tmax=None, adjust_mean='global',
-                                   disjoint=True):
+def set_stationary_autocorrelation(
+    iter_timeseries,
+    univariate,
+    stationary,
+    tmin=None,
+    tmax=None,
+    adjust_mean="global",
+    disjoint=True,
+):
     """Computes autocorrelation for stationary processes.
 
     Using univariate and parsing iter_timeseries, it computes autocorrelation
@@ -220,15 +230,15 @@ def set_stationary_autocorrelation(iter_timeseries, univariate, stationary,
 
     time = univariate.master.time  # same for every condition
     # time-lapse timing: reduce dimension already (save computational time)
-    if univariate.obs.timing == 't':
+    if univariate.obs.timing == "t":
         window = np.logical_and(time >= tmin, time <= tmax)
         kwargs = {}
     # cell-cycle like : use tmin tmax to bound cell time values
     else:
         # eval_times are either generation index, either real times
         # but 'time' filtering will be done at cell-cycle using sharp bounds
-        window = np.array(len(time) * [True, ])
-        kwargs = {'sharp_tleft': tmin, 'sharp_tright': tmax}
+        window = np.array(len(time) * [True])
+        kwargs = {"sharp_tleft": tmin, "sharp_tright": tmax}
     eval_times = time[window]
     if len(eval_times) == 0:
         raise NoValidTimes
@@ -241,16 +251,18 @@ def set_stationary_autocorrelation(iter_timeseries, univariate, stationary,
         co = cdt_univariate.count_one[window]  # needed to compute agg mean
         # construct dict of means indexed over indexified times
         local_mean = np.zeros_like(eval_times)
-        if adjust_mean == 'local':
+        if adjust_mean == "local":
             local_mean = ms
-        elif adjust_mean == 'global':
-            agg_mean = np.nansum(co * ms)/np.nansum(co)
+        elif adjust_mean == "global":
+            agg_mean = np.nansum(co * ms) / np.nansum(co)
             local_mean = agg_mean * np.ones(len(eval_times))
         local_means[condition_lab] = local_mean
         # initialize rec
-        recs[condition_lab] = {'counts': np.zeros(len(time_intervals), dtype=int),
-                               'first': np.zeros(len(time_intervals)),
-                               'second': np.zeros(len(time_intervals))}
+        recs[condition_lab] = {
+            "counts": np.zeros(len(time_intervals), dtype=int),
+            "first": np.zeros(len(time_intervals)),
+            "second": np.zeros(len(time_intervals)),
+        }
 
     # store values
     df = None
@@ -258,7 +270,7 @@ def set_stationary_autocorrelation(iter_timeseries, univariate, stationary,
     # loop through timeseries
     for ts in iter_timeseries:
         df = ts.to_dataframe(**kwargs)
-        if univariate.obs.timing == 't':
+        if univariate.obs.timing == "t":
             df = df[np.logical_and(df.time >= tmin, df.time <= tmax)]
         dfs.append(df)
         for condition_lab in ts.selections.keys():
@@ -268,10 +280,10 @@ def set_stationary_autocorrelation(iter_timeseries, univariate, stationary,
             t = coords.clear_x
             v = coords.clear_y
             # get only times within valid window
-            if univariate.obs.timing == 't':
+            if univariate.obs.timing == "t":
                 boo = np.logical_and(t >= tmin, t <= tmax)
             else:
-                boo = np.array(len(t) * [True, ])
+                boo = np.array(len(t) * [True])
             rec = recs[condition_lab]  # this is where results are recorded
             local_mean = local_means[condition_lab]  # local means
             # update correlation
@@ -285,22 +297,28 @@ def set_stationary_autocorrelation(iter_timeseries, univariate, stationary,
 
         rec = recs[condition_lab]
 
-        array = np.zeros(len(time_intervals),
-                         dtype=[('time_interval', 'f8'),
-                                ('counts', 'u8'),
-                                ('auto_correlation', 'f8'),
-                                ('std_dev', 'f8')])
-        array['time_interval'] = time_intervals
-        counts = rec['counts']
-        first = rec['first']
-        second = rec['second']
+        array = np.zeros(
+            len(time_intervals),
+            dtype=[
+                ("time_interval", "f8"),
+                ("counts", "u8"),
+                ("auto_correlation", "f8"),
+                ("std_dev", "f8"),
+            ],
+        )
+        array["time_interval"] = time_intervals
+        counts = rec["counts"]
+        first = rec["first"]
+        second = rec["second"]
         ok = np.where(counts > 0)
         where_nan = np.where(counts == 0)
-        array['counts'] = counts
-        array['auto_correlation'][ok] = first[ok]/counts[ok]
-        array['auto_correlation'][where_nan] = np.nan
-        array['std_dev'][ok] = np.sqrt(second[ok]/counts[ok] - (first[ok]/counts[ok])**2)
-        array['std_dev'][where_nan] = np.nan
+        array["counts"] = counts
+        array["auto_correlation"][ok] = first[ok] / counts[ok]
+        array["auto_correlation"][where_nan] = np.nan
+        array["std_dev"][ok] = np.sqrt(
+            second[ok] / counts[ok] - (first[ok] / counts[ok]) ** 2
+        )
+        array["std_dev"][where_nan] = np.nan
 
         cdt_stationary = stationary[condition_lab]
 
@@ -308,8 +326,9 @@ def set_stationary_autocorrelation(iter_timeseries, univariate, stationary,
     return
 
 
-def update_stationary(time_array, value_array, eval_times, local_mean, record,
-                      disjoint=True):
+def update_stationary(
+    time_array, value_array, eval_times, local_mean, record, disjoint=True
+):
     """Update counts and correlation value for stationary autocorrelation
 
     Parameters
@@ -346,8 +365,7 @@ def update_stationary(time_array, value_array, eval_times, local_mean, record,
         arr[:] = np.nan
         arr[ok] = val[0] - local_mean[ok]
     else:
-        f = interp1d(t, val, kind='linear', assume_sorted=True,
-                     bounds_error=False)
+        f = interp1d(t, val, kind="linear", assume_sorted=True, bounds_error=False)
         arr = f(eval_times) - local_mean
     # check that it's not all NaNs:
     if np.all(np.isnan(arr)):
@@ -357,7 +375,7 @@ def update_stationary(time_array, value_array, eval_times, local_mean, record,
         if not np.isnan(arr[offset]):
             break
     outer = np.outer(arr, arr)
-    for index in range(len(arr)-1):
+    for index in range(len(arr) - 1):
         d = np.diagonal(outer, offset=index)
         if disjoint:
             step = index + 1
@@ -365,9 +383,9 @@ def update_stationary(time_array, value_array, eval_times, local_mean, record,
             step = 1
         sl = slice(offset, len(d), step)
         ok = np.logical_not(np.isnan(d[sl]))
-        record['counts'][index] += len(d[sl][ok])
-        record['first'][index] += np.nansum(d[sl])
-        record['second'][index] += np.nansum(d[sl]*d[sl])
+        record["counts"][index] += len(d[sl][ok])
+        record["first"][index] += np.nansum(d[sl])
+        record["second"][index] += np.nansum(d[sl] * d[sl])
     return
 
 
@@ -422,43 +440,57 @@ def set_crosscorrelation(iter_timeseries, row_univ, col_univ, two):
     for condition_lab in cdt_labs:
         # couple of dict indexified time : average value
         rec = {}
-        means[condition_lab] = {'row': row_univ[condition_lab].average,
-                                'col': col_univ[condition_lab].average}
-        rec['counts'] = np.zeros((len(row_eval_times), len(col_eval_times)),
-                                 dtype=int)
-        rec['cross'] = np.zeros((len(row_eval_times), len(col_eval_times)))
-        rec['square'] = np.zeros((len(row_eval_times), len(col_eval_times)))
+        means[condition_lab] = {
+            "row": row_univ[condition_lab].average,
+            "col": col_univ[condition_lab].average,
+        }
+        rec["counts"] = np.zeros((len(row_eval_times), len(col_eval_times)), dtype=int)
+        rec["cross"] = np.zeros((len(row_eval_times), len(col_eval_times)))
+        rec["square"] = np.zeros((len(row_eval_times), len(col_eval_times)))
         records[condition_lab] = rec
 
     for row_ts, col_ts in iter_timeseries:
         # loop over registered conditions in TimeSeries instance
         for condition_lab in cdt_labs:
-            row_coords = row_ts.use_condition(condition_label=condition_lab,
-                                              sharp_tleft=row_univ.region.tmin,
-                                              sharp_tright=row_univ.region.tmax)
-            col_coords = col_ts.use_condition(condition_label=condition_lab,
-                                              sharp_tleft=col_univ.region.tmin,
-                                              sharp_tright=col_univ.region.tmax)
+            row_coords = row_ts.use_condition(
+                condition_label=condition_lab,
+                sharp_tleft=row_univ.region.tmin,
+                sharp_tright=row_univ.region.tmax,
+            )
+            col_coords = col_ts.use_condition(
+                condition_label=condition_lab,
+                sharp_tleft=col_univ.region.tmin,
+                sharp_tright=col_univ.region.tmax,
+            )
             rec = records[condition_lab]
-            row_mean = means[condition_lab]['row']
-            col_mean = means[condition_lab]['col']
-            update_2(row_coords, col_coords, row_eval_times, col_eval_times,
-                     row_mean, col_mean, rec)
+            row_mean = means[condition_lab]["row"]
+            col_mean = means[condition_lab]["col"]
+            update_2(
+                row_coords,
+                col_coords,
+                row_eval_times,
+                col_eval_times,
+                row_mean,
+                col_mean,
+                rec,
+            )
 
     # read individual counters and build results as 2d arrays
     for ic, condition_lab in enumerate(cdt_labs):
         # cross-correlation analysis
         rec = records[condition_lab]
-        counts = rec['counts']
-        cross = rec['cross']
-        square = rec['square']
+        counts = rec["counts"]
+        cross = rec["cross"]
+        square = rec["square"]
         corr = np.zeros(np.shape(cross))
         std = np.zeros(np.shape(cross))
         corr[counts == 0] = np.nan
         std[counts == 0] = np.nan
-        corr[counts != 0] = cross[counts != 0]/counts[counts != 0]
-        std[counts != 0] = np.sqrt(square[counts != 0]/counts[counts != 0] -
-                                   (corr[counts != 0])*(corr[counts != 0]))
+        corr[counts != 0] = cross[counts != 0] / counts[counts != 0]
+        std[counts != 0] = np.sqrt(
+            square[counts != 0] / counts[counts != 0]
+            - (corr[counts != 0]) * (corr[counts != 0])
+        )
         condition_two = two._items[condition_lab]
         condition_two.counts = counts
         condition_two.cross = corr
@@ -466,8 +498,9 @@ def set_crosscorrelation(iter_timeseries, row_univ, col_univ, two):
     return
 
 
-def update_2(row_coords, col_coords, row_eval_times, col_eval_times,
-             row_mean, col_mean, record):
+def update_2(
+    row_coords, col_coords, row_eval_times, col_eval_times, row_mean, col_mean, record
+):
     """Update counters one and two.
 
     Parameters
@@ -502,8 +535,13 @@ def update_2(row_coords, col_coords, row_eval_times, col_eval_times,
         row_arr[:] = np.nan  # all NaNs but one
         row_arr[ok] = val - row_mean[ok]
     else:
-        row_f = interp1d(row_coords.clear_x, row_coords.clear_y, kind='linear',
-                         assume_sorted=True, bounds_error=False)
+        row_f = interp1d(
+            row_coords.clear_x,
+            row_coords.clear_y,
+            kind="linear",
+            assume_sorted=True,
+            bounds_error=False,
+        )
         row_arr = row_f(row_eval_times) - row_mean
     # if all NaNs, nothing to do
     if np.all(np.isnan(row_arr)):
@@ -515,25 +553,35 @@ def update_2(row_coords, col_coords, row_eval_times, col_eval_times,
         col_arr[:] = np.nan  # all NaNs but one
         col_arr[ok] = val - col_mean[ok]
     else:
-        col_f = interp1d(col_coords.clear_x, col_coords.clear_y, kind='linear',
-                         assume_sorted=True, bounds_error=False)
+        col_f = interp1d(
+            col_coords.clear_x,
+            col_coords.clear_y,
+            kind="linear",
+            assume_sorted=True,
+            bounds_error=False,
+        )
         col_arr = col_f(col_eval_times) - col_mean
     # if all NaNs, nothing to do
     if np.all(np.isnan(col_arr)):
         return
     out = np.outer(row_arr, col_arr)
     ok = np.where(np.logical_not(np.isnan(out)))
-    record['counts'][ok] += 1
-    record['cross'][ok] += out[ok]
-    record['square'][ok] += out[ok] * out[ok]
+    record["counts"][ok] += 1
+    record["cross"][ok] += out[ok]
+    record["square"][ok] += out[ok] * out[ok]
     return
 
 
-def set_stationary_crosscorrelation(iter_timeseries,
-                                    row_univariate, col_univariate, stationary,
-                                    tmin=None, tmax=None,
-                                    adjust_mean='global',
-                                    disjoint=True):
+def set_stationary_crosscorrelation(
+    iter_timeseries,
+    row_univariate,
+    col_univariate,
+    stationary,
+    tmin=None,
+    tmax=None,
+    adjust_mean="global",
+    disjoint=True,
+):
     """Edit stationary cross-correlation values from univariates and timeseries
 
     Parameters
@@ -566,18 +614,18 @@ def set_stationary_crosscorrelation(iter_timeseries,
 
     booarr = row_univariate.eval_times == col_univariate.eval_times
     if not np.all(booarr):
-        raise ValueError('Evaluation times do not match!')
+        raise ValueError("Evaluation times do not match!")
     time = row_univariate.eval_times  # same for every condition
     # time-lapse timing: reduce dimension already (save computational time)
-    if row_univariate.obs.timing == 't':
+    if row_univariate.obs.timing == "t":
         window = np.logical_and(time >= tmin, time <= tmax)
         kwargs = {}
     # cell-cycle like : use tmin tmax to bound cell time values
     else:
         # eval_times are either generation index, either real times
         # but 'time' filtering will be done at cell-cycle using sharp bounds
-        window = np.array(len(time) * [True, ])
-        kwargs = {'sharp_tleft': tmin, 'sharp_tright': tmax}
+        window = np.array(len(time) * [True])
+        kwargs = {"sharp_tleft": tmin, "sharp_tright": tmax}
     eval_times = time[window]
 
     bwd = eval_times - eval_times[-1]
@@ -591,8 +639,7 @@ def set_stationary_crosscorrelation(iter_timeseries,
 
     for cdt_lab in cdt_labs:
         means[cdt_lab] = {}
-        for index, univariate in [('row', row_univariate),
-                                  ('col', col_univariate)]:
+        for index, univariate in [("row", row_univariate), ("col", col_univariate)]:
 
             # get UnivariateConditioned instance
             cdt_univariate = univariate[cdt_lab]
@@ -600,18 +647,20 @@ def set_stationary_crosscorrelation(iter_timeseries,
             co = cdt_univariate.count_one[window]  # needed to compute agg mean
             # construct dict of means indexed over indexified times
             local_mean = np.zeros_like(eval_times)
-            if adjust_mean == 'local':
+            if adjust_mean == "local":
                 local_mean = ms[window]
-            elif adjust_mean == 'global':
-                agg_mean = np.nansum(co * ms)/np.nansum(co)
+            elif adjust_mean == "global":
+                agg_mean = np.nansum(co * ms) / np.nansum(co)
                 local_mean = agg_mean * np.ones(len(eval_times))
             means[cdt_lab][index] = local_mean
             # print(local_mean)
 
         # initialize rec
-        recs[cdt_lab] = {'counts': np.zeros(len(time_intervals), dtype=int),
-                         'first': np.zeros(len(time_intervals)),
-                         'second': np.zeros(len(time_intervals))}
+        recs[cdt_lab] = {
+            "counts": np.zeros(len(time_intervals), dtype=int),
+            "first": np.zeros(len(time_intervals)),
+            "second": np.zeros(len(time_intervals)),
+        }
 
     # store values
     df = None
@@ -622,26 +671,32 @@ def set_stationary_crosscorrelation(iter_timeseries,
         # convert to dataframe first timeseries
         row_df = row_ts.to_dataframe(**kwargs)
         col_df = col_ts.to_dataframe(**kwargs)
-        df = pd.merge(row_df, col_df, how='outer')
+        df = pd.merge(row_df, col_df, how="outer")
         # clean time values out of bounds
-        if row_univariate.obs.timing == 't':
+        if row_univariate.obs.timing == "t":
             df = df[np.logical_and(df.time >= tmin, df.time < tmax)]
         dfs.append(df)
 
         for condition_lab in cdt_labs:
-            row_coords = row_ts.use_condition(condition_label=condition_lab,
-                                              sharp_tleft=tmin,
-                                              sharp_tright=tmax)
-            col_coords = col_ts.use_condition(condition_label=condition_lab,
-                                              sharp_tleft=tmin,
-                                              sharp_tright=tmax)
+            row_coords = row_ts.use_condition(
+                condition_label=condition_lab, sharp_tleft=tmin, sharp_tright=tmax
+            )
+            col_coords = col_ts.use_condition(
+                condition_label=condition_lab, sharp_tleft=tmin, sharp_tright=tmax
+            )
             rec = recs[condition_lab]  # this is where results are recorded
-            row_mean = means[condition_lab]['row']
-            col_mean = means[condition_lab]['col']
+            row_mean = means[condition_lab]["row"]
+            col_mean = means[condition_lab]["col"]
             # update correlation
-            update_stationary_cross(row_coords, col_coords, eval_times,
-                                    row_mean, col_mean, rec,
-                                    disjoint=disjoint)
+            update_stationary_cross(
+                row_coords,
+                col_coords,
+                eval_times,
+                row_mean,
+                col_mean,
+                rec,
+                disjoint=disjoint,
+            )
     df = pd.concat(dfs, ignore_index=True)
     stationary.dataframe = df
 
@@ -650,21 +705,28 @@ def set_stationary_crosscorrelation(iter_timeseries,
 
         rec = recs[condition_lab]
 
-        array = np.zeros(len(time_intervals), dtype=[('time_interval', 'f8'),
-                                                     ('counts', 'u8'),
-                                                     ('cross_correlation', 'f8'),
-                                                     ('std_dev', 'f8')])
-        array['time_interval'] = time_intervals
-        counts = rec['counts']
-        first = rec['first']
-        second = rec['second']
+        array = np.zeros(
+            len(time_intervals),
+            dtype=[
+                ("time_interval", "f8"),
+                ("counts", "u8"),
+                ("cross_correlation", "f8"),
+                ("std_dev", "f8"),
+            ],
+        )
+        array["time_interval"] = time_intervals
+        counts = rec["counts"]
+        first = rec["first"]
+        second = rec["second"]
         ok = np.where(counts > 0)
         where_nan = np.where(counts == 0)
-        array['counts'] = counts
-        array['cross_correlation'][ok] = first[ok]/counts[ok]
-        array['cross_correlation'][where_nan] = np.nan
-        array['std_dev'][ok] = np.sqrt(second[ok]/counts[ok] - (first[ok]/counts[ok])**2)
-        array['std_dev'][where_nan] = np.nan
+        array["counts"] = counts
+        array["cross_correlation"][ok] = first[ok] / counts[ok]
+        array["cross_correlation"][where_nan] = np.nan
+        array["std_dev"][ok] = np.sqrt(
+            second[ok] / counts[ok] - (first[ok] / counts[ok]) ** 2
+        )
+        array["std_dev"][where_nan] = np.nan
 
         cdt_stationary = stationary[condition_lab]
 
@@ -672,8 +734,9 @@ def set_stationary_crosscorrelation(iter_timeseries,
     return
 
 
-def update_stationary_cross(row_coords, col_coords, eval_times,
-                            row_mean, col_mean, record, disjoint=True):
+def update_stationary_cross(
+    row_coords, col_coords, eval_times, row_mean, col_mean, record, disjoint=True
+):
     """Update counts and correlation value for stationary cross-correlation
 
     Parameters
@@ -690,8 +753,13 @@ def update_stationary_cross(row_coords, col_coords, eval_times,
         row_arr[:] = np.nan  # all NaNs but one
         row_arr[ok] = val - row_mean[ok]
     else:
-        row_f = interp1d(row_coords.clear_x, row_coords.clear_y, kind='linear',
-                         assume_sorted=True, bounds_error=False)
+        row_f = interp1d(
+            row_coords.clear_x,
+            row_coords.clear_y,
+            kind="linear",
+            assume_sorted=True,
+            bounds_error=False,
+        )
         row_arr = row_f(eval_times) - row_mean
     # if all NaNs, nothing to do
     if np.all(np.isnan(row_arr)):
@@ -703,8 +771,13 @@ def update_stationary_cross(row_coords, col_coords, eval_times,
         col_arr[:] = np.nan  # all NaNs but one
         col_arr[ok] = val - col_mean[ok]
     else:
-        col_f = interp1d(col_coords.clear_x, col_coords.clear_y, kind='linear',
-                         assume_sorted=True, bounds_error=False)
+        col_f = interp1d(
+            col_coords.clear_x,
+            col_coords.clear_y,
+            kind="linear",
+            assume_sorted=True,
+            bounds_error=False,
+        )
         col_arr = col_f(eval_times) - col_mean
     # if all NaNs, nothing to do
     if np.all(np.isnan(col_arr)):
@@ -732,9 +805,9 @@ def update_stationary_cross(row_coords, col_coords, eval_times,
             step = 1
         sl = slice(offset, len(d), step)
         ok = np.logical_not(np.isnan(d[sl]))
-        record['counts'][n + index] += len(d[sl][ok])
-        record['first'][n + index] += np.nansum(d[sl])
-        record['second'][n + index] += np.nansum(d[sl]*d[sl])
+        record["counts"][n + index] += len(d[sl][ok])
+        record["first"][n + index] += np.nansum(d[sl])
+        record["second"][n + index] += np.nansum(d[sl] * d[sl])
     return
 
 
@@ -798,9 +871,9 @@ def get_stat_from_dynamics(singlecdt, tmin=None, tmax=None):
     col[-1] = 1  # initialisation
     for k in range(nframes):
         col[k] = 1
-        col[k-1] -= 1
+        col[k - 1] -= 1
         forward = triu(toeplitz(col))
         all_counts[k] = np.sum(forward * cts)
-        res[k] = np.sum(forward * cts * autocorr)/all_counts[k]
+        res[k] = np.sum(forward * cts * autocorr) / all_counts[k]
         dts[k] = times[k] - times[0]
     return dts, all_counts, res

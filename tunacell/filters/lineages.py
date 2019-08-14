@@ -17,14 +17,14 @@ from io import StringIO
 class FilterLineage(FilterGeneral):
     "TODO: define lineage object (as tree?)"
 
-    _type = 'LINEAGE'
+    _type = "LINEAGE"
 
 
 class FilterLineageAny(FilterLineage):
     "No selection"
 
     def __init__(self):
-        self.label = 'Always True'
+        self.label = "Always True"
         return
 
     def func(self, lineage):
@@ -35,7 +35,7 @@ class FilterLineageData(FilterLineage):
     "Select lineages with non-empty data"
 
     def __init__(self):
-        self.label = 'Lineage with non-empty data'
+        self.label = "Lineage with non-empty data"
         return
 
     def func(self, lineage):
@@ -53,14 +53,15 @@ class FilterLineageLength(FilterLineage):
     def __init__(self, lower_bound=1, upper_bound=None):
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
-        self.label = '{} <= number of cells <= {}'.format(lower_bound,
-                                                          upper_bound)
+        self.label = "{} <= number of cells <= {}".format(lower_bound, upper_bound)
         return
 
     def func(self, lineage):
-        if bounded(len(lineage.idseq),
-                   lower_bound=self.lower_bound,
-                   upper_bound=self.upper_bound):
+        if bounded(
+            len(lineage.idseq),
+            lower_bound=self.lower_bound,
+            upper_bound=self.upper_bound,
+        ):
             return True
         else:
             return False
@@ -70,11 +71,13 @@ class FilterLineageTimeIntersect(FilterLineage):
     """Select lineages which data time interval has non-empty intersection
     with given bounds.
     """
+
     def __init__(self, lower_bound=None, upper_bound=None):
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
-        label = 'At least one time frame between {} and {}'.format(lower_bound,
-                                                                   upper_bound)
+        label = "At least one time frame between {} and {}".format(
+            lower_bound, upper_bound
+        )
         self.label = label
         return
 
@@ -82,9 +85,11 @@ class FilterLineageTimeIntersect(FilterLineage):
         boo = False
         filtData = FilterLineageData()
         if filtData(lineage):
-            boo = intersect(lineage.data['time'],
-                            lower_bound=self.lower_bound,
-                            upper_bound=self.upper_bound)
+            boo = intersect(
+                lineage.data["time"],
+                lower_bound=self.lower_bound,
+                upper_bound=self.upper_bound,
+            )
         return boo
 
 
@@ -94,7 +99,7 @@ class FilterLineageTimeBound(FilterLineage):
     def __init__(self, lower_bound=None, upper_bound=None):
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
-        label = '{} < lineage time range < {}'.format(lower_bound, upper_bound)
+        label = "{} < lineage time range < {}".format(lower_bound, upper_bound)
         self.label = label
         return
 
@@ -102,34 +107,37 @@ class FilterLineageTimeBound(FilterLineage):
         boo = False
         filtData = FilterLineageData()
         if filtData(lineage):
-            boo = bounded(lineage.data['time'],
-                          lower_bound=self.lower_bound,
-                          upper_bound=self.upper_bound)
+            boo = bounded(
+                lineage.data["time"],
+                lower_bound=self.lower_bound,
+                upper_bound=self.upper_bound,
+            )
         return boo
 
 
 class FilterLineageTimeLength(FilterLineage):
     """Select Lineages which data time interval is bounded by given params."""
 
-    def __init__(self, lower_bound=0., upper_bound=None):
+    def __init__(self, lower_bound=0.0, upper_bound=None):
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
-        self.label = '{} <= time span <= {}'.format(lower_bound, upper_bound)
+        self.label = "{} <= time span <= {}".format(lower_bound, upper_bound)
         return
 
     def func(self, lineage):
-        times = lineage.data['time']
+        times = lineage.data["time"]
         tmin = np.amin(times)
         tmax = np.amax(times)
-        if bounded(tmax - tmin,
-                   lower_bound=self.lower_bound,
-                   upper_bound=self.upper_bound):
+        if bounded(
+            tmax - tmin, lower_bound=self.lower_bound, upper_bound=self.upper_bound
+        ):
             return True
         else:
             return False
 
 
 # %% Next Filters are used for conditional analysis on lineages
+
 
 class FilterLineageWithCellProperty(FilterLineage):
     """Initialize instance
@@ -147,14 +155,14 @@ class FilterLineageWithCellProperty(FilterLineage):
         self.cell_filter = cell_filter
         self._obs.extend(cell_filter._obs)  # add hidden observables
         self.extend_ancestry = extend_ancestry
-        label = 'A cell in lineage '
+        label = "A cell in lineage "
         if extend_ancestry:
-            label += '(up to root) '
-        label += 'with:\n'
-        f = StringIO(u'{}'.format(cell_filter))  # StringIO needs unicode
+            label += "(up to root) "
+        label += "with:\n"
+        f = StringIO(u"{}".format(cell_filter))  # StringIO needs unicode
         for line in f.readlines():
-            label += '    {}'.format(str(line))  # decode to appropriate str
-        label += '\n'
+            label += "    {}".format(str(line))  # decode to appropriate str
+        label += "\n"
         self.label = label.rstrip()
         return
 

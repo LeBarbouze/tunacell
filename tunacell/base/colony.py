@@ -81,7 +81,7 @@ class Colony(treelib.Tree):
         -------
         idseqs : list of sequences of cell identifiers composing each lineage
         """
-        self._decomposition = {'independent': independent, 'seed': seed}
+        self._decomposition = {"independent": independent, "seed": seed}
         np.random.seed(seed)
         if not independent:
             idseqs = self.paths_to_leaves()
@@ -97,8 +97,14 @@ class Colony(treelib.Tree):
         self.idseqs = idseqs
         return idseqs
 
-    def iter_lineages(self, independent=True, seed=None,
-                      filter_for_lineages='from_fset', size=None, shuffle=False):
+    def iter_lineages(
+        self,
+        independent=True,
+        seed=None,
+        filter_for_lineages="from_fset",
+        size=None,
+        shuffle=False,
+    ):
         """Iterates through lineages using tree decomposition
         
         When a decomposition has already been performed, call to this method
@@ -130,8 +136,8 @@ class Colony(treelib.Tree):
         """
         new = True  # new decomposition
         if self._decomposition is not None:
-            a = self._decomposition['independent'] == independent
-            b = self._decomposition['seed'] == seed
+            a = self._decomposition["independent"] == independent
+            b = self._decomposition["seed"] == seed
             if a and b:
                 new = False
         if new:
@@ -140,9 +146,9 @@ class Colony(treelib.Tree):
             idseqs = self.idseqs[:]
         if shuffle:
             np.random.shuffle(idseqs)  # not sure it is useful...
-        if filter_for_lineages is 'from_fset':
+        if filter_for_lineages is "from_fset":
             lineage_filter = self.container.exp.fset.lineage_filter
-        elif filter_for_lineages is None or filter_for_lineages is 'none':
+        elif filter_for_lineages is None or filter_for_lineages is "none":
             lineage_filter = FilterTRUE()
         elif isinstance(filter_for_lineages, FilterLineage):
             lineage_filter = filter_for_lineages

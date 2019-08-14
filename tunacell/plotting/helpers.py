@@ -14,7 +14,7 @@ MIN_SEP = 20
 MAX_XTICKS = 6
 
 
-def _set_axis_limits(ax, values, which='x', pad=.1, force_range=(None, None)):
+def _set_axis_limits(ax, values, which="x", pad=0.1, force_range=(None, None)):
     """Computes axis limits with padding given values.
 
     Parameters
@@ -44,14 +44,14 @@ def _set_axis_limits(ax, values, which='x', pad=.1, force_range=(None, None)):
     if force_range[1] is not None:
         upper = force_range[1]
     if lower == upper:
-        vrange = .1 * upper  # 10% of unique value
+        vrange = 0.1 * upper  # 10% of unique value
     else:
         vrange = upper - lower
     low = lower - pad * vrange
     up = upper + pad * vrange
-    if which == 'x':
+    if which == "x":
         ax.set_xlim(left=low, right=up)
-    elif which == 'y':
+    elif which == "y":
         ax.set_ylim(bottom=low, top=up)
     else:
         raise ValueError("'which' argument can be either 'x' or 'y'")
@@ -79,13 +79,15 @@ def _set_time_axis_ticks(ax, obs, bounds=(None, None)):
     if right is None:
         right = found[1]
     locator = ticker.AutoLocator()
-    if obs.timing == 'g':
-        locator = ticker.MaxNLocator(bins='auto', integer=True)
+    if obs.timing == "g":
+        locator = ticker.MaxNLocator(bins="auto", integer=True)
     else:
         # set lowest tick sep to MIN_SEP
         n_seps = 1000  # large number to initialize
         multiple = 0
-        while n_seps > MAX_XTICKS and multiple < 300:  # later correspond to 100 hours sep between ticks... unlikely
+        while (
+            n_seps > MAX_XTICKS and multiple < 300
+        ):  # later correspond to 100 hours sep between ticks... unlikely
             multiple += 1
             sep = multiple * MIN_SEP
             n_seps = int(np.ceil((right - left) / sep))
@@ -111,12 +113,12 @@ def _set_timelabel(obs, use_tref=True):
     -------
     timelabel : str
     """
-    if obs.mode != 'dynamics' and obs.timing == 'g':
-        timelabel = 'Generations'
+    if obs.mode != "dynamics" and obs.timing == "g":
+        timelabel = "Generations"
         if obs.tref is not None and use_tref:
-            timelabel += ' (since tref {})'.format(obs.tref)
+            timelabel += " (since tref {})".format(obs.tref)
     else:
-        timelabel = 'Time (minutes)'
+        timelabel = "Time (minutes)"
     return timelabel
 
 

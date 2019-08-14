@@ -11,14 +11,14 @@ from tunacell.filters.main import FilterGeneral
 class FilterContainer(FilterGeneral):
     """General class to filter containers"""
 
-    _type = 'CONTAINER'
+    _type = "CONTAINER"
 
 
 class FilterContainerAny(FilterContainer):
     """True for any container"""
 
     def __init__(self):
-        label = 'True for any container'
+        label = "True for any container"
         self.label = label
         return
 
@@ -42,7 +42,7 @@ class FilterContainerMetadataEquals(FilterContainer):
     def __init__(self, key, value):
         self.key = key
         self.value = value
-        label = '{}={}'.format(key, value)
+        label = "{}={}".format(key, value)
         self.label = label
         return
 
@@ -66,4 +66,4 @@ class FilterContainerMetadataEquals(FilterContainer):
             else:
                 return False
         else:
-            raise TypeError('type not understood')
+            raise TypeError("type not understood")

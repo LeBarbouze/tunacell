@@ -10,30 +10,44 @@ import collections
 import logging
 import time
 
-from tunacell.stats.utils import (iter_timeseries_,
-                              iter_timeseries_2,
-                              Region, Regions, UndefinedRegion,
-                              CompuParams)
-from tunacell.stats.single import (Univariate, StationaryUnivariate,
-                               UnivariateIOError, StationaryUnivariateIOError)
-from tunacell.stats.two import Bivariate, StationaryBivariate, StationaryBivariateIOError
-from tunacell.stats.compute import (set_dynamics,
-                                set_stationary_autocorrelation,
-                                set_crosscorrelation,
-                                set_stationary_crosscorrelation,
-                                NoValidTimes)
+from tunacell.stats.utils import (
+    iter_timeseries_,
+    iter_timeseries_2,
+    Region,
+    Regions,
+    UndefinedRegion,
+    CompuParams,
+)
+from tunacell.stats.single import (
+    Univariate,
+    StationaryUnivariate,
+    UnivariateIOError,
+    StationaryUnivariateIOError,
+)
+from tunacell.stats.two import (
+    Bivariate,
+    StationaryBivariate,
+    StationaryBivariateIOError,
+)
+from tunacell.stats.compute import (
+    set_dynamics,
+    set_stationary_autocorrelation,
+    set_crosscorrelation,
+    set_stationary_crosscorrelation,
+    NoValidTimes,
+)
 
 
 logger = logging.getLogger(__name__)
 
-MIN_INTERDIVISION_TIME = 5.  # World record is set by Vibrio natriegens
+MIN_INTERDIVISION_TIME = 5.0  # World record is set by Vibrio natriegens
 # See R.G.Eagon, J. Bact. vol 83, pp 736-737 (1962)
 
 
 # SINGLE DYNAMIC ONBSERVABLE
 
-def compute_univariate(exp, obs, region='ALL', cset=[], times=None,
-                       size=None):
+
+def compute_univariate(exp, obs, region="ALL", cset=[], times=None, size=None):
     """Computes one-point and two-point functions of statistical analysis.
 
     This functions handles conditions and time-window binning:
@@ -77,9 +91,11 @@ def compute_univariate(exp, obs, region='ALL', cset=[], times=None,
     start_time = time.time()
     set_dynamics(timeseries, univ, eval_times)
     delta_time = time.time() - start_time
-    msg = ('Univariate statistics for obs "{}"'.format(obs.name) + ''
-           ', region "{}"'.format(reg.name) + ''
-           'computed in {:.3f}'.format(delta_time))
+    msg = (
+        'Univariate statistics for obs "{}"'.format(obs.name) + ""
+        ', region "{}"'.format(reg.name) + ""
+        "computed in {:.3f}".format(delta_time)
+    )
     logger.info(msg)
     return univ
 
@@ -104,20 +120,20 @@ def _default_eval_times(exp, obs, region):
     obs : :class:`Observable` or :class:`FunctionalObservable` instance
     region : :class:`Region` instance
     """
-    if obs.timing != 'g':
+    if obs.timing != "g":
         period = exp.period
         tmin = region.tmin
         tmax = region.tmax
     else:
         period = 1
-        n_max = int(np.ceil((region.tmax - region.tmin)/MIN_INTERDIVISION_TIME))
-        tmin = - n_max
+        n_max = int(np.ceil((region.tmax - region.tmin) / MIN_INTERDIVISION_TIME))
+        tmin = -n_max
         tmax = n_max
     eval_times = np.arange(tmin, tmax + period, period)
     return eval_times
 
 
-def load_univariate(exp, obs, region='ALL', cset=[]):
+def load_univariate(exp, obs, region="ALL", cset=[]):
     """Initialize an empty Univariate instance.
 
     Such a Univariate instance is bound to an experiment (through exp),
@@ -141,31 +157,34 @@ def load_univariate(exp, obs, region='ALL', cset=[]):
     UnivariateIOError
         when importing fails (no data corresponds to input params)
     """
-    logger.debug('Converting region and setting evaluation times')
+    logger.debug("Converting region and setting evaluation times")
     reg = _convert_region(region, exp)
     # use default eval_times to respect __init__, will be updated upon reading
     eval_times = _default_eval_times(exp, obs, reg)
     logger.debug('Instantiating univariate object for "{}"'.format(obs.name))
     univ = Univariate(exp, obs, eval_times, reg, cset)
-    logger.debug('Trying to import results from files...')
+    logger.debug("Trying to import results from files...")
     univ.import_from_text()
     logger.info('Import univariate statistics for "{}" successful'.format(obs.name))
     return univ
 
 
 # SINGLE STATIONARY OBSERVABLE
-    
+
+
 class ParamsError(ValueError):
     pass
 
 
 def _check_params(region, options):
     if not isinstance(options, CompuParams):
-        raise ParamsError('options must be a CompuParams instance')
-    if ((not hasattr(region, 'tmin')) or
-         (not hasattr(region, 'tmax')) or
-         (not hasattr(region, 'name'))):
-        raise ParamsError('region must have name, tmin, tmax attributes')
+        raise ParamsError("options must be a CompuParams instance")
+    if (
+        (not hasattr(region, "tmin"))
+        or (not hasattr(region, "tmax"))
+        or (not hasattr(region, "name"))
+    ):
+        raise ParamsError("region must have name, tmin, tmax attributes")
     return
 
 
@@ -184,11 +203,17 @@ def load_stationary(univ, region, options):
         set up with empty arrays
     """
     _check_params(region, options)
-    logger.debug('Instantiating stationary univariate object for "{}"'.format(univ.obs.name))
+    logger.debug(
+        'Instantiating stationary univariate object for "{}"'.format(univ.obs.name)
+    )
     stat = StationaryUnivariate(univ, region, options)
-    logger.debug('Trying to import results from files...')
+    logger.debug("Trying to import results from files...")
     stat.import_from_text()
-    logger.info('Import stationary univariate statistics for "{}" successful'.format(univ.obs.name))
+    logger.info(
+        'Import stationary univariate statistics for "{}" successful'.format(
+            univ.obs.name
+        )
+    )
     _update_univariate_from_stationary(univ, stat)
     return stat
 
@@ -222,29 +247,37 @@ def compute_stationary(univ, region, options, size=None):
     # call the function performing computation and updating stationary
     try:
         start_time = time.time()
-        set_stationary_autocorrelation(timeseries, univ, stationary,
-                                       tmin=region.tmin, tmax=region.tmax,
-                                       adjust_mean=options.adjust_mean,
-                                       disjoint=options.disjoint)
+        set_stationary_autocorrelation(
+            timeseries,
+            univ,
+            stationary,
+            tmin=region.tmin,
+            tmax=region.tmax,
+            adjust_mean=options.adjust_mean,
+            disjoint=options.disjoint,
+        )
         delta_time = time.time() - start_time
-        msg = ('Steady statistics for "{}"'.format(univ.obs.name) + ' '
-               'over region "{}"'.format(region.name) + ' '
-               'computed in {:.3f}'.format(delta_time))
+        msg = (
+            'Steady statistics for "{}"'.format(univ.obs.name) + " "
+            'over region "{}"'.format(region.name) + " "
+            "computed in {:.3f}".format(delta_time)
+        )
         logger.info(msg)
         _update_univariate_from_stationary(univ, stationary)
     except NoValidTimes as error:
-        print('No valid time points for {} in {}'.format(univ.obs.name, region))
+        print("No valid time points for {} in {}".format(univ.obs.name, region))
         raise error
     return stationary
 
 
 # CROSS CORRELATION
-    
+
+
 def _update_univariate_from_bivariate(univs, two):
     for cdt_lab in two._condition_labels:
         cdt_two = two[cdt_lab]
         for k in range(2):
-            univs[k][cdt_lab].two[str(univs[k-1].obs)] = cdt_two
+            univs[k][cdt_lab].two[str(univs[k - 1].obs)] = cdt_two
     return
 
 
@@ -295,20 +328,25 @@ def compute_bivariate(row_univariate, col_univariate, size=None):
     obs2 = s2.obs
     # check that the two observables are either two dynamics mode, either zero
     if obs1.mode != obs2.mode:
-        if obs1.mode == 'dynamics' or obs2.mode == 'dynamics':
-            msg = ('Cannot mix time-lapse and cell-cycle observables:\n'
-                   'Here obs1.mode = {} and obs2.mode = {}'.format(obs1.mode,
-                                                                   obs2.mode))
+        if obs1.mode == "dynamics" or obs2.mode == "dynamics":
+            msg = (
+                "Cannot mix time-lapse and cell-cycle observables:\n"
+                "Here obs1.mode = {} and obs2.mode = {}".format(obs1.mode, obs2.mode)
+            )
             raise TypeError(msg)
-        elif obs1.timing == 'g':
-            if obs2.timing != 'g':
-                msg = ('If one observable is evaluated in generation time, '
-                       'the other one must be as well in generation time.')
+        elif obs1.timing == "g":
+            if obs2.timing != "g":
+                msg = (
+                    "If one observable is evaluated in generation time, "
+                    "the other one must be as well in generation time."
+                )
                 raise TypeError(msg)
-        elif obs2.timing == 'g':
-            if obs1.timing != 'g':
-                msg = ('If one observable is evaluated in generation time, '
-                       'the other one must be as well in generation time.')
+        elif obs2.timing == "g":
+            if obs1.timing != "g":
+                msg = (
+                    "If one observable is evaluated in generation time, "
+                    "the other one must be as well in generation time."
+                )
                 raise TypeError(msg)
     # initialize Univariate and each of its item
     two = Bivariate(row_univariate, col_univariate)  # empty
@@ -319,8 +357,9 @@ def compute_bivariate(row_univariate, col_univariate, size=None):
     # call the master function performing computation
     set_crosscorrelation(timeseries, row_univariate, col_univariate, two)
     delta_time = time.time() - start_time
-    msg = ('Bivariate statistics for "{}--{}"'.format(obs1.name, obs2.name) + ' '
-           'computed in {:.3f}'.format(delta_time))
+    msg = 'Bivariate statistics for "{}--{}"'.format(
+        obs1.name, obs2.name
+    ) + " " "computed in {:.3f}".format(delta_time)
     logger.info(msg)
     # update conditioned univ cross-correlation
     _update_univariate_from_bivariate(univs, two)
@@ -331,12 +370,11 @@ def _update_univariate_from_stationary_bivariate(univs, stwo):
     for cdt_lab in stwo._condition_labels:
         cdt_two = stwo[cdt_lab]
         for k in range(2):
-            univs[k][cdt_lab].two_stationary[str(univs[k-1].obs)] = cdt_two
+            univs[k][cdt_lab].two_stationary[str(univs[k - 1].obs)] = cdt_two
     return
 
 
-def load_stationary_bivariate(row_univariate, col_univariate,
-                              region, options):
+def load_stationary_bivariate(row_univariate, col_univariate, region, options):
     """Initialize a StationaryBivariate instance from its dynamical one.
 
     Parameters
@@ -351,8 +389,7 @@ def load_stationary_bivariate(row_univariate, col_univariate,
     :class:`StationaryBivariate` instance
         set up with empty arrays
     """
-    stwo = StationaryBivariate(row_univariate, col_univariate,
-                               region, options)
+    stwo = StationaryBivariate(row_univariate, col_univariate, region, options)
     stwo.import_from_text()
     univs = row_univariate, col_univariate
     # stationary univariate need to be computed for full inspection
@@ -367,8 +404,9 @@ def load_stationary_bivariate(row_univariate, col_univariate,
     return stwo
 
 
-def compute_stationary_bivariate(row_univariate, col_univariate,
-                                 region, options, size=None):
+def compute_stationary_bivariate(
+    row_univariate, col_univariate, region, options, size=None
+):
     """Computes stationary cross-correlation function from couple of univs
 
     Need to compute stationary univariates as well.
@@ -385,21 +423,27 @@ def compute_stationary_bivariate(row_univariate, col_univariate,
             suniv = compute_stationary(univ, region, options)
             suniv.export_text()
         _update_univariate_from_stationary(univ, suniv)
-    sbivar = StationaryBivariate(row_univariate, col_univariate,
-                                 region, options)
+    sbivar = StationaryBivariate(row_univariate, col_univariate, region, options)
     exp = sbivar.exp
     cset = sbivar.cset
     start_time = time.time()
     timeseries = iter_timeseries_2(exp, obs1, obs2, cset, size=size)
-    set_stationary_crosscorrelation(timeseries, row_univariate, col_univariate,
-                                    sbivar,
-                                    tmin=region.tmin, tmax=region.tmax,
-                                    adjust_mean=options.adjust_mean,
-                                    disjoint=options.disjoint)
+    set_stationary_crosscorrelation(
+        timeseries,
+        row_univariate,
+        col_univariate,
+        sbivar,
+        tmin=region.tmin,
+        tmax=region.tmax,
+        adjust_mean=options.adjust_mean,
+        disjoint=options.disjoint,
+    )
     delta_time = time.time() - start_time
-    msg = ('Steady bivariate statistics for "{}--{}"'.format(obs1.name, obs2.name) + ' '
-           'over region "{}"'.format(region.name) + ' '
-           'computed in {:.3f}'.format(delta_time))
+    msg = (
+        'Steady bivariate statistics for "{}--{}"'.format(obs1.name, obs2.name) + " "
+        'over region "{}"'.format(region.name) + " "
+        "computed in {:.3f}".format(delta_time)
+    )
     logger.info(msg)
     # update conditioned univ stationary cross-correlation
     _update_univariate_from_stationary_bivariate(univs, sbivar)

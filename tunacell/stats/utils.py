@@ -42,16 +42,18 @@ def iter_timeseries_(exp, observable, conditions, size=None):
     ------
     :class:`TimeSeries` instance
     """
-    all_filters = [exp.fset, ] + conditions
+    all_filters = [exp.fset] + conditions
     raw_obs, func_obs = set_observable_list(observable, filters=all_filters)
     # run the iterator
     if exp._counts is None:
         exp.count_items()
-    n_lineages = exp._counts['lineages']
-    for lineage in tqdm(exp.iter_lineages(size=size), total=n_lineages, desc='sample iteration'):
-        ts = lineage.get_timeseries(observable,
-                                    raw_obs=raw_obs, func_obs=func_obs,
-                                    cset=conditions)
+    n_lineages = exp._counts["lineages"]
+    for lineage in tqdm(
+        exp.iter_lineages(size=size), total=n_lineages, desc="sample iteration"
+    ):
+        ts = lineage.get_timeseries(
+            observable, raw_obs=raw_obs, func_obs=func_obs, cset=conditions
+        )
         yield ts
 
 
@@ -75,18 +77,20 @@ def iter_timeseries_2(exp, obs1, obs2, conditions, size=None):
     ------
     Couple of :class:`TimeSeries` instances
     """
-    all_filters = [exp.fset, ] + conditions
+    all_filters = [exp.fset] + conditions
     raw_obs, func_obs = set_observable_list(obs1, obs2, filters=all_filters)
     if exp._counts is None:
         exp.count_items()
-    n_lineages = exp._counts['lineages']
-    for lineage in tqdm(exp.iter_lineages(size=size), total=n_lineages, desc='sample iteration'):
-        ts1 = lineage.get_timeseries(obs1,
-                                     raw_obs=raw_obs, func_obs=func_obs,
-                                     cset=conditions)
-        ts2 = lineage.get_timeseries(obs2,
-                                     raw_obs=raw_obs, func_obs=func_obs,
-                                     cset=conditions)
+    n_lineages = exp._counts["lineages"]
+    for lineage in tqdm(
+        exp.iter_lineages(size=size), total=n_lineages, desc="sample iteration"
+    ):
+        ts1 = lineage.get_timeseries(
+            obs1, raw_obs=raw_obs, func_obs=func_obs, cset=conditions
+        )
+        ts2 = lineage.get_timeseries(
+            obs2, raw_obs=raw_obs, func_obs=func_obs, cset=conditions
+        )
         yield (ts1, ts2)
 
 
@@ -98,36 +102,36 @@ class CompuParams(object):
     """Options for the computation of statistics under stationary hypothesis
     """
 
-    def __init__(self, adjust_mean='global', disjoint=True):
-        if adjust_mean not in ['global', 'local']:
-            raise CompuParamsError('adjust mean must one of global, local')
+    def __init__(self, adjust_mean="global", disjoint=True):
+        if adjust_mean not in ["global", "local"]:
+            raise CompuParamsError("adjust mean must one of global, local")
         self.adjust_mean = adjust_mean
         if not isinstance(disjoint, bool):
-            raise CompuParamsError('disjoint must be boolean: True, False')
+            raise CompuParamsError("disjoint must be boolean: True, False")
         self.disjoint = disjoint
 
     def as_string_code(self):
-        code = ''
+        code = ""
         code += self.adjust_mean[0]
         if self.disjoint:
-            code += 'd'
+            code += "d"
         return code
 
     def load_from_string_code(self, code):
         if not isinstance(code, str):
-            raise CompuParamsError('argument must be a string')
-        if code[0] == 'g':
-            self.adjust_mean = 'global'
-        elif code[0] == 'l':
-            self.adjust_mean = 'local'
+            raise CompuParamsError("argument must be a string")
+        if code[0] == "g":
+            self.adjust_mean = "global"
+        elif code[0] == "l":
+            self.adjust_mean = "local"
         else:
-            raise CompuParamsError('adjust_mean not valid in {}'.format(code))
+            raise CompuParamsError("adjust_mean not valid in {}".format(code))
         self.disjoint = False
         if len(code) > 1:
-            if code[1] == 'd':
+            if code[1] == "d":
                 self.disjoint = True
             else:
-                raise CompuParamsError('string {} not valid'.format(code))
+                raise CompuParamsError("string {} not valid".format(code))
 
 
 class RegionsIOError(IOError):
@@ -163,10 +167,12 @@ class Region(object):
             self.tmax = tmax
 
     def as_dict(self):
-        return {'name': self.name, 'tmin': self.tmin, 'tmax': self.tmax}
+        return {"name": self.name, "tmin": self.tmin, "tmax": self.tmax}
 
     def __repr__(self):
-        msg = 'Region : {{name: {}, tmin: {}, tmax: {}}}'.format(self.name, self.tmin, self.tmax)
+        msg = "Region : {{name: {}, tmin: {}, tmax: {}}}".format(
+            self.name, self.tmin, self.tmax
+        )
         return msg
 
 
@@ -186,18 +192,20 @@ class Regions(object):
         elif isinstance(exp, Parser):
             self.exp = exp.experiment
         else:
-            raise TypeError('first arg must be either Experiment or Parser')
+            raise TypeError("first arg must be either Experiment or Parser")
         self._regions = {}  # dictionary name: region
         try:
             self.load()
-            _all = self.get('ALL')
+            _all = self.get("ALL")
             self._tmin = _all.tmin  # experiment lower bound
             self._tmax = _all.tmax  # experiment upper bound
         except RegionsIOError:
-            logger.debug('No regions have been saved yet. '
-                         'Looking for experiment boundaries...')
+            logger.debug(
+                "No regions have been saved yet. "
+                "Looking for experiment boundaries..."
+            )
             tmin, tmax = _find_time_boundaries(self.exp)
-            self.add(name='ALL', tmin=tmin, tmax=tmax)
+            self.add(name="ALL", tmin=tmin, tmax=tmax)
             self._tmin = tmin
             self._tmax = tmax
 
@@ -207,31 +215,31 @@ class Regions(object):
 
     def __repr__(self):
         text_file = self._path_to_file(write=False)
-        with open(text_file, 'r') as f:
+        with open(text_file, "r") as f:
             msg = f.read()
         return msg
 
     def _path_to_file(self, write=False):
         analysis_path = analysis.get_analysis_path(self.exp, write=write)
-        text_file = os.path.join(analysis_path, 'regions.tsv')
+        text_file = os.path.join(analysis_path, "regions.tsv")
         if not os.path.exists(text_file) and not write:
             raise RegionsIOError
         return text_file
 
     def load(self):
         text_file = self._path_to_file(write=False)
-        with open(text_file, 'r') as f:
-            items = csv.DictReader(f, delimiter='\t')
+        with open(text_file, "r") as f:
+            items = csv.DictReader(f, delimiter="\t")
             for item in items:  # item is a dict with keys name, tmin, tmax
-                name = item['name']
+                name = item["name"]
                 self._regions[name] = item
 
     def save(self):
         if self._regions is not None:
             text_file = self._path_to_file(write=True)
-            with open(text_file, 'w') as f:
-                fieldnames = ['name', 'tmin', 'tmax']
-                writer = csv.DictWriter(f, fieldnames, delimiter='\t')
+            with open(text_file, "w") as f:
+                fieldnames = ["name", "tmin", "tmax"]
+                writer = csv.DictWriter(f, fieldnames, delimiter="\t")
                 writer.writeheader()
                 # sort rows
                 names = sorted(self._regions.keys())
@@ -265,8 +273,8 @@ class Regions(object):
                 tmax = right
         name = None
         for key, item in self._regions.items():
-            if item['tmin'] == tmin and item['tmax'] == tmax:
-                name = item['name']
+            if item["tmin"] == tmin and item["tmax"] == tmax:
+                name = item["name"]
                 break
         return name, tmin, tmax
 
@@ -297,19 +305,25 @@ class Regions(object):
         if region is not None:
             if isinstance(region, Region):
                 # check that name is not used yet
-                _name, _tmin, _tmax = self._lookup_bounds(tmin=region.tmin, tmax=region.tmax)
+                _name, _tmin, _tmax = self._lookup_bounds(
+                    tmin=region.tmin, tmax=region.tmax
+                )
             else:
                 logger.error('"region" argument is not an instance of Region')
-                raise TypeError('Argument not a Region')
+                raise TypeError("Argument not a Region")
         # otherwise use other keyword arguments
         else:
             _name, _tmin, _tmax = self._lookup_bounds(tmin=tmin, tmax=tmax)
         # region already exists
         if _name is not None:
             if _name == name:
-                logger.debug('Region "{}" already exists and match parameters'.format(name))
+                logger.debug(
+                    'Region "{}" already exists and match parameters'.format(name)
+                )
             else:
-                logger.warning('Region parameters match region "{}" which is used'.format(_name))
+                logger.warning(
+                    'Region parameters match region "{}" which is used'.format(_name)
+                )
             return self._regions[_name][_name]
         # region does not exists yet
         else:
@@ -318,16 +332,18 @@ class Regions(object):
                 _name = _find_available_name(used_names=self.names)
             else:
                 _name = name
-            item = {'name': _name, 'tmin': _tmin, 'tmax': _tmax}
+            item = {"name": _name, "tmin": _tmin, "tmax": _tmax}
             # okay we can add the region to the list of regions
-            msg = ('Adding region {} with parameters: '.format(item['name']) + ''
-                   'tmin: {}'.format(item['tmin']) + ', '
-                   'tmax: {}'.format(item['tmax']))
+            msg = (
+                "Adding region {} with parameters: ".format(item["name"]) + ""
+                "tmin: {}".format(item["tmin"]) + ", "
+                "tmax: {}".format(item["tmax"])
+            )
             logger.debug(msg)
-            self._regions[item['name']] = item
+            self._regions[item["name"]] = item
             # automatic saving
             self.save()
-            return item['name']
+            return item["name"]
 
     def delete(self, name):
         """Delete name region
@@ -345,7 +361,7 @@ class Regions(object):
         """Delete all regions except 'ALL'"""
         names = self.names[:]
         for name in names:
-            if name != 'ALL':
+            if name != "ALL":
                 self.delete(name)
 
     def get(self, name):
@@ -385,15 +401,15 @@ def _find_time_boundaries(exp):
         maximum time value in experiment
     """
     tleft, tright = np.infty, -np.infty
-    logger.debug('Parsing experiment to get min, max values for registered times')
+    logger.debug("Parsing experiment to get min, max values for registered times")
     for container in exp.iter_containers(read=True, build=False):
-        tmin = np.nanmin(container.data['time'])
-        tmax = np.nanmax(container.data['time'])
+        tmin = np.nanmin(container.data["time"])
+        tmax = np.nanmax(container.data["time"])
         if tmin < tleft:
             tleft = tmin
         if tmax > tright:
             tright = tmax
-    logger.debug('Boundaries found: min {} max {}'.format(tleft, tright))
+    logger.debug("Boundaries found: min {} max {}".format(tleft, tright))
     return tleft, tright
 
 
@@ -418,7 +434,7 @@ def _find_available_name(used_names=[]):
             if num == 0:
                 letter = upper[index]
             else:
-                letter = upper[index] + '{}'.format(num)
+                letter = upper[index] + "{}".format(num)
             if letter not in used_names:
                 got_it = True
                 break
@@ -443,8 +459,8 @@ def _dtype_converter(col_name):
         returns None when dtype is not recognized (pandas parser will deal with it)
     """
     dtype = None
-    if 'FilterSet' in col_name:
+    if "FilterSet" in col_name:
         dtype = np.bool
-    elif col_name == 'cellID':
+    elif col_name == "cellID":
         dtype = np.int64
     return dtype

@@ -14,12 +14,13 @@ from tunacell.base.colony import Colony, build_recursively_from_cells
 
 ## Fixture for cell
 
+
 @pytest.fixture
 def cells():
     """Builds a list of 10 cells with ids from '0' to '9'"""
-    cells = [Cell(identifier='0'), ]
+    cells = [Cell(identifier="0")]
     for index in range(1, 10):
-        cells.append(Cell(identifier='{}'.format(index)))
+        cells.append(Cell(identifier="{}".format(index)))
     return cells
 
 
@@ -30,7 +31,9 @@ def binary_division_cells(cells):
     # first define how to slice an array of [0 1 2 3 4 5 6 ...]
     sls = []
     for k in range(1, 5):
-        sls.append(slice(sum((2**i for i in range(k-1))), sum((2**i for i in range(k)))))
+        sls.append(
+            slice(sum((2 ** i for i in range(k - 1))), sum((2 ** i for i in range(k))))
+        )
     # second, slice the array of 10 cells
     ll = [cells[sl] for sl in sls]
 
@@ -42,6 +45,7 @@ def binary_division_cells(cells):
 
 
 ## Fixtures for colonies
+
 
 @pytest.fixture
 def tree():
@@ -58,7 +62,9 @@ def tree():
     tree.create_node("Mark", "mark", parent="jane")
     return tree
 
+
 ## Test functions for cell
+
 
 def test_cell_parent(cells):
     root = cells[0]
@@ -67,7 +73,7 @@ def test_cell_parent(cells):
         cell.parent = root
     for index in range(1, 10):
         assert cell.parent == root
-    
+
 
 def test_cell_childs(cells):
     root = cells[0]
@@ -75,31 +81,31 @@ def test_cell_childs(cells):
         cell = cells[index]
         root.childs = cell
     assert root.childs == cells[1:]
-    
+
 
 def test_cell_division_timing(cells):
     root = cells[0]
     couples = [(int(root.identifier), t) for t in [0, 1, 2]]
-    root.data = np.array(couples, dtype=[('cellID', 'u2',), ('time', 'f8')])
+    root.data = np.array(couples, dtype=[("cellID", "u2"), ("time", "f8")])
     for index in range(1, 10):
         cell = cells[index]
         times = [4, 5, 6]
         couples = [(cell.identifier, t) for t in times]
-        cell.data = np.array(couples, dtype=[('cellID', 'u2',), ('time', 'f8')])
+        cell.data = np.array(couples, dtype=[("cellID", "u2"), ("time", "f8")])
         cell.parent = root
         cell.set_division_event()
-    
+
     assert root.division_time == 3
-    
+
     for index in range(1, 10):
         assert cell.birth_time == 3
-    
-    
+
+
 def test_cell_build_filiation(binary_division_cells):
     cells = binary_division_cells
-     # make filiation in place
+    # make filiation in place
     filiate_from_bpointer(cells)
-    
+
     assert cells[1] in cells[0].childs
     assert cells[2] in cells[0].childs
     assert cells[1].parent == cells[0]
@@ -112,22 +118,24 @@ def test_cell_build_filiation(binary_division_cells):
     assert cells[6] in cells[2].childs
     assert cells[5].parent == cells[2]
     assert cells[6].parent == cells[2]
-    
-    
+
+
 def test_colony_full_decomposition(tree):
     tree.decompose(independent=False, seed=42)
-    assert tree._decomposition['independent'] is False
-    assert tree._decomposition['seed'] == 42
-    assert tree.idseqs == [['harry', 'bill'],
-                           ['harry', 'jane', 'diane', 'mary'],
-                           ['harry', 'jane', 'mark']]
+    assert tree._decomposition["independent"] is False
+    assert tree._decomposition["seed"] == 42
+    assert tree.idseqs == [
+        ["harry", "bill"],
+        ["harry", "jane", "diane", "mary"],
+        ["harry", "jane", "mark"],
+    ]
 
 
 def test_colony_independent_decomposition(tree):
     tree.decompose(independent=True, seed=42)
-    assert tree._decomposition['independent'] is True
-    assert tree._decomposition['seed'] == 42
-    assert tree.idseqs == [['harry', 'jane', 'mark'], ['diane', 'mary'], ['bill']]
+    assert tree._decomposition["independent"] is True
+    assert tree._decomposition["seed"] == 42
+    assert tree.idseqs == [["harry", "jane", "mark"], ["diane", "mary"], ["bill"]]
 
 
 def test_colony_recursive_constructor(binary_division_cells):
@@ -138,5 +146,4 @@ def test_colony_recursive_constructor(binary_division_cells):
     assert len(colonies) == 1
     colony = colonies[0]
     assert colony.depth() == 3
-    assert colony.level('9') == 3
-
+    assert colony.level("9") == 3

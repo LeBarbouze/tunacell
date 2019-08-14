@@ -8,29 +8,44 @@ from __future__ import print_function
 import pytest
 from itertools import product, combinations
 
-from tunacell.base.observable import (Observable, ObservableStringError,
-                                  FunctionalObservable, set_observable_list,
-                                  unroll_func_obs, unroll_raw_obs, INTERNALS_OBSERVABLES_BASENAME)
+from tunacell.base.observable import (
+    Observable,
+    ObservableStringError,
+    FunctionalObservable,
+    set_observable_list,
+    unroll_func_obs,
+    unroll_raw_obs,
+    INTERNALS_OBSERVABLES_BASENAME,
+)
 
 
-t_params = (('name', ['mysoup', 'donald']),
-            ('raw', ['soup', 'duck']),
-            ('scale', ['linear', 'log']),
-            ('mode', ['dynamics',
-                      'birth', 'division',
-                      'net-increase-additive', 'net-increase-multiplicative',
-                      'rate', 'average']),
-            ('join_points', [3, 10, 100]),
-            ('timing', ['t', 'b', 'd', 'g']),
-            ('tref', [None, 0., 30, 300.]),
-            ('differentiate', [False, True]),
-            ('local_fit', [False, True]),
-            ('time_window', [0., 3.14, 15.])
-            )
+t_params = (
+    ("name", ["mysoup", "donald"]),
+    ("raw", ["soup", "duck"]),
+    ("scale", ["linear", "log"]),
+    (
+        "mode",
+        [
+            "dynamics",
+            "birth",
+            "division",
+            "net-increase-additive",
+            "net-increase-multiplicative",
+            "rate",
+            "average",
+        ],
+    ),
+    ("join_points", [3, 10, 100]),
+    ("timing", ["t", "b", "d", "g"]),
+    ("tref", [None, 0.0, 30, 300.0]),
+    ("differentiate", [False, True]),
+    ("local_fit", [False, True]),
+    ("time_window", [0.0, 3.14, 15.0]),
+)
 
 
-#@pytest.fixture
-#def random_strings():
+# @pytest.fixture
+# def random_strings():
 #    average_string_length = 100
 #    number_of_samples = 20
 #    lengths = np.random.poisson(lam=average_string_length,
@@ -45,9 +60,10 @@ t_params = (('name', ['mysoup', 'donald']),
 #    return gen_random_strings(lengths)
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def all_params():
     """Fixture to return an iterator among all parameter sets"""
+
     def iter_params(params):
         keys, values = zip(*params)
         for items in product(*values):
@@ -55,9 +71,11 @@ def all_params():
 
     return iter_params(t_params)
 
-@pytest.fixture(scope='module')
+
+@pytest.fixture(scope="module")
 def all_attributes():
     """Fixture to iterate among all attribute combinations, excluding *name*"""
+
     def iter_attrs(params):
         keys, values = zip(*params)
         for items in product(*values[1:]):
@@ -76,8 +94,8 @@ def test_observable_init(all_params):
 
 def test_observable_equal(all_attributes):
     for kwargs in all_attributes:
-        obs = Observable(name='this', **kwargs)
-        other = Observable(name='that', **kwargs)  # only name changes
+        obs = Observable(name="this", **kwargs)
+        other = Observable(name="that", **kwargs)  # only name changes
         assert obs.name != other.name  # we changed its name
         assert obs == other  # all other attributes are equal
 
@@ -85,8 +103,10 @@ def test_observable_equal(all_attributes):
 def test_observable_unequal(all_attributes):
     for kwargs, otherkwargs in combinations(all_attributes, 2):
         assert kwargs != otherkwargs  # combinations should return different dicts
-        obs = Observable(name='observable', **kwargs)
-        other = Observable(name='observable', **otherkwargs)  # same name but at least one different kwarg
+        obs = Observable(name="observable", **kwargs)
+        other = Observable(
+            name="observable", **otherkwargs
+        )  # same name but at least one different kwarg
         assert obs != other
 
 
@@ -100,7 +120,7 @@ def test_observable_str(all_params):
         obs = Observable(**kwargs)
         nobs = Observable(from_string=str(obs))
         for attr in obs._ATTR_NAMES:
-            if attr == 'time_window' and not obs.local_fit:
+            if attr == "time_window" and not obs.local_fit:
                 # check only if local_fit is True,
                 # since when it's false, time_window is not printed in str
                 continue
@@ -126,22 +146,26 @@ def test_observable_save(fake_exp):
     assert not (fake_exp.path_internals / INTERNALS_OBSERVABLES_BASENAME).exists()
     print(fake_exp.path_internals)
     # fake exp has got a single raw observable: 'value'
-    value = Observable(raw='value')
+    value = Observable(raw="value")
     value.save_in_internals(fake_exp)
-    itsderivative = Observable(name='itsderivative', raw='value', differentiate=True)
+    itsderivative = Observable(name="itsderivative", raw="value", differentiate=True)
     itsderivative.save_in_internals(fake_exp)
     assert (fake_exp.path_internals / INTERNALS_OBSERVABLES_BASENAME).exists()
     # count lines
-    with (fake_exp.path_internals / INTERNALS_OBSERVABLES_BASENAME).open('r') as f:
+    with (fake_exp.path_internals / INTERNALS_OBSERVABLES_BASENAME).open("r") as f:
         number_obs = len(f.readlines()[:])
     assert number_obs == 2
 
 
 def test_unrolling():
-    length = Observable(name='length')
-    width = Observable(name='width')
-    area = FunctionalObservable(name='square-area', f=lambda x, y: x*y, observables=[length, width])
-    vol = FunctionalObservable(name='volume', f=lambda x, y: x*y, observables=[area, width])
+    length = Observable(name="length")
+    width = Observable(name="width")
+    area = FunctionalObservable(
+        name="square-area", f=lambda x, y: x * y, observables=[length, width]
+    )
+    vol = FunctionalObservable(
+        name="volume", f=lambda x, y: x * y, observables=[area, width]
+    )
     raw_obs, func_obs = set_observable_list(vol, filters=[])
     assert length in raw_obs
     assert length not in func_obs
@@ -152,11 +176,16 @@ def test_unrolling():
     assert vol in func_obs
     assert vol not in raw_obs
 
+
 def test_unroll_func():
-    length = Observable(name='length')
-    width = Observable(name='width')
-    area = FunctionalObservable(name='square-area', f=lambda x, y: x*y, observables=[length, width])
-    vol = FunctionalObservable(name='volume', f=lambda x, y: x*y, observables=[area, width])
+    length = Observable(name="length")
+    width = Observable(name="width")
+    area = FunctionalObservable(
+        name="square-area", f=lambda x, y: x * y, observables=[length, width]
+    )
+    vol = FunctionalObservable(
+        name="volume", f=lambda x, y: x * y, observables=[area, width]
+    )
     func_obs = list(unroll_func_obs(vol))
     assert func_obs == [area, vol]  # oredering matters for functionalObs
     func_obs = list(unroll_func_obs([vol, area]))
