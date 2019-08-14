@@ -29,12 +29,11 @@ from tabulate import tabulate
 INTERNALS_OBSERVABLES_BASENAME = (
     "observables.txt"
 )  # file to store the list of observables in experiment/internals/observables.txt
-_re_codestring = "T([a-z])([a-z]*\d*[\.,]*\d*)M([a-z\-]+)J(\d+)"
+_regex_codestring = re.compile("T([a-z])([a-z]*\d*[\.,]*\d*)M([a-z\-]+)J(\d+)")
 
 
 def _is_valid_codestring(codestring):
-    chain = re.compile(_re_codestring)
-    m = chain.match(codestring)
+    m = _regex_codestring.match(codestring)
     if m:
         return True
     else:
@@ -412,8 +411,7 @@ class Observable(object):
             warnings.warn(msg)
 
         # test whether codestring is valid: must have T and M flags
-        chain = re.compile(_re_codestring)
-        m = chain.match(codestring)
+        m = _regex_codestring.match(codestring)
         if m:
             timing, stref, mode, sjoin = m.groups()
             self.timing = timing
