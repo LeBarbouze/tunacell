@@ -35,6 +35,7 @@ else:
 from tqdm import tqdm
 
 from tunacell.base.container import Container
+from tunacell.base.observable import Observable
 from tunacell.filters.main import FilterSet, FilterTRUE
 from tunacell.filters.cells import FilterCell
 from tunacell.filters.containers import FilterContainer
@@ -534,7 +535,10 @@ class Experiment(object):
             for lin in self.iter_lineages(shuffle=shuffle):
                 for cell in lin.iter_cells(shuffle=shuffle):
                     yield cell
-        return
+
+    def load_observables_from_internals(self):
+        """Load list of observables from internals folder"""
+        return Observable.load_list_from_internals(self)
 
     def raw_text_export(self, path=".", metadata_extension=".yml"):
         """Export raw data as text containers in correct directory structure.
