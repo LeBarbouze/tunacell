@@ -323,6 +323,12 @@ class FilterTRUE(FilterBoolean):
 
     We need this artificial Filter to plug in defaults FilterSets.
 
+    .. deprecated:: 0.2.3
+            `FilterTRUE` will be removed in version 0.3.0, it is replaced
+            by 'FilterCellAny` for cell type, `FilterLineageAnt` for lineage
+            type, `FilterTreeAny` for tree type, `FilterContainerAny` for
+            container type.
+
     """
 
     def __init__(self):
@@ -346,10 +352,6 @@ class FilterAND(FilterBoolean):
     :class:`FilterGeneral` instance
         will perform AND boolean operation between the various filters passed
         as arguments.
-
-    Notes
-    -----
-    Defines a FilterTrue
     """
 
     def __init__(self, *filters):
