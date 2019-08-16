@@ -17,7 +17,7 @@ class FilterCell(FilterGeneral):
     "General class for filtering cell objects (reader.Cell instances)"
 
     _type = "CELL"
-    INTERNAL_BASENAME = "filtercells.txt"
+    _INTERNAL_BASENAME = "filter_cells.txt"
 
 
 class FilterCellAny(FilterCell):

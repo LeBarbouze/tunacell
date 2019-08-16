@@ -18,7 +18,7 @@ class FilterLineage(FilterGeneral):
     "TODO: define lineage object (as tree?)"
 
     _type = "LINEAGE"
-    INTERNAL_BASENAME = "filterlineages.txt"
+    _INTERNAL_BASENAME = "filter_lineages.txt"
 
 
 class FilterLineageAny(FilterLineage):

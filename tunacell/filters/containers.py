@@ -12,7 +12,7 @@ class FilterContainer(FilterGeneral):
     """General class to filter containers"""
 
     _type = "CONTAINER"
-    INTERNAL_BASENAME = "filtercontainers.txt"
+    _INTERNAL_BASENAME = "filter_containers.txt"
 
 
 class FilterContainerAny(FilterContainer):
