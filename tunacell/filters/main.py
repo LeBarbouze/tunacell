@@ -215,7 +215,7 @@ class FilterGeneral(object):
         name = type(self).__name__
         chain = name + "("
         for name, val in inspect.getmembers(self, predicate=self._isattr):
-            if name[0] != "_" and name != "label":
+            if name[0] != "_" and name != "label" and name != 'obs':
                 chain += "{}={}, ".format(name, repr(val))
         chain += ")"
         return chain
