@@ -283,7 +283,7 @@ def read_count_file(filter_path):
     if not os.path.exists(count_file):
         raise MissingFileError
     with open(count_file, "r") as f:
-        counts = yaml.load(f)
+        counts = yaml.load(f, Loader=yaml.SafeLoader)
     # check that information is correctly stored
     a = "cells" in counts
     b = "lineages" in counts
