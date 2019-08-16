@@ -319,7 +319,11 @@ class Experiment(object):
         """
         if filter_for_cells == "from_fset":
             cell_filter = self.fset.cell_filter
-        elif filter_for_cells is None or filter_for_cells == "none" or isinstance(filter_for_cells, FilterTRUE):  # backward compatibility, maybe?
+        elif (
+            filter_for_cells is None
+            or filter_for_cells == "none"
+            or isinstance(filter_for_cells, FilterTRUE)
+        ):  # backward compatibility, maybe?
             cell_filter = FilterCellAny()
         elif isinstance(filter_for_cells, FilterCell):
             cell_filter = filter_for_cells

@@ -147,7 +147,9 @@ class FilterGeneral(object):
     _label = ""  # to be updated
     _type = None  # to be determined
     _obs = []  # declare observables that need to be computed prior to filter
-    _INTERNAL_BASENAME = None  # to be fixed for each subclass (cells/lineages/colonies/containers)
+    _INTERNAL_BASENAME = (
+        None
+    )  # to be fixed for each subclass (cells/lineages/colonies/containers)
 
     @classmethod
     def load_from_repr(cls, representation):
@@ -215,7 +217,7 @@ class FilterGeneral(object):
         name = type(self).__name__
         chain = name + "("
         for name, val in inspect.getmembers(self, predicate=self._isattr):
-            if name[0] != "_" and name != "label" and name != 'obs':
+            if name[0] != "_" and name != "label" and name != "obs":
                 chain += "{}={}, ".format(name, repr(val))
         chain += ")"
         return chain
@@ -271,6 +273,7 @@ class FilterGeneral(object):
     def save_in_internals(self, exp):
         """Save representation of current filter in corresponding internals file"""
         pass  # TODO: IMPLEMENT
+
 
 class FilterBoolean(FilterGeneral):
     """General class to implement Boolean operations between filters
