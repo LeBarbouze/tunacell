@@ -6,7 +6,7 @@ This script is a recap of commands used in the 10 minute tutorial of tunacell
 documentation.
 """
 from __future__ import print_function
-from builtins import input  # future package 
+from builtins import input  # future package
 import argparse
 import time
 
@@ -53,18 +53,18 @@ if __name__ == '__main__':
 
     path_to_exp = args.experiment
     exp = Experiment(path_to_exp)  # this defines the Experiment object
-    
+
     print(exp)
-    
+
     if args.interactive:
         ans = input('Press Enter to proceed')
     print()
-    
+
     # To collect small samples, we use the Parser object
     print('Parsing samples with the Parser class')
     print('*************************************')
     parser = Parser(path_to_exp)
-    
+
     # Add a known sample
     parser.add_sample(('container_079', 4))  # this one works out on default settings
     parser.add_sample(1)  # adds 1 random sample default settings have not been used
@@ -73,7 +73,7 @@ if __name__ == '__main__':
     if args.interactive:
         ans = input('Press Enter to proceed')
     print()
-    
+
     # get cell corresponding to sample index 0
     print('Collecting cell structure for the first sample')
     print('**********************************************')
@@ -89,7 +89,7 @@ if __name__ == '__main__':
     if args.interactive:
         ans = input('Press Enter to proceed')
     print()
-    
+
     # get colony corresponding to sample index 0
     print('Collecting colony structure for the first sample')
     print('************************************************')
@@ -98,18 +98,18 @@ if __name__ == '__main__':
     if args.interactive:
         ans = input('Press Enter to proceed')
     print()
-    
+
     # define observable from raw data
     print('Define the size Observable')
     print('**************************')
     from tunacell import Observable
     obs = Observable(name='size', raw='exp_ou_int')
     print(obs)
-    print(obs.as_string_table())
+    print(obs.to_string_table())
     if args.interactive:
         ans = input('Press Enter to proceed')
     print()
-    
+
     # plotting timeseries of our colony
     print('Plotting timeseries of cell size for cells in our chosen colony')
     print('***************************************************************')
@@ -126,7 +126,7 @@ if __name__ == '__main__':
     else:
         time.sleep(single_plot_timing)
     print()
-    
+
     # Statistics of the dynamics
     print('Computing the dynamic moments of the growth-rate observable')
     print('***********************************************************')
@@ -140,7 +140,7 @@ if __name__ == '__main__':
     if args.interactive:
         ans = input('Press Enter to proceed')
     print()
-    
+
     # Plotting the statistics
     print('Plotting the dynamic moments of growth rate')
     print('*******************************************')
