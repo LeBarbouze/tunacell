@@ -16,7 +16,7 @@ import warnings
 
 from tabulate import tabulate
 
-from tunacell.filters.main import FilterSet
+from tunacell.filters.filterset import FilterSet
 
 from tunacell.base.experiment import Experiment
 from tunacell.base.container import ParsingContainerError

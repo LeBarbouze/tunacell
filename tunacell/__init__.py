@@ -9,5 +9,5 @@ __version__ = "0.2.2"
 # API level classes
 from tunacell.base.experiment import Experiment
 from tunacell.base.observable import Observable
-from tunacell.filters.main import FilterSet
+from tunacell.filters.filterset import FilterSet
 from tunacell.base.parser import Parser

@@ -36,11 +36,12 @@ from tqdm import tqdm
 
 from tunacell.base.container import Container
 from tunacell.base.observable import Observable
-from tunacell.filters.main import FilterSet, FilterTRUE
-from tunacell.filters.cells import FilterCell
-from tunacell.filters.containers import FilterContainer
-from tunacell.filters.trees import FilterTree
-from tunacell.filters.lineages import FilterLineage
+from tunacell.filters.main import FilterTRUE
+from tunacell.filters.filterset import FilterSet
+from tunacell.filters.cells import FilterCell, FilterCellAny
+from tunacell.filters.containers import FilterContainer, FilterContainerAny
+from tunacell.filters.trees import FilterTree, FilterTreeAny
+from tunacell.filters.lineages import FilterLineage, FilterLineageAny
 from tunacell.io import text, supersegger, analysis
 
 
@@ -318,8 +319,8 @@ class Experiment(object):
         """
         if filter_for_cells == "from_fset":
             cell_filter = self.fset.cell_filter
-        elif filter_for_cells is None or filter_for_cells == "none":
-            cell_filter = FilterTRUE()
+        elif filter_for_cells is None or filter_for_cells == "none" or isinstance(filter_for_cells, FilterTRUE):  # backward compatibility, maybe?
+            cell_filter = FilterCellAny()
         elif isinstance(filter_for_cells, FilterCell):
             cell_filter = filter_for_cells
         else:
@@ -327,7 +328,7 @@ class Experiment(object):
         if filter_for_containers == "from_fset":
             container_filter = self.fset.container_filter
         elif filter_for_containers is None or filter_for_containers == "none":
-            container_filter = FilterTRUE()
+            container_filter = FilterContainerAny()
         elif isinstance(filter_for_containers, FilterContainer):
             container_filter = filter_for_containers
         containers = self.containers[:]
@@ -430,11 +431,11 @@ class Experiment(object):
         if filter_for_colonies == "from_fset":
             colony_filter = self.fset.colony_filter
         elif filter_for_colonies is None or filter_for_colonies == "none":
-            colony_filter = FilterTRUE()
+            colony_filter = FilterTreeAny()
         elif isinstance(filter_for_colonies, FilterTree):
             colony_filter = filter_for_colonies
         elif isinstance(filter_for_colonies, FilterTRUE):
-            colony_filter = filter_for_colonies
+            colony_filter = FilterTreeAny()  # backward compatibility, maybe?
         else:
             raise ValueError('"filter_for_colonies" parameter not recognized')
         #        colfilt = self.fset.colony_filter
@@ -478,11 +479,11 @@ class Experiment(object):
         if filter_for_lineages == "from_fset":
             lineage_filter = self.fset.lineage_filter
         elif filter_for_lineages is None or filter_for_lineages == "none":
-            lineage_filter = FilterTRUE()
+            lineage_filter = FilterLineageAny()
         elif isinstance(filter_for_lineages, FilterLineage):
             lineage_filter = filter_for_lineages
         elif isinstance(filter_for_lineages, FilterTRUE):
-            lineage_filter = filter_for_lineages
+            lineage_filter = FilterLineageAny()  # backward compatibility, maybe?
         else:
             raise ValueError('"filter_for_lineages" parameter not recognized')
         #        lin_filt = self.fset.lineage_filter

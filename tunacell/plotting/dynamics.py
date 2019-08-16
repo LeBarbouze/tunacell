@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from matplotlib import ticker
 import matplotlib.gridspec as gridspec
 
-from tunacell.filters.main import FilterSet
+from tunacell.filters.filterset import FilterSet
 from tunacell.stats.single import Univariate, StationaryUnivariate
 from tunacell.stats.two import StationaryBivariate
 from tunacell.io import text

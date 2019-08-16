@@ -22,7 +22,8 @@ from tunacell.io.text import (
 from tunacell.base.observable import Observable, FunctionalObservable
 
 # import a bunch of filters to be able to load them using eval
-from tunacell.filters.main import FilterAND, FilterOR, FilterNOT, FilterTRUE, FilterSet
+from tunacell.filters.main import FilterAND, FilterOR, FilterNOT, FilterTRUE
+from tunacell.filters.filterset import FilterSet
 from tunacell.filters.cells import (
     FilterCellAny,
     FilterCellIDparity,

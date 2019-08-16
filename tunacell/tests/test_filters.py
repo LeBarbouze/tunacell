@@ -9,7 +9,7 @@ import pytest
 
 from tunacell import Observable
 
-from tunacell.filters.main import FilterSet
+from tunacell.filters.filterset import FilterSet
 from tunacell.filters.cells import (
     FilterCellAny,
     FilterCellIDparity,
