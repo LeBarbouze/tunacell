@@ -28,6 +28,7 @@ python:
       extra_requirements:
         - sphinx_rtd_theme
         - numpydoc
+        - git_lfs  # hack to include images that are git LFS
     - method: setuptools
       path: .
 
