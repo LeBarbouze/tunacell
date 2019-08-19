@@ -10,7 +10,7 @@ import treelib
 
 from tunacell.base.lineage import Lineage
 from tunacell.filters.main import FilterTRUE
-from tunacell.filters.lineages import FilterLineage
+from tunacell.filters.lineages import FilterLineage, FilterLineageAny
 
 
 class ColonyError(Exception):
@@ -106,12 +106,12 @@ class Colony(treelib.Tree):
         shuffle=False,
     ):
         """Iterates through lineages using tree decomposition
-        
+
         When a decomposition has already been performed, call to this method
         will check decomposition parameters(`independent`, `seed`): if they
         are the same, the previous cell sequences are used identically,
         otherwise a new decomposition is computed.
-        
+
         Parameters
         ----------
         independent : bool {True, False}
@@ -129,7 +129,7 @@ class Colony(treelib.Tree):
         Yields
         ------
         Lineage instance
-        
+
         See also
         --------
         decompose : tree decomposition
@@ -149,11 +149,11 @@ class Colony(treelib.Tree):
         if filter_for_lineages is "from_fset":
             lineage_filter = self.container.exp.fset.lineage_filter
         elif filter_for_lineages is None or filter_for_lineages is "none":
-            lineage_filter = FilterTRUE()
+            lineage_filter = FilterLineageAny()
         elif isinstance(filter_for_lineages, FilterLineage):
             lineage_filter = filter_for_lineages
-        elif isinstance(filter_for_lineages, FilterTRUE):
-            lineage_filter = filter_for_lineages
+        elif isinstance(filter_for_lineages, FilterTRUE):  # kept for compatibility purpose w/ previous analyses
+            lineage_filter = FilterLineageAny
         else:
             raise ValueError('"filter_for_lineages" parameter not recognized')
 
@@ -173,11 +173,11 @@ def _randomise(param):
 
 def build_recursively_from_cells(cells, container=None):
     """Build recursively a list of Colony instance from a list of Cells
-    
+
     Parameters
     ----------
     cells : list of Cell instances
-    
+
     Returns
     -------
     colonies: list of Colony instances

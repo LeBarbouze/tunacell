@@ -24,7 +24,8 @@ from tunacell.base.cell import filiate_from_bpointer
 from tunacell.base.colony import Colony, build_recursively_from_cells
 from tunacell.base.observable import set_observable_list
 from tunacell.filters.main import FilterTRUE
-from tunacell.filters.trees import FilterTree
+from tunacell.filters.containers import FilterContainerAny
+from tunacell.filters.trees import FilterTree, FilterTreeAny
 
 
 logger = logging.getLogger(__name__)
@@ -380,11 +381,11 @@ class Container(object):
         if filter_for_colonies is "from_fset":
             colony_filter = self.exp.fset.colony_filter
         elif filter_for_colonies is None or filter_for_colonies is "none":
-            colony_filter = FilterTRUE()
+            colony_filter = FilterTreeAny()
         elif isinstance(filter_for_colonies, FilterTree):
             colony_filter = filter_for_colonies
-        elif isinstance(filter_for_colonies, FilterTRUE):
-            colony_filter = filter_for_colonies
+        elif isinstance(filter_for_colonies, FilterTRUE):  # kept for compatibily purpose
+            colony_filter = FilterTreeAny()
         else:
             raise ValueError('"filter_for_colonies" parameter not recognized')
         trees = self.trees[:]
