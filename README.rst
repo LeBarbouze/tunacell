@@ -45,7 +45,7 @@ Main features
 Install
 =======
 
-Install the package from PyPI:
+Install the package from PyPI::
 
     $ pip install tunacell
 

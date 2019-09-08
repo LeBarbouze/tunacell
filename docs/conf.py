@@ -16,9 +16,28 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
+import os
+import logging
+import sys
 # sys.path.insert(0, os.path.abspath('.'))
+
+logger = logging.getLogger(__name__)
+
+DOC_SOURCES_DIR = os.path.dirname(os.path.abspath(__file__))
+logger.info("Documentation folder: {}".format(DOC_SOURCES_DIR))
+PROJECT_ROOT_DIR = os.path.dirname(DOC_SOURCES_DIR)
+logger.info("Project folder: {}".format(PROJECT_ROOT_DIR))
+
+# insert
+sys.path.insert(0, DOC_SOURCES_DIR)
+
+# this is quite dirty approach but we're not working at NASA and nobody can die
+# because of that. Am I right?
+on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+if on_rtd:
+    # hack for lacking git-lfs support on rtd
+    import git_lfs
+    git_lfs.fetch(PROJECT_ROOT_DIR)
 
 
 # -- General configuration ------------------------------------------------
