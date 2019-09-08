@@ -108,7 +108,7 @@ In ``tuna``, there is a special procedure to estimate :math:`\tilde{a}` which is
 to use the lineage decomposition to generate time series, and then for a given
 time interval :math:`u`, we collect all couple of points
 :math:`(t_i, t_j)` such that :math:`u = t_i - t_j`, and perform the average
-over all these samples. 
+over all these samples.
 
 We can extend such a computation to two observables :math:`x(t)` and
 :math:`y(t)`. The relevant quantity is the cross-correlation function
@@ -210,7 +210,7 @@ As the master is always defined, one can alternatively use the attribute::
     result = univ.master
 
 
-Inspecting univariate results 
+Inspecting univariate results
 ''''''''''''''''''''''''''''''''''''
 
 The objects ``result`` and ``result_conditioned`` are instances of the
@@ -334,6 +334,7 @@ The first figure, stored in ``fig1``, looks like:
 .. _fig-one-point:
 
 .. figure:: /images/plot_onepoint_exact-growth-rate_ALL.png
+   :width: 60%
 
    Plot of one-point functions computed by ``tuna``. The first row shows the
    sample counts vs. time, :math:`s^{(1)}_i` vs. :math:`t_i`. The middle row
@@ -356,6 +357,7 @@ The second figure, stored in ``fig2``, looks like so:
 .. _fig-two-point:
 
 .. figure:: /images/plot_twopoints_exact-growth-rate_ALL.png
+   :width: 60%
 
    Plot of two-point functions. Three times of reference are chosen to display
    the associated functions. Top row shows the sample counts, *i.e.* the
@@ -364,7 +366,7 @@ The second figure, stored in ``fig2``, looks like so:
    :math:`a(t_{\mathrm{ref}}, t)/\sigma^2(t_{\mathrm{ref}})`.
    The bottom row show the translated functions
    :math:`a(t_{\mathrm{ref}}, t-t_{\mathrm{ref}})/\sigma^2(t_{\mathrm{ref}})`.
-   One can guess that they peak at :math:`t-t_{\mathrm{ref}} \approx 0`, 
+   One can guess that they peak at :math:`t-t_{\mathrm{ref}} \approx 0`,
    though decay on both sides are quite irregular compared to the expected
    behaviour due to the low sample size.
 
@@ -450,6 +452,7 @@ instance. The second parameter displays an exponential decay (to compare with
 data).
 
 .. figure:: /images/plot_stationary_exact-growth-rate_ALL.png
+   :width: 60%
 
    Plot of stationary autocorrelation function. Top row is the number of
    samples, *i.e.* the number of (disjoint) segments of size :math:`\Delta t`
@@ -499,7 +502,7 @@ text files before. Hence a convenient way to work is::
         print('Launching computation')
         univ = compute_univariate(exp, ou, cset=[condition, ])
         univ.export_text()
-    
+
 
 Bivariate analysis: cross-correlations
 --------------------------------------------------------
@@ -593,6 +596,7 @@ autocorrelation functions::
 which should plot something like:
 
 .. figure:: /images/plot_stationary_exact-growth-rate---approx-growth-rate_ALL.png
+   :width: 60%
 
    Plot of the stationary cross-correlation function of the Ornstein-Uhlenbeck
    process with the local growth rate estimate using the exponential of the
@@ -608,6 +612,7 @@ If one performs a similar analysis with the two cell-cycle observables,
 for example:
 
 .. figure:: /images/plot_stationary_average-growth-rate---division-size_ALL.png
+   :width: 60%
 
    Plot of the stationary cross-correlation function of the cell-cycle average
    growth rate with the cell length at division, with respect to the number of
