@@ -44,7 +44,7 @@ plotting small samples in few test cases.
 Setting up samples and observables
 -----------------------------------
 
-For plotting demonstration, 
+For plotting demonstration,
 we will create a numerically simulated experiment, where the dynamics
 is sampled on a time interval short enough for the colonies to be of reasonable
 size. Call from a terminal::
@@ -56,12 +56,12 @@ In a Python script/shell, we load data with the usual::
     from tunacell import Experiment, Parser, Observable, FilterSet
     from tunacell.filters.cells import FilterCellIDparity
     from tunacell.plotting.samples import SamplePlot
-    
+
     exp = Experiment('~/tmptunacell/simushort')
     parser = Parser(exp)
     np.random.seed(seed=951)  # uncomment this line to match samples/plots below
     parser.add_sample(10)
-    
+
     # define a condition
     even = FilterCellIDparity('even')
     condition = FilterSet(filtercell=even)
@@ -69,7 +69,7 @@ In a Python script/shell, we load data with the usual::
     # define observable
     length = Observable(name='length', raw='exp_ou_int')
     ou = Observable(name='growth-rate', raw='ou')
-    
+
 We have defined two observables and one condition used as a toy example.
 With these preliminary lines, we are ready to plot timeseries. The main object
 to call is :class:`SamplePlot`, which accepts the following parameters:
@@ -133,6 +133,7 @@ The figure is stored as the :attr:`fig` attribute of :code:`colplt`::
 This kind of plot should be produced:
 
 .. figure:: /images/colony0-plot.png
+   :width: 60%
 
    Timeseries of length vs time for one colony, default settings.
 
@@ -163,6 +164,7 @@ the :func:`repr` call.
 Now the :attr:`fig` attribute should store the following result:
 
 .. figure:: /images/colony0-even-plot.png
+   :width: 60%
 
    Timeseries of length vs time for one colony. Plain markers are used for
    samples that verify the condition (cell identifier is even), empty markers
@@ -183,6 +185,7 @@ Changing cell colour
     colplt.make_plot(length, report_condition=repr(condition), change_cell_color=True)
 
 .. figure:: /images/colony0-even-cell-color-plot.png
+   :width: 60%
 
   Colour is changed for each cell, and assigned with respect to the generation
   index of the cell in the colony. This allows to investigate how generations
@@ -196,6 +199,7 @@ Changing lineage colour
     colplt.make_plot(length, report_condition=repr(condition), change_lineage_color=True)
 
 .. figure:: /images/colony0-even-lineage-color-plot.png
+   :width: 60%
 
   Colour is changed for each lineage, *i.e* each row in this colony plot.
 
@@ -222,6 +226,7 @@ For example, if we superimpose at most 3 lineages::
                  superimpose=3)
 
 .. figure:: /images/colony0-even-super3-plot.png
+   :width: 60%
 
    Superimposition of at most 3 lineages with :code:`superimpose=3`. Once
    :code:`superimpose` is different from ``'none'`` (or 1), the vertical lines
@@ -243,6 +248,7 @@ colonies in the same plot, that can be given as an iterable over colonies::
 Here we iterated over colonies from the samples defined in ``parser.samples``.
 
 .. figure:: /images/colonies-even-plot.png
+   :width: 60%
 
    First two colonies from ``parser.samples``, with changing colony colour
    option.
@@ -267,6 +273,7 @@ files::
 
 
 .. figure:: /images/colonies5-ou-even-plot.png
+   :width: 60%
 
    Two lineages are superimposed on each row. Colour is changed for each new
    colony.
@@ -280,6 +287,7 @@ to distinguish better individual timeseries::
                     alpha=.6)
 
 .. figure:: /images/lineages-from-colonies5-plot.png
+   :width: 60%
 
    Lineages from the 5 colonies superimposed on a single row plot.
 
@@ -297,6 +305,7 @@ or an iterable over lineages as argument of the plotting environment::
 
 
 .. figure:: /images/lineages10-plot.png
+   :width: 60%
 
    10 lineages from an iterator on a single row plot.
 
@@ -323,6 +332,7 @@ values::
                     ref_mean=ref_mean, ref_var=ref_var)
 
 .. figure:: /images/lineages10-with-ref-plot.png
+   :width: 60%
 
    Timeseries from lineages are reported together with theoretical mean value
    (dash-dotted horizontal line) +/- one standard deviation (dotted lines).
@@ -340,6 +350,7 @@ is useful when no theoretical values exist (most of the time)::
                 data_statistics=True)
 
 .. figure:: /images/lineages10-with-stats-plot.png
+   :width: 60%
 
    Data statistics have been added: grey line shows the estimated mean value
    and shadows show +/- one estimated standard deviation. Note that these

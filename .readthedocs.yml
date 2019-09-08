@@ -23,11 +23,7 @@ python:
   version: 3.7
   install:
     - requirements: requirements.txt
-    - method: pip
-      path: .
-      extra_requirements:
-        - sphinx_rtd_theme
-        - numpydoc
+    - requirements: docs/requirements.txt
     - method: setuptools
       path: .
 
